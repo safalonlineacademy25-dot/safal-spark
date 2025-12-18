@@ -14,21 +14,23 @@ import {
   TrendingUp,
   IndianRupee,
   Download,
-  Plus,
   Edit,
-  Trash2,
   Eye,
   Search,
-  MoreHorizontal,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useAdminStore, products } from '@/lib/store';
+import { useAdminStore } from '@/lib/store';
+import { useProducts } from '@/hooks/useProducts';
+import AddProductDialog from '@/components/admin/AddProductDialog';
+import DeleteProductDialog from '@/components/admin/DeleteProductDialog';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated, logout } = useAdminStore();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const { data: products, isLoading: productsLoading } = useProducts();
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -228,56 +230,61 @@ const AdminDashboard = () => {
               >
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-foreground">All Products</h2>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Product
-                  </Button>
+                  <AddProductDialog />
                 </div>
 
                 <div className="bg-card rounded-xl border border-border overflow-hidden">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-border bg-muted/30">
-                        <th className="text-left p-4 text-sm font-medium text-muted-foreground">Product</th>
-                        <th className="text-left p-4 text-sm font-medium text-muted-foreground">Category</th>
-                        <th className="text-left p-4 text-sm font-medium text-muted-foreground">Price</th>
-                        <th className="text-left p-4 text-sm font-medium text-muted-foreground">Downloads</th>
-                        <th className="text-left p-4 text-sm font-medium text-muted-foreground">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {products.map((product) => (
-                        <tr key={product.id} className="border-b border-border last:border-0 hover:bg-muted/30">
-                          <td className="p-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-                                {product.category === 'notes' && '📚'}
-                                {product.category === 'mock-papers' && '📝'}
-                                {product.category === 'combo' && '🎁'}
-                              </div>
-                              <span className="font-medium text-foreground">{product.name}</span>
-                            </div>
-                          </td>
-                          <td className="p-4 text-sm text-muted-foreground capitalize">{product.category}</td>
-                          <td className="p-4 text-sm font-medium price-text">₹{product.price}</td>
-                          <td className="p-4 text-sm text-muted-foreground">{product.downloadCount?.toLocaleString()}</td>
-                          <td className="p-4">
-                            <div className="flex items-center gap-2">
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </td>
+                  {productsLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : !products || products.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      No products found. Add your first product above.
+                    </div>
+                  ) : (
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-border bg-muted/30">
+                          <th className="text-left p-4 text-sm font-medium text-muted-foreground">Product</th>
+                          <th className="text-left p-4 text-sm font-medium text-muted-foreground">Category</th>
+                          <th className="text-left p-4 text-sm font-medium text-muted-foreground">Price</th>
+                          <th className="text-left p-4 text-sm font-medium text-muted-foreground">Downloads</th>
+                          <th className="text-left p-4 text-sm font-medium text-muted-foreground">Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {products.map((product) => (
+                          <tr key={product.id} className="border-b border-border last:border-0 hover:bg-muted/30">
+                            <td className="p-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                                  {product.category === 'notes' && '📚'}
+                                  {product.category === 'mock-papers' && '📝'}
+                                  {product.category === 'combo' && '🎁'}
+                                </div>
+                                <span className="font-medium text-foreground">{product.name}</span>
+                              </div>
+                            </td>
+                            <td className="p-4 text-sm text-muted-foreground capitalize">{product.category}</td>
+                            <td className="p-4 text-sm font-medium price-text">₹{product.price}</td>
+                            <td className="p-4 text-sm text-muted-foreground">{product.download_count?.toLocaleString() || 0}</td>
+                            <td className="p-4">
+                              <div className="flex items-center gap-2">
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <DeleteProductDialog productId={product.id} productName={product.name} />
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
                 </div>
               </motion.div>
             )}
