@@ -15,6 +15,7 @@ const ProductsSection = () => {
   };
 
   const handleAddToCart = (product: typeof products[0]) => {
+    console.log('Add to cart clicked:', product.id);
     if (isInCart(product.id)) {
       toast({
         title: 'Already in cart',
@@ -23,6 +24,7 @@ const ProductsSection = () => {
       return;
     }
     addItem(product);
+    console.log('Item added to cart');
     toast({
       title: 'Added to cart!',
       description: `${product.name} has been added to your cart.`,
@@ -150,9 +152,13 @@ const ProductsSection = () => {
                       )}
                     </div>
                     <Button
-                      onClick={() => handleAddToCart(product)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAddToCart(product);
+                      }}
                       variant={isInCart(product.id) ? 'secondary' : 'default'}
                       size="sm"
+                      className="relative z-10"
                     >
                       {isInCart(product.id) ? (
                         <>
