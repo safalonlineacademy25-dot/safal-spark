@@ -75,7 +75,7 @@ const Cart = () => {
   return (
     <>
       <Helmet>
-        <title>Cart ({items.length}) | Safal Online Academy</title>
+        <title>{`Cart (${items.length}) | Safal Online Academy`}</title>
       </Helmet>
 
       <div className="min-h-screen flex flex-col">
