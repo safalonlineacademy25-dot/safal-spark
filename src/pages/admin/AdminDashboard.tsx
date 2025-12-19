@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import {
@@ -20,26 +20,34 @@ import {
   Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useAdminStore } from '@/lib/store';
+import { useAuth, signOut } from '@/hooks/useAuth';
 import { useProducts } from '@/hooks/useProducts';
 import AddProductDialog from '@/components/admin/AddProductDialog';
 import DeleteProductDialog from '@/components/admin/DeleteProductDialog';
+import { toast } from 'sonner';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { isAuthenticated, logout } = useAdminStore();
+  const { user, isAdmin, isLoading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const { data: products, isLoading: productsLoading } = useProducts();
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/admin');
+    if (!authLoading) {
+      if (!user) {
+        navigate('/admin');
+      } else if (!isAdmin) {
+        toast.error('Access denied', {
+          description: 'You do not have admin permissions.',
+        });
+        signOut();
+        navigate('/admin');
+      }
     }
-  }, [isAuthenticated, navigate]);
+  }, [user, isAdmin, authLoading, navigate]);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await signOut();
     navigate('/admin');
   };
 
@@ -66,7 +74,15 @@ const AdminDashboard = () => {
     { id: 'ORD-004', customer: 'Neha Gupta', product: 'Combo Pack', amount: '₹449', status: 'Completed', date: '1 day ago' },
   ];
 
-  if (!isAuthenticated) return null;
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user || !isAdmin) return null;
 
   return (
     <>

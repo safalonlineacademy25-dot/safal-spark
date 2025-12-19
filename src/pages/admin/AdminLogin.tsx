@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
-import { BookOpen, Lock, Mail, Eye, EyeOff } from 'lucide-react';
+import { BookOpen, Lock, Mail, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useAdminStore } from '@/lib/store';
-import { useToast } from '@/hooks/use-toast';
+import { useAuth, signIn } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('');
@@ -13,31 +13,41 @@ const AdminLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const login = useAdminStore((state) => state.login);
-  const { toast } = useToast();
+  const { user, isAdmin, isLoading: authLoading } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (!authLoading && user && isAdmin) {
+      navigate('/admin/dashboard');
+    }
+  }, [user, isAdmin, authLoading, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    setTimeout(() => {
-      const success = login(email, password);
-      if (success) {
-        toast({
-          title: 'Login successful',
-          description: 'Welcome to the admin panel.',
-        });
-        navigate('/admin/dashboard');
-      } else {
-        toast({
-          title: 'Login failed',
-          description: 'Invalid email or password. Try admin@safal.com / admin123',
-          variant: 'destructive',
-        });
-      }
+    try {
+      await signIn(email, password);
+      toast.success('Login successful', {
+        description: 'Checking admin permissions...',
+      });
+      // The useEffect will handle navigation once isAdmin is determined
+    } catch (error: any) {
+      console.error('Login error:', error);
+      toast.error('Login failed', {
+        description: error.message || 'Invalid email or password.',
+      });
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -59,7 +69,7 @@ const AdminLogin = () => {
               </div>
               <h1 className="text-2xl font-bold text-foreground">Admin Login</h1>
               <p className="text-sm text-muted-foreground mt-1">
-                Sign in to manage Safal Online Academy
+                Sign in with your Supabase admin account
               </p>
             </div>
 
@@ -75,7 +85,7 @@ const AdminLogin = () => {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="admin@safal.com"
+                    placeholder="admin@example.com"
                     required
                     className="w-full pl-10 pr-4 py-3 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   />
@@ -107,16 +117,21 @@ const AdminLogin = () => {
               </div>
 
               <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
-                {isLoading ? 'Signing in...' : 'Sign In'}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  'Sign In'
+                )}
               </Button>
             </form>
 
-            {/* Demo Credentials */}
+            {/* Info */}
             <div className="mt-6 p-4 rounded-lg bg-muted/50">
               <p className="text-xs text-muted-foreground text-center">
-                <strong>Demo credentials:</strong><br />
-                Email: admin@safal.com<br />
-                Password: admin123
+                <strong>Note:</strong> You must have a Supabase account with 'admin' role in the user_roles table to access the dashboard.
               </p>
             </div>
           </div>
