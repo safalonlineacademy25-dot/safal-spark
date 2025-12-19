@@ -4,7 +4,7 @@ import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { BookOpen, Lock, Mail, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useAuth, signIn } from '@/hooks/useAuth';
+import { useAuth, signIn, signUp } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
 const AdminLogin = () => {
@@ -12,6 +12,7 @@ const AdminLogin = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
   const navigate = useNavigate();
   const { user, isAdmin, isLoading: authLoading } = useAuth();
 
@@ -26,15 +27,22 @@ const AdminLogin = () => {
     setIsLoading(true);
 
     try {
-      await signIn(email, password);
-      toast.success('Login successful', {
-        description: 'Checking admin permissions...',
-      });
-      // The useEffect will handle navigation once isAdmin is determined
+      if (isSignUp) {
+        await signUp(email, password);
+        toast.success('Account created!', {
+          description: 'Please check your email to confirm your account, then contact an admin to grant you access.',
+        });
+        setIsSignUp(false);
+      } else {
+        await signIn(email, password);
+        toast.success('Login successful', {
+          description: 'Checking admin permissions...',
+        });
+      }
     } catch (error: any) {
-      console.error('Login error:', error);
-      toast.error('Login failed', {
-        description: error.message || 'Invalid email or password.',
+      console.error('Auth error:', error);
+      toast.error(isSignUp ? 'Sign up failed' : 'Login failed', {
+        description: error.message || 'An error occurred.',
       });
     } finally {
       setIsLoading(false);
@@ -52,7 +60,7 @@ const AdminLogin = () => {
   return (
     <>
       <Helmet>
-        <title>Admin Login | Safal Online Academy</title>
+        <title>Admin {isSignUp ? 'Sign Up' : 'Login'} | Safal Online Academy</title>
       </Helmet>
 
       <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
@@ -67,9 +75,13 @@ const AdminLogin = () => {
               <div className="inline-flex h-14 w-14 items-center justify-center rounded-xl hero-gradient mb-4">
                 <BookOpen className="h-7 w-7 text-primary-foreground" />
               </div>
-              <h1 className="text-2xl font-bold text-foreground">Admin Login</h1>
+              <h1 className="text-2xl font-bold text-foreground">
+                Admin {isSignUp ? 'Sign Up' : 'Login'}
+              </h1>
               <p className="text-sm text-muted-foreground mt-1">
-                Sign in with your Supabase admin account
+                {isSignUp 
+                  ? 'Create a new admin account' 
+                  : 'Sign in with your admin account'}
               </p>
             </div>
 
@@ -104,6 +116,7 @@ const AdminLogin = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     required
+                    minLength={6}
                     className="w-full pl-10 pr-12 py-3 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                   <button
@@ -120,18 +133,33 @@ const AdminLogin = () => {
                 {isLoading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Signing in...
+                    {isSignUp ? 'Creating account...' : 'Signing in...'}
                   </>
                 ) : (
-                  'Sign In'
+                  isSignUp ? 'Create Account' : 'Sign In'
                 )}
               </Button>
             </form>
 
+            {/* Toggle Sign In / Sign Up */}
+            <div className="mt-6 text-center">
+              <button
+                type="button"
+                onClick={() => setIsSignUp(!isSignUp)}
+                className="text-sm text-primary hover:underline"
+              >
+                {isSignUp 
+                  ? 'Already have an account? Sign In' 
+                  : "Don't have an account? Sign Up"}
+              </button>
+            </div>
+
             {/* Info */}
-            <div className="mt-6 p-4 rounded-lg bg-muted/50">
+            <div className="mt-4 p-4 rounded-lg bg-muted/50">
               <p className="text-xs text-muted-foreground text-center">
-                <strong>Note:</strong> You must have a Supabase account with 'admin' role in the user_roles table to access the dashboard.
+                <strong>Note:</strong> {isSignUp 
+                  ? 'After signing up, an admin must add your account to the admin role before you can access the dashboard.'
+                  : 'You must have admin role in the user_roles table to access the dashboard.'}
               </p>
             </div>
           </div>
