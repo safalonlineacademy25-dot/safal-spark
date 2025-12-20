@@ -114,9 +114,9 @@ const Cart = () => {
                           <span className="text-lg font-bold price-text">
                             ₹{item.product.price}
                           </span>
-                          {item.product.originalPrice && (
+                          {item.product.original_price && (
                             <span className="text-sm price-original">
-                              ₹{item.product.originalPrice}
+                              ₹{item.product.original_price}
                             </span>
                           )}
                         </div>

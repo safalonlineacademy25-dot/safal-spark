@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
-import { ShoppingCart, Check, Download, Star, Filter } from 'lucide-react';
+import { ShoppingCart, Check, Download, Star, Filter, Loader2 } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
-import { products, useCartStore, type Product } from '@/lib/store';
+import { useCartStore } from '@/lib/store';
 import { useToast } from '@/hooks/use-toast';
+import { useActiveProducts, Product } from '@/hooks/useProducts';
 
 const Products = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const { data: products, isLoading, error } = useActiveProducts();
   const addItem = useCartStore((state) => state.addItem);
   const items = useCartStore((state) => state.items);
   const { toast } = useToast();
@@ -23,8 +25,8 @@ const Products = () => {
 
   const filteredProducts =
     selectedCategory === 'all'
-      ? products
-      : products.filter((p) => p.category === selectedCategory);
+      ? products || []
+      : (products || []).filter((p) => p.category === selectedCategory);
 
   const isInCart = (productId: string) => {
     return items.some((item) => item.product.id === productId);
@@ -90,6 +92,19 @@ const Products = () => {
               </div>
 
               {/* Products Grid */}
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : error ? (
+                <div className="text-center py-12 text-destructive">
+                  Failed to load products. Please try again later.
+                </div>
+              ) : filteredProducts.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  No products available in this category.
+                </div>
+              ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
                 {filteredProducts.map((product, index) => (
                   <motion.div
@@ -131,7 +146,7 @@ const Products = () => {
 
                         {/* Features */}
                         <ul className="space-y-2 mb-6 flex-1">
-                          {product.features.map((feature, idx) => (
+                          {(product.features || []).map((feature, idx) => (
                             <li key={idx} className="flex items-start gap-2 text-sm">
                               <Check className="h-4 w-4 text-secondary mt-0.5 shrink-0" />
                               <span className="text-muted-foreground">{feature}</span>
@@ -143,7 +158,7 @@ const Products = () => {
                         <div className="flex items-center gap-4 mb-4 text-sm text-muted-foreground">
                           <div className="flex items-center gap-1">
                             <Download className="h-4 w-4" />
-                            <span>{product.downloadCount?.toLocaleString()}+ downloads</span>
+                            <span>{(product.download_count || 0).toLocaleString()}+ downloads</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
@@ -158,15 +173,15 @@ const Products = () => {
                               <span className="text-2xl font-bold price-text">
                                 ₹{product.price}
                               </span>
-                              {product.originalPrice && (
+                              {product.original_price && (
                                 <span className="text-sm price-original">
-                                  ₹{product.originalPrice}
+                                  ₹{product.original_price}
                                 </span>
                               )}
                             </div>
-                            {product.originalPrice && (
+                            {product.original_price && (
                               <span className="text-xs text-secondary font-medium">
-                                Save ₹{product.originalPrice - product.price}
+                                Save ₹{product.original_price - product.price}
                               </span>
                             )}
                           </div>
@@ -193,6 +208,7 @@ const Products = () => {
                   </motion.div>
                 ))}
               </div>
+              )}
             </div>
           </section>
         </main>
