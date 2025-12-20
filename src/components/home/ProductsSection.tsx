@@ -1,11 +1,13 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, Check, Download, Star } from 'lucide-react';
+import { ShoppingCart, Check, Download, Star, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { products, useCartStore } from '@/lib/store';
+import { useCartStore } from '@/lib/store';
 import { useToast } from '@/hooks/use-toast';
+import { useActiveProducts, Product } from '@/hooks/useProducts';
 
 const ProductsSection = () => {
+  const { data: products, isLoading, error } = useActiveProducts();
   const addItem = useCartStore((state) => state.addItem);
   const items = useCartStore((state) => state.items);
   const { toast } = useToast();
@@ -14,7 +16,7 @@ const ProductsSection = () => {
     return items.some((item) => item.product.id === productId);
   };
 
-  const handleAddToCart = (product: typeof products[0]) => {
+  const handleAddToCart = (product: Product) => {
     console.log('Add to cart clicked:', product.id);
     if (isInCart(product.id)) {
       toast({
@@ -67,6 +69,19 @@ const ProductsSection = () => {
         </motion.div>
 
         {/* Products Grid */}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : error ? (
+          <div className="text-center py-12 text-destructive">
+            Failed to load products. Please try again later.
+          </div>
+        ) : !products || products.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            No products available at the moment.
+          </div>
+        ) : (
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -112,7 +127,7 @@ const ProductsSection = () => {
 
                   {/* Features */}
                   <ul className="space-y-2 mb-6 flex-1">
-                    {product.features.slice(0, 4).map((feature, index) => (
+                    {(product.features || []).slice(0, 4).map((feature, index) => (
                       <li key={index} className="flex items-start gap-2 text-sm">
                         <Check className="h-4 w-4 text-secondary mt-0.5 shrink-0" />
                         <span className="text-muted-foreground">{feature}</span>
@@ -124,7 +139,7 @@ const ProductsSection = () => {
                   <div className="flex items-center gap-4 mb-4 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <Download className="h-4 w-4" />
-                      <span>{product.downloadCount?.toLocaleString()}+ downloads</span>
+                      <span>{(product.download_count || 0).toLocaleString()}+ downloads</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
@@ -139,15 +154,15 @@ const ProductsSection = () => {
                         <span className="text-2xl font-bold price-text">
                           ₹{product.price}
                         </span>
-                        {product.originalPrice && (
+                        {product.original_price && (
                           <span className="text-sm price-original">
-                            ₹{product.originalPrice}
+                            ₹{product.original_price}
                           </span>
                         )}
                       </div>
-                      {product.originalPrice && (
+                      {product.original_price && (
                         <span className="text-xs text-secondary font-medium">
-                          Save ₹{product.originalPrice - product.price}
+                          Save ₹{product.original_price - product.price}
                         </span>
                       )}
                     </div>
@@ -178,6 +193,7 @@ const ProductsSection = () => {
             </motion.div>
           ))}
         </motion.div>
+        )}
 
         {/* View All */}
         <motion.div

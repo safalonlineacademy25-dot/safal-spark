@@ -1,18 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { Tables } from '@/integrations/supabase/types';
 
-export interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  originalPrice?: number;
-  image: string;
-  badge?: 'best-value' | 'popular';
-  category: 'notes' | 'mock-papers' | 'combo';
-  features: string[];
-  downloadCount?: number;
-}
+// Use the database Product type
+export type Product = Tables<'products'>;
 
 export interface CartItem {
   product: Product;
@@ -65,62 +56,7 @@ export const useCartStore = create<CartStore>()(
   )
 );
 
-export const products: Product[] = [
-  {
-    id: 'notes-complete',
-    name: 'Complete Competitive Exam Notes',
-    description: 'Comprehensive notes covering all major competitive exams including SSC, Banking, Railways, and State PSC. Written in easy language with clear concepts.',
-    price: 299,
-    originalPrice: 499,
-    image: '/placeholder.svg',
-    badge: 'popular',
-    category: 'notes',
-    features: [
-      'All subjects covered',
-      'Easy-to-understand language',
-      'Previous year questions included',
-      'Regular updates',
-      'PDF format - instant download',
-    ],
-    downloadCount: 2847,
-  },
-  {
-    id: 'mock-papers',
-    name: 'Mock Question Papers PDF Set',
-    description: 'Practice with 50+ mock question papers designed as per latest exam patterns. Includes detailed solutions and performance analysis tips.',
-    price: 199,
-    originalPrice: 349,
-    image: '/placeholder.svg',
-    category: 'mock-papers',
-    features: [
-      '50+ mock papers',
-      'Latest exam patterns',
-      'Detailed solutions',
-      'Time management tips',
-      'PDF format - instant download',
-    ],
-    downloadCount: 1923,
-  },
-  {
-    id: 'combo-pack',
-    name: 'Notes + Mock Papers Combo Pack',
-    description: 'Get the best of both worlds! Complete notes plus all mock papers at a special discounted price. Perfect for serious aspirants.',
-    price: 449,
-    originalPrice: 848,
-    image: '/placeholder.svg',
-    badge: 'best-value',
-    category: 'combo',
-    features: [
-      'Complete notes package',
-      '50+ mock papers',
-      'Save ₹399 with combo',
-      'Priority support',
-      'Bonus: Study schedule PDF',
-      'PDF format - instant download',
-    ],
-    downloadCount: 3156,
-  },
-];
+// Products are now fetched from Supabase using useActiveProducts hook
 
 // Admin store
 interface AdminState {
