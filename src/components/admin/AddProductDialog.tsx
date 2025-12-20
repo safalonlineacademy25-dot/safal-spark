@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -41,7 +41,7 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
       description: formData.description || null,
       image_url: formData.image_url || null,
       file_url: formData.file_url || null,
-      badge: formData.badge || null,
+      badge: formData.badge && formData.badge.trim().length > 0 ? formData.badge.trim() : null,
       is_active: formData.is_active ?? true,
       features: featuresInput ? featuresInput.split('\n').filter(f => f.trim()) : [],
     };
@@ -84,6 +84,9 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Product</DialogTitle>
+          <DialogDescription>
+            Badge must be one of: Best Value, Popular (or leave empty).
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -128,12 +131,21 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
 
             <div className="space-y-2">
               <Label htmlFor="badge">Badge</Label>
-              <Input
-                id="badge"
-                value={formData.badge || ''}
-                onChange={(e) => setFormData({ ...formData, badge: e.target.value })}
-                placeholder="e.g., Best Seller"
-              />
+              <Select
+                value={(formData.badge && formData.badge.length > 0) ? formData.badge : 'none'}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, badge: value === 'none' ? '' : value })
+                }
+              >
+                <SelectTrigger id="badge">
+                  <SelectValue placeholder="None" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="best-value">Best Value</SelectItem>
+                  <SelectItem value="popular">Popular</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
