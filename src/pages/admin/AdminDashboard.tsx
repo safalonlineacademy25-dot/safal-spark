@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth, signOut } from '@/hooks/useAuth';
 import { useProducts } from '@/hooks/useProducts';
 import AddProductDialog from '@/components/admin/AddProductDialog';
+import EditProductDialog from '@/components/admin/EditProductDialog';
 import DeleteProductDialog from '@/components/admin/DeleteProductDialog';
 import { toast } from 'sonner';
 
@@ -290,9 +291,7 @@ const AdminDashboard = () => {
                                 <Button variant="ghost" size="icon" className="h-8 w-8">
                                   <Eye className="h-4 w-4" />
                                 </Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                  <Edit className="h-4 w-4" />
-                                </Button>
+                                <EditProductDialog product={product} />
                                 <DeleteProductDialog productId={product.id} productName={product.name} />
                               </div>
                             </td>
