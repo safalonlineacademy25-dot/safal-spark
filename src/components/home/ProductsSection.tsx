@@ -108,12 +108,20 @@ const ProductsSection = () => {
                 )}
 
                 {/* Image */}
-                <div className="relative h-48 bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center">
-                  <div className="text-6xl">
-                    {product.category === 'notes' && '📚'}
-                    {product.category === 'mock-papers' && '📝'}
-                    {product.category === 'combo' && '🎁'}
-                  </div>
+                <div className="relative h-48 bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center overflow-hidden">
+                  {product.image_url ? (
+                    <img
+                      src={product.image_url}
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="text-6xl">
+                      {product.category === 'notes' && '📚'}
+                      {product.category === 'mock-papers' && '📝'}
+                      {product.category === 'combo' && '🎁'}
+                    </div>
+                  )}
                 </div>
 
                 {/* Content */}
