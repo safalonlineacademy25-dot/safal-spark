@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus, Loader2, Upload, X, Image as ImageIcon } from 'lucide-react';
 import { useAddProduct, ProductInsert } from '@/hooks/useProducts';
+import { useImageUpload } from '@/hooks/useImageUpload';
 
 interface AddProductDialogProps {
   children?: React.ReactNode;
@@ -27,8 +28,37 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
     features: [],
   });
   const [featuresInput, setFeaturesInput] = useState('');
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const addProduct = useAddProduct();
+  const { uploadImage, isUploading } = useImageUpload();
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Show preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // Upload to Supabase
+    const url = await uploadImage(file);
+    if (url) {
+      setFormData({ ...formData, image_url: url });
+    }
+  };
+
+  const removeImage = () => {
+    setImagePreview(null);
+    setFormData({ ...formData, image_url: '' });
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,6 +99,7 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
       features: [],
     });
     setFeaturesInput('');
+    setImagePreview(null);
   };
 
   return (
@@ -175,12 +206,64 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
             </div>
           </div>
 
+          {/* Image Upload */}
           <div className="space-y-2">
-            <Label htmlFor="image_url">Image URL</Label>
+            <Label>Product Image</Label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageSelect}
+              className="hidden"
+            />
+            
+            {imagePreview || formData.image_url ? (
+              <div className="relative w-full h-40 rounded-lg border border-border overflow-hidden">
+                <img
+                  src={imagePreview || formData.image_url || ''}
+                  alt="Preview"
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={removeImage}
+                  className="absolute top-2 right-2 p-1 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+                {isUploading && (
+                  <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                className="w-full h-40 rounded-lg border-2 border-dashed border-border hover:border-primary/50 transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground"
+              >
+                {isUploading ? (
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                ) : (
+                  <>
+                    <Upload className="h-8 w-8" />
+                    <span className="text-sm">Click to upload image</span>
+                  </>
+                )}
+              </button>
+            )}
+            
+            <p className="text-xs text-muted-foreground">
+              Or paste an external URL below
+            </p>
             <Input
-              id="image_url"
               value={formData.image_url || ''}
-              onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, image_url: e.target.value });
+                setImagePreview(null);
+              }}
               placeholder="https://..."
             />
           </div>
@@ -210,7 +293,7 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={addProduct.isPending}>
+            <Button type="submit" disabled={addProduct.isPending || isUploading}>
               {addProduct.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Add Product
             </Button>
