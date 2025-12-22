@@ -11,6 +11,24 @@ import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
+// Convert Google Drive sharing links to direct image URLs
+const getImageUrl = (url: string): string => {
+  if (!url) return '';
+  
+  // Handle Google Drive sharing links
+  if (url.includes('drive.google.com')) {
+    // Extract file ID from various Google Drive URL formats
+    const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || 
+                        url.match(/id=([a-zA-Z0-9_-]+)/) ||
+                        url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (fileIdMatch && fileIdMatch[1]) {
+      return `https://drive.google.com/uc?export=view&id=${fileIdMatch[1]}`;
+    }
+  }
+  
+  return url;
+};
+
 const Cart = () => {
   const { items, removeItem, clearCart, getTotal } = useCartStore();
   const [whatsappOptIn, setWhatsappOptIn] = useState(true);
@@ -144,12 +162,28 @@ const Cart = () => {
                     className="bg-card rounded-xl border border-border p-4 md:p-6"
                   >
                     <div className="flex gap-4">
-                      <div className="w-20 h-20 rounded-lg bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center shrink-0">
-                        <span className="text-3xl">
-                          {item.product.category === 'notes' && '📚'}
-                          {item.product.category === 'mock-papers' && '📝'}
-                          {item.product.category === 'combo' && '🎁'}
-                        </span>
+                      <div className="w-20 h-20 rounded-lg bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center shrink-0 overflow-hidden">
+                        {item.product.image_url ? (
+                          <img 
+                            src={getImageUrl(item.product.image_url)} 
+                            alt={item.product.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              target.parentElement!.innerHTML = `<span class="text-3xl">${
+                                item.product.category === 'notes' ? '📚' : 
+                                item.product.category === 'mock-papers' ? '📝' : '🎁'
+                              }</span>`;
+                            }}
+                          />
+                        ) : (
+                          <span className="text-3xl">
+                            {item.product.category === 'notes' && '📚'}
+                            {item.product.category === 'mock-papers' && '📝'}
+                            {item.product.category === 'combo' && '🎁'}
+                          </span>
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-foreground mb-1 truncate">
