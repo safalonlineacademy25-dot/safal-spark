@@ -71,12 +71,8 @@ const AdminDashboard = () => {
     { label: 'Active Users', value: '1,247', icon: Users, change: '+5.7%', color: 'text-primary' },
   ];
 
-  const recentOrders = [
-    { id: 'ORD-001', customer: 'Rahul Kumar', product: 'Combo Pack', amount: '₹449', status: 'Completed', date: '2 hours ago' },
-    { id: 'ORD-002', customer: 'Priya Singh', product: 'Complete Notes', amount: '₹299', status: 'Completed', date: '5 hours ago' },
-    { id: 'ORD-003', customer: 'Amit Sharma', product: 'Mock Papers', amount: '₹199', status: 'Processing', date: '8 hours ago' },
-    { id: 'ORD-004', customer: 'Neha Gupta', product: 'Combo Pack', amount: '₹449', status: 'Completed', date: '1 day ago' },
-  ];
+  // Get recent orders from actual data
+  const recentOrders = orders?.slice(0, 5) || [];
 
   if (authLoading) {
     return (
@@ -200,43 +196,58 @@ const AdminDashboard = () => {
                 <div className="bg-card rounded-xl border border-border">
                   <div className="p-5 border-b border-border flex items-center justify-between">
                     <h2 className="text-lg font-semibold text-foreground">Recent Orders</h2>
-                    <Button variant="outline" size="sm">View All</Button>
+                    <Button variant="outline" size="sm" onClick={() => setActiveTab('orders')}>View All</Button>
                   </div>
                   <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-border">
-                          <th className="text-left p-4 text-sm font-medium text-muted-foreground">Order ID</th>
-                          <th className="text-left p-4 text-sm font-medium text-muted-foreground">Customer</th>
-                          <th className="text-left p-4 text-sm font-medium text-muted-foreground">Product</th>
-                          <th className="text-left p-4 text-sm font-medium text-muted-foreground">Amount</th>
-                          <th className="text-left p-4 text-sm font-medium text-muted-foreground">Status</th>
-                          <th className="text-left p-4 text-sm font-medium text-muted-foreground">Date</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {recentOrders.map((order) => (
-                          <tr key={order.id} className="border-b border-border last:border-0 hover:bg-muted/30">
-                            <td className="p-4 text-sm font-medium text-foreground">{order.id}</td>
-                            <td className="p-4 text-sm text-foreground">{order.customer}</td>
-                            <td className="p-4 text-sm text-muted-foreground">{order.product}</td>
-                            <td className="p-4 text-sm font-medium price-text">{order.amount}</td>
-                            <td className="p-4">
-                              <span
-                                className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
-                                  order.status === 'Completed'
-                                    ? 'bg-secondary/10 text-secondary'
-                                    : 'bg-primary/10 text-primary'
-                                }`}
-                              >
-                                {order.status}
-                              </span>
-                            </td>
-                            <td className="p-4 text-sm text-muted-foreground">{order.date}</td>
+                    {ordersLoading ? (
+                      <div className="flex items-center justify-center py-12">
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : recentOrders.length === 0 ? (
+                      <div className="text-center py-12 text-muted-foreground">
+                        No orders yet. Orders will appear here once customers start purchasing.
+                      </div>
+                    ) : (
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-border">
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Order #</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Customer</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Amount</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Status</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Date</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {recentOrders.map((order) => (
+                            <tr key={order.id} className="border-b border-border last:border-0 hover:bg-muted/30">
+                              <td className="p-4 text-sm font-medium text-foreground font-mono">{order.order_number}</td>
+                              <td className="p-4">
+                                <div className="text-sm text-foreground">{order.customer_name || order.customer_email}</div>
+                                <div className="text-xs text-muted-foreground">{order.customer_phone}</div>
+                              </td>
+                              <td className="p-4 text-sm font-medium price-text">₹{order.total_amount}</td>
+                              <td className="p-4">
+                                <span
+                                  className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium capitalize ${
+                                    order.status === 'paid' || order.status === 'completed'
+                                      ? 'bg-secondary/10 text-secondary'
+                                      : order.status === 'pending'
+                                      ? 'bg-yellow-500/10 text-yellow-600'
+                                      : 'bg-primary/10 text-primary'
+                                  }`}
+                                >
+                                  {order.status}
+                                </span>
+                              </td>
+                              <td className="p-4 text-sm text-muted-foreground">
+                                {order.created_at ? format(new Date(order.created_at), 'MMM d, h:mm a') : 'N/A'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
                   </div>
                 </div>
               </motion.div>
