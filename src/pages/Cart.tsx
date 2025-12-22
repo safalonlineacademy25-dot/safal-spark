@@ -1,7 +1,7 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
-import { Trash2, ShoppingBag, ArrowRight, Shield, MessageCircle, Mail } from 'lucide-react';
+import { Trash2, ShoppingBag, ArrowRight, Shield, MessageCircle, Mail, Loader2 } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
@@ -9,15 +9,18 @@ import { useCartStore } from '@/lib/store';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const Cart = () => {
   const { items, removeItem, clearCart, getTotal } = useCartStore();
   const [whatsappOptIn, setWhatsappOptIn] = useState(true);
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (!email || !phone) {
       toast({
         title: 'Please fill in your details',
@@ -26,19 +29,64 @@ const Cart = () => {
       });
       return;
     }
-    
-    toast({
-      title: 'Redirecting to Razorpay...',
-      description: 'You will be redirected to complete your payment securely.',
-    });
-    
-    // In production, this would integrate with Razorpay
-    setTimeout(() => {
-      toast({
-        title: 'Demo Mode',
-        description: 'Razorpay integration requires backend setup. Connect Supabase to enable payments.',
+
+    setIsProcessing(true);
+
+    try {
+      // Create order via edge function
+      const { data: orderData, error: orderError } = await supabase.functions.invoke('create-razorpay-order', {
+        body: {
+          items,
+          customer_email: email,
+          customer_phone: phone,
+          whatsapp_optin: whatsappOptIn,
+        },
       });
-    }, 1500);
+
+      if (orderError || !orderData?.success) {
+        throw new Error(orderData?.error || orderError?.message || 'Failed to create order');
+      }
+
+      toast({
+        title: 'Order created!',
+        description: `Order ${orderData.order_number} - Simulating payment...`,
+      });
+
+      // For testing, simulate successful payment after a short delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // Verify payment (simulated for testing)
+      const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-razorpay-payment', {
+        body: {
+          order_id: orderData.order_id,
+          razorpay_payment_id: `pay_test_${Date.now()}`,
+          razorpay_order_id: orderData.razorpay_order_id,
+          razorpay_signature: 'test_signature',
+        },
+      });
+
+      if (verifyError || !verifyData?.success) {
+        throw new Error(verifyData?.error || verifyError?.message || 'Payment verification failed');
+      }
+
+      toast({
+        title: 'Payment successful!',
+        description: `Order ${verifyData.order_number} confirmed. Check admin dashboard to see the order.`,
+      });
+
+      // Clear cart after successful payment
+      clearCart();
+      
+    } catch (error: any) {
+      console.error('Checkout error:', error);
+      toast({
+        title: 'Checkout failed',
+        description: error.message || 'Something went wrong. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (items.length === 0) {
@@ -208,9 +256,19 @@ const Cart = () => {
                     size="lg"
                     className="w-full"
                     onClick={handleCheckout}
+                    disabled={isProcessing}
                   >
-                    Pay with Razorpay
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                    {isProcessing ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        Pay with Razorpay
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
                   </Button>
 
                   {/* Trust Badges */}
