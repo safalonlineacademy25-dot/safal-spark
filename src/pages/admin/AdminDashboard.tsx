@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
+import { format } from 'date-fns';
 import {
   LayoutDashboard,
   Package,
@@ -14,7 +15,6 @@ import {
   TrendingUp,
   IndianRupee,
   Download,
-  Edit,
   Eye,
   Search,
   Loader2,
@@ -22,9 +22,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { useAuth, signOut } from '@/hooks/useAuth';
 import { useProducts } from '@/hooks/useProducts';
+import { useOrders } from '@/hooks/useOrders';
 import AddProductDialog from '@/components/admin/AddProductDialog';
 import EditProductDialog from '@/components/admin/EditProductDialog';
 import DeleteProductDialog from '@/components/admin/DeleteProductDialog';
+import OrderDetailsDialog from '@/components/admin/OrderDetailsDialog';
 import { toast } from 'sonner';
 
 const AdminDashboard = () => {
@@ -32,6 +34,7 @@ const AdminDashboard = () => {
   const { user, isAdmin, isLoading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const { data: products, isLoading: productsLoading } = useProducts();
+  const { data: orders, isLoading: ordersLoading } = useOrders();
 
   useEffect(() => {
     if (!authLoading) {
@@ -304,25 +307,110 @@ const AdminDashboard = () => {
               </motion.div>
             )}
 
-            {(activeTab === 'orders' || activeTab === 'customers' || activeTab === 'whatsapp' || activeTab === 'settings') && (
+            {activeTab === 'orders' && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="space-y-6"
+              >
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-foreground">All Orders</h2>
+                  <div className="text-sm text-muted-foreground">
+                    {orders?.length || 0} total orders
+                  </div>
+                </div>
+
+                <div className="bg-card rounded-xl border border-border overflow-hidden">
+                  {ordersLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : !orders || orders.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      No orders found yet.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-border bg-muted/30">
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Order #</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Customer</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Amount</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Payment</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Delivery</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Date</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {orders.map((order) => (
+                            <tr key={order.id} className="border-b border-border last:border-0 hover:bg-muted/30">
+                              <td className="p-4 text-sm font-medium text-foreground font-mono">
+                                {order.order_number}
+                              </td>
+                              <td className="p-4">
+                                <div className="text-sm text-foreground">{order.customer_name || 'N/A'}</div>
+                                <div className="text-xs text-muted-foreground">{order.customer_email}</div>
+                              </td>
+                              <td className="p-4 text-sm font-medium price-text">₹{order.total_amount}</td>
+                              <td className="p-4">
+                                <span
+                                  className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium capitalize ${
+                                    order.status === 'completed' || order.status === 'paid'
+                                      ? 'bg-secondary/10 text-secondary'
+                                      : order.status === 'pending'
+                                      ? 'bg-yellow-500/10 text-yellow-600'
+                                      : 'bg-destructive/10 text-destructive'
+                                  }`}
+                                >
+                                  {order.status}
+                                </span>
+                              </td>
+                              <td className="p-4">
+                                <span
+                                  className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium capitalize ${
+                                    order.delivery_status === 'delivered'
+                                      ? 'bg-secondary/10 text-secondary'
+                                      : order.delivery_status === 'pending'
+                                      ? 'bg-yellow-500/10 text-yellow-600'
+                                      : 'bg-muted text-muted-foreground'
+                                  }`}
+                                >
+                                  {order.delivery_status || 'pending'}
+                                </span>
+                              </td>
+                              <td className="p-4 text-sm text-muted-foreground">
+                                {order.created_at ? format(new Date(order.created_at), 'MMM d, yyyy') : 'N/A'}
+                              </td>
+                              <td className="p-4">
+                                <OrderDetailsDialog order={order} />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+
+            {(activeTab === 'customers' || activeTab === 'whatsapp' || activeTab === 'settings') && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="flex flex-col items-center justify-center py-16"
               >
                 <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                  {activeTab === 'orders' && <ShoppingCart className="h-8 w-8 text-muted-foreground" />}
                   {activeTab === 'customers' && <Users className="h-8 w-8 text-muted-foreground" />}
                   {activeTab === 'whatsapp' && <MessageCircle className="h-8 w-8 text-muted-foreground" />}
                   {activeTab === 'settings' && <Settings className="h-8 w-8 text-muted-foreground" />}
                 </div>
                 <h3 className="text-lg font-semibold text-foreground mb-2 capitalize">{activeTab}</h3>
                 <p className="text-muted-foreground text-center max-w-md">
-                  This section requires backend integration. Connect to Supabase to enable full functionality.
+                  This section is coming soon.
                 </p>
-                <Button variant="outline" className="mt-4">
-                  Connect Backend
-                </Button>
               </motion.div>
             )}
           </div>
