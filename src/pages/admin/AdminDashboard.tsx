@@ -64,11 +64,18 @@ const AdminDashboard = () => {
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
+  // Calculate real stats from database
+  const totalRevenue = orders?.filter(o => o.status === 'paid' || o.status === 'completed')
+    .reduce((sum, o) => sum + Number(o.total_amount), 0) || 0;
+  const totalOrders = orders?.length || 0;
+  const totalDownloads = products?.reduce((sum, p) => sum + (p.download_count || 0), 0) || 0;
+  const uniqueCustomers = orders ? new Set(orders.map(o => o.customer_email)).size : 0;
+
   const stats = [
-    { label: 'Total Revenue', value: '₹1,24,500', icon: IndianRupee, change: '+12.5%', color: 'text-secondary' },
-    { label: 'Total Orders', value: '342', icon: ShoppingCart, change: '+8.2%', color: 'text-primary' },
-    { label: 'Downloads', value: '7,926', icon: Download, change: '+15.3%', color: 'text-secondary' },
-    { label: 'Active Users', value: '1,247', icon: Users, change: '+5.7%', color: 'text-primary' },
+    { label: 'Total Revenue', value: `₹${totalRevenue.toLocaleString()}`, icon: IndianRupee, color: 'text-secondary' },
+    { label: 'Total Orders', value: totalOrders.toString(), icon: ShoppingCart, color: 'text-primary' },
+    { label: 'Downloads', value: totalDownloads.toLocaleString(), icon: Download, color: 'text-secondary' },
+    { label: 'Customers', value: uniqueCustomers.toString(), icon: Users, color: 'text-primary' },
   ];
 
   // Get recent orders from actual data
@@ -181,10 +188,6 @@ const AdminDashboard = () => {
                         <div className={`p-2 rounded-lg bg-muted ${stat.color}`}>
                           <stat.icon className="h-5 w-5" />
                         </div>
-                        <span className="flex items-center gap-1 text-xs font-medium text-secondary">
-                          <TrendingUp className="h-3 w-3" />
-                          {stat.change}
-                        </span>
                       </div>
                       <p className="text-2xl font-bold text-foreground">{stat.value}</p>
                       <p className="text-sm text-muted-foreground">{stat.label}</p>
