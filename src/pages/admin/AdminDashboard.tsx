@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth, signOut } from '@/hooks/useAuth';
 import { useProducts } from '@/hooks/useProducts';
 import { useOrders } from '@/hooks/useOrders';
+import { useCustomers } from '@/hooks/useCustomers';
 import AddProductDialog from '@/components/admin/AddProductDialog';
 import EditProductDialog from '@/components/admin/EditProductDialog';
 import DeleteProductDialog from '@/components/admin/DeleteProductDialog';
@@ -35,6 +36,7 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const { data: products, isLoading: productsLoading } = useProducts();
   const { data: orders, isLoading: ordersLoading } = useOrders();
+  const { data: customers, isLoading: customersLoading } = useCustomers();
 
   useEffect(() => {
     if (!authLoading) {
@@ -410,14 +412,84 @@ const AdminDashboard = () => {
               </motion.div>
             )}
 
-            {(activeTab === 'customers' || activeTab === 'whatsapp' || activeTab === 'settings') && (
+            {activeTab === 'customers' && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="space-y-6"
+              >
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-foreground">All Customers</h2>
+                  <div className="text-sm text-muted-foreground">
+                    {customers?.length || 0} total customers
+                  </div>
+                </div>
+
+                <div className="bg-card rounded-xl border border-border overflow-hidden">
+                  {customersLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : !customers || customers.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      No customers found yet. Customers will appear here after placing orders.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-border bg-muted/30">
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Customer</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Email</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Phone</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">WhatsApp Opt-in</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Joined</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {customers.map((customer) => (
+                            <tr key={customer.id} className="border-b border-border last:border-0 hover:bg-muted/30">
+                              <td className="p-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                                    <Users className="h-5 w-5 text-primary" />
+                                  </div>
+                                  <span className="font-medium text-foreground">{customer.name || 'N/A'}</span>
+                                </div>
+                              </td>
+                              <td className="p-4 text-sm text-foreground">{customer.email}</td>
+                              <td className="p-4 text-sm text-muted-foreground">{customer.phone}</td>
+                              <td className="p-4">
+                                <span
+                                  className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
+                                    customer.whatsapp_optin
+                                      ? 'bg-secondary/10 text-secondary'
+                                      : 'bg-muted text-muted-foreground'
+                                  }`}
+                                >
+                                  {customer.whatsapp_optin ? 'Yes' : 'No'}
+                                </span>
+                              </td>
+                              <td className="p-4 text-sm text-muted-foreground">
+                                {customer.created_at ? format(new Date(customer.created_at), 'MMM d, yyyy') : 'N/A'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+
+            {(activeTab === 'whatsapp' || activeTab === 'settings') && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="flex flex-col items-center justify-center py-16"
               >
                 <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                  {activeTab === 'customers' && <Users className="h-8 w-8 text-muted-foreground" />}
                   {activeTab === 'whatsapp' && <MessageCircle className="h-8 w-8 text-muted-foreground" />}
                   {activeTab === 'settings' && <Settings className="h-8 w-8 text-muted-foreground" />}
                 </div>
