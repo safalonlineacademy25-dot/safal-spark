@@ -9,6 +9,19 @@ import { useCartStore } from '@/lib/store';
 import { useToast } from '@/hooks/use-toast';
 import { useActiveProducts, Product } from '@/hooks/useProducts';
 
+// Convert Google Drive sharing link to direct image URL
+const getImageUrl = (url: string | null): string | null => {
+  if (!url) return null;
+  
+  // Check if it's a Google Drive link
+  const driveMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (driveMatch) {
+    return `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
+  }
+  
+  return url;
+};
+
 const Products = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const { data: products, isLoading, error } = useActiveProducts();
@@ -127,8 +140,19 @@ const Products = () => {
                       )}
 
                       {/* Image */}
-                      <div className="relative h-48 bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center">
-                        <div className="text-6xl">
+                      <div className="relative h-48 bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center overflow-hidden">
+                        {getImageUrl(product.image_url) ? (
+                          <img
+                            src={getImageUrl(product.image_url)!}
+                            alt={product.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              e.currentTarget.parentElement?.querySelector('.fallback-icon')?.classList.remove('hidden');
+                            }}
+                          />
+                        ) : null}
+                        <div className={`text-6xl fallback-icon ${getImageUrl(product.image_url) ? 'hidden' : ''}`}>
                           {product.category === 'notes' && '📚'}
                           {product.category === 'mock-papers' && '📝'}
                           {product.category === 'combo' && '🎁'}
