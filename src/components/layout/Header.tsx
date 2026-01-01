@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type MouseEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, Menu, X, BookOpen } from 'lucide-react';
@@ -18,28 +18,41 @@ const Header = () => {
     { href: '/#faq', label: 'FAQ', isAnchor: true },
   ];
 
-  const handleNavClick = (e: React.MouseEvent, link: { href: string; isAnchor?: boolean }) => {
+  const handleNavClick = (
+    e: MouseEvent<HTMLAnchorElement>,
+    link: { href: string; isAnchor?: boolean }
+  ) => {
+    // Close mobile menu on any navigation
+    setIsMenuOpen(false);
+
+    // Smooth-scroll anchors on the Home page
     if (link.isAnchor) {
       e.preventDefault();
       const targetId = link.href.replace('/#', '');
-      
-      if (location.pathname === '/') {
-        // Already on home page, just scroll
+
+      const scrollToTarget = () => {
         const element = document.getElementById(targetId);
         if (element) {
           element.scrollIntoView({ behavior: 'smooth' });
+          // keep URL in sync without reloading
+          window.history.replaceState(null, '', `/#${targetId}`);
         }
+      };
+
+      if (location.pathname === '/') {
+        scrollToTarget();
       } else {
-        // Navigate to home page first, then scroll
         navigate('/');
-        setTimeout(() => {
-          const element = document.getElementById(targetId);
-          if (element) {
-            element.scrollIntoView({ behavior: 'smooth' });
-          }
-        }, 100);
+        setTimeout(scrollToTarget, 150);
       }
-      setIsMenuOpen(false);
+      return;
+    }
+
+    // If already on Home and user clicks "Home", scroll to top
+    if (link.href === '/' && location.pathname === '/') {
+      e.preventDefault();
+      window.history.replaceState(null, '', '/');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
