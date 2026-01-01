@@ -18,6 +18,7 @@ import {
   Eye,
   Search,
   Loader2,
+  FileDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth, signOut } from '@/hooks/useAuth';
@@ -82,6 +83,38 @@ const AdminDashboard = () => {
 
   // Get recent orders from actual data
   const recentOrders = orders?.slice(0, 5) || [];
+
+  const exportCustomersToCSV = () => {
+    if (!customers || customers.length === 0) {
+      toast.error('No customers to export');
+      return;
+    }
+    
+    const headers = ['Name', 'Email', 'Phone', 'WhatsApp Opt-in', 'Joined Date'];
+    const csvRows = [
+      headers.join(','),
+      ...customers.map(customer => [
+        `"${customer.name || 'N/A'}"`,
+        `"${customer.email}"`,
+        `"${customer.phone}"`,
+        customer.whatsapp_optin ? 'Yes' : 'No',
+        customer.created_at ? format(new Date(customer.created_at), 'yyyy-MM-dd') : 'N/A'
+      ].join(','))
+    ];
+    
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `customers-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast.success('Customers exported successfully');
+  };
 
   if (authLoading) {
     return (
@@ -420,8 +453,19 @@ const AdminDashboard = () => {
               >
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-foreground">All Customers</h2>
-                  <div className="text-sm text-muted-foreground">
-                    {customers?.length || 0} total customers
+                  <div className="flex items-center gap-4">
+                    <span className="text-sm text-muted-foreground">
+                      {customers?.length || 0} total customers
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={exportCustomersToCSV}
+                      disabled={!customers || customers.length === 0}
+                    >
+                      <FileDown className="h-4 w-4 mr-2" />
+                      Export CSV
+                    </Button>
                   </div>
                 </div>
 
