@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, Menu, X, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,14 +8,40 @@ import { useCartStore } from '@/lib/store';
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const itemCount = useCartStore((state) => state.getItemCount());
 
   const navLinks = [
     { href: '/', label: 'Home' },
     { href: '/products', label: 'Products' },
-    { href: '/#how-it-works', label: 'How It Works' },
-    { href: '/#faq', label: 'FAQ' },
+    { href: '/#how-it-works', label: 'How It Works', isAnchor: true },
+    { href: '/#faq', label: 'FAQ', isAnchor: true },
   ];
+
+  const handleNavClick = (e: React.MouseEvent, link: { href: string; isAnchor?: boolean }) => {
+    if (link.isAnchor) {
+      e.preventDefault();
+      const targetId = link.href.replace('/#', '');
+      
+      if (location.pathname === '/') {
+        // Already on home page, just scroll
+        const element = document.getElementById(targetId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      } else {
+        // Navigate to home page first, then scroll
+        navigate('/');
+        setTimeout(() => {
+          const element = document.getElementById(targetId);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 100);
+      }
+      setIsMenuOpen(false);
+    }
+  };
 
   const isActive = (path: string) => {
     if (path.startsWith('/#')) return false;
@@ -42,6 +68,7 @@ const Header = () => {
               <Link
                 key={link.href}
                 to={link.href}
+                onClick={(e) => handleNavClick(e, link)}
                 className={`text-sm font-medium transition-colors hover:text-primary ${
                   isActive(link.href) ? 'text-primary' : 'text-muted-foreground'
                 }`}
@@ -101,7 +128,7 @@ const Header = () => {
                 <Link
                   key={link.href}
                   to={link.href}
-                  onClick={() => setIsMenuOpen(false)}
+                  onClick={(e) => handleNavClick(e, link)}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     isActive(link.href)
                       ? 'bg-primary/10 text-primary'
