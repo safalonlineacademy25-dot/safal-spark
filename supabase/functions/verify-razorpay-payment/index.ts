@@ -110,7 +110,7 @@ serve(async (req) => {
         status: 'paid',
         razorpay_payment_id: razorpay_payment_id || `pay_test_${Date.now()}`,
         razorpay_signature: razorpay_signature || 'test_signature',
-        delivery_status: 'processing',
+        delivery_status: 'pending',
       })
       .eq('id', order_id)
       .select()
@@ -187,15 +187,11 @@ serve(async (req) => {
       );
       deliveryResults.whatsapp = whatsappResult;
 
-      // Determine overall delivery status
-      if (emailResult.success) {
-        deliveryStatus = order.whatsapp_optin && whatsappResult.success 
-          ? 'email_whatsapp_sent' 
-          : 'email_sent';
-      } else if (order.whatsapp_optin && whatsappResult.success) {
-        deliveryStatus = 'whatsapp_sent';
+      // Determine overall delivery status (must be: pending, sent, failed)
+      if (emailResult.success || (order.whatsapp_optin && whatsappResult.success)) {
+        deliveryStatus = 'sent';
       } else {
-        deliveryStatus = 'delivery_failed';
+        deliveryStatus = 'failed';
       }
 
       // Update order delivery status
