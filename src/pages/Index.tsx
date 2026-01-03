@@ -2,7 +2,6 @@ import { Helmet } from 'react-helmet-async';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import HeroSection from '@/components/home/HeroSection';
-import WhyUsSection from '@/components/home/WhyUsSection';
 import ProductsSection from '@/components/home/ProductsSection';
 import AudienceSection from '@/components/home/AudienceSection';
 import HowItWorksSection from '@/components/home/HowItWorksSection';
@@ -29,7 +28,6 @@ const Index = () => {
         <Header />
         <main className="flex-1">
           <HeroSection />
-          <WhyUsSection />
           <ProductsSection />
           <AudienceSection />
           <HowItWorksSection />
