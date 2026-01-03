@@ -9,6 +9,7 @@ import {
   ShoppingCart,
   Users,
   MessageCircle,
+  Mail,
   Settings,
   LogOut,
   BookOpen,
@@ -63,6 +64,7 @@ const AdminDashboard = () => {
     { id: 'products', label: 'Products', icon: Package },
     { id: 'orders', label: 'Orders', icon: ShoppingCart },
     { id: 'customers', label: 'Customers', icon: Users },
+    { id: 'email', label: 'Email Logs', icon: Mail },
     { id: 'whatsapp', label: 'WhatsApp Logs', icon: MessageCircle },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
@@ -574,6 +576,79 @@ const AdminDashboard = () => {
                                   </div>
                                 </td>
                                 <td className="p-4 text-sm text-muted-foreground">{order.customer_name || order.customer_email}</td>
+                                <td className="p-4">
+                                  <span
+                                    className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium capitalize ${
+                                      order.delivery_status === 'sent'
+                                        ? 'bg-secondary/10 text-secondary'
+                                        : order.delivery_status === 'failed'
+                                        ? 'bg-destructive/10 text-destructive'
+                                        : 'bg-yellow-500/10 text-yellow-600'
+                                    }`}
+                                  >
+                                    {order.delivery_status || 'pending'}
+                                  </span>
+                                </td>
+                                <td className="p-4 text-sm text-muted-foreground">
+                                  {order.created_at ? format(new Date(order.created_at), 'MMM d, h:mm a') : 'N/A'}
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+
+            {activeTab === 'email' && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="space-y-6"
+              >
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-foreground">Email Delivery Logs</h2>
+                  <div className="text-sm text-muted-foreground">
+                    {orders?.filter(o => o.status === 'paid').length || 0} emails sent
+                  </div>
+                </div>
+
+                <div className="bg-card rounded-xl border border-border overflow-hidden">
+                  {ordersLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : !orders || orders.filter(o => o.status === 'paid').length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      No email deliveries yet. Emails will appear here after paid orders.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-border bg-muted/30">
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Order #</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Email</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Customer</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Delivery Status</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Date</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {orders
+                            .filter(o => o.status === 'paid')
+                            .map((order) => (
+                              <tr key={order.id} className="border-b border-border last:border-0 hover:bg-muted/30">
+                                <td className="p-4 text-sm font-medium text-foreground font-mono">{order.order_number}</td>
+                                <td className="p-4">
+                                  <div className="flex items-center gap-2">
+                                    <Mail className="h-4 w-4 text-primary" />
+                                    <span className="text-sm text-foreground">{order.customer_email}</span>
+                                  </div>
+                                </td>
+                                <td className="p-4 text-sm text-muted-foreground">{order.customer_name || order.customer_phone}</td>
                                 <td className="p-4">
                                   <span
                                     className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium capitalize ${
