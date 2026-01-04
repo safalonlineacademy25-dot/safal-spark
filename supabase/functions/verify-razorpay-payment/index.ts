@@ -9,6 +9,67 @@ const corsHeaders = {
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
+// Get Razorpay credentials from environment
+const RAZORPAY_KEY_SECRET = Deno.env.get('RAZORPAY_KEY_SECRET') || 'test_secret_key';
+const IS_TEST_MODE = !Deno.env.get('RAZORPAY_KEY_SECRET');
+
+// Helper function to convert ArrayBuffer to hex string
+function arrayBufferToHex(buffer: ArrayBuffer): string {
+  return Array.from(new Uint8Array(buffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+// Function to verify Razorpay signature using Web Crypto API
+async function verifyRazorpaySignature(
+  razorpay_order_id: string,
+  razorpay_payment_id: string,
+  razorpay_signature: string,
+  secret: string
+): Promise<boolean> {
+  // In test mode, accept test signatures
+  if (IS_TEST_MODE) {
+    console.log("⚠️ Test mode - skipping signature verification");
+    return true;
+  }
+  
+  try {
+    // Create the expected signature using HMAC SHA256
+    const message = `${razorpay_order_id}|${razorpay_payment_id}`;
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(secret);
+    const messageData = encoder.encode(message);
+    
+    // Import key for HMAC
+    const key = await crypto.subtle.importKey(
+      "raw",
+      keyData,
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+    
+    // Sign the message
+    const signature = await crypto.subtle.sign("HMAC", key, messageData);
+    const expectedSignature = arrayBufferToHex(signature);
+    
+    // Compare signatures using timing-safe comparison
+    if (expectedSignature.length !== razorpay_signature.length) {
+      return false;
+    }
+    
+    let result = 0;
+    for (let i = 0; i < expectedSignature.length; i++) {
+      result |= expectedSignature.charCodeAt(i) ^ razorpay_signature.charCodeAt(i);
+    }
+    
+    return result === 0;
+  } catch (error) {
+    console.error("Error verifying signature:", error);
+    return false;
+  }
+}
+
 // Helper function to send download email
 async function sendDownloadEmail(
   orderId: string,
@@ -93,22 +154,43 @@ serve(async (req) => {
     
     console.log("Verifying payment:", { order_id, razorpay_payment_id, razorpay_order_id });
 
+    // Validate required fields
     if (!order_id) {
       throw new Error("Order ID is required");
     }
 
+    if (!razorpay_payment_id || !razorpay_order_id) {
+      throw new Error("Payment ID and Order ID are required");
+    }
+
+    // Verify Razorpay signature (critical security check)
+    if (!IS_TEST_MODE && !razorpay_signature) {
+      throw new Error("Payment signature is required for verification");
+    }
+
+    const isValidSignature = await verifyRazorpaySignature(
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature || '',
+      RAZORPAY_KEY_SECRET
+    );
+
+    if (!isValidSignature) {
+      console.error("Invalid payment signature - potential fraud attempt");
+      throw new Error("Invalid payment signature");
+    }
+
+    console.log("Signature verified successfully");
+
     // Create Supabase client
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // For testing purposes, we'll simulate successful payment verification
-    // In production, you would verify the signature with Razorpay
     
     // Update order with payment details
     const { data: order, error: updateError } = await supabase
       .from('orders')
       .update({
         status: 'paid',
-        razorpay_payment_id: razorpay_payment_id || `pay_test_${Date.now()}`,
+        razorpay_payment_id: razorpay_payment_id,
         razorpay_signature: razorpay_signature || 'test_signature',
         delivery_status: 'pending',
       })

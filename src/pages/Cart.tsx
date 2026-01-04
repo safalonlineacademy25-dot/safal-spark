@@ -10,6 +10,23 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { z } from 'zod';
+
+// Validation schema for checkout form
+const checkoutSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .min(1, 'Email is required')
+    .email('Please enter a valid email address')
+    .max(255, 'Email must be less than 255 characters'),
+  phone: z
+    .string()
+    .trim()
+    .min(1, 'Phone number is required')
+    .regex(/^[\+]?[0-9\s\-]{10,15}$/, 'Please enter a valid phone number (10-15 digits)')
+    .max(20, 'Phone number must be less than 20 characters'),
+});
 
 // Convert Google Drive sharing links to direct image URLs
 const getImageUrl = (url: string): string => {
@@ -34,15 +51,33 @@ const Cart = () => {
   const [whatsappOptIn, setWhatsappOptIn] = useState(true);
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const validateForm = (): boolean => {
+    setEmailError('');
+    setPhoneError('');
+    
+    const result = checkoutSchema.safeParse({ email, phone });
+    
+    if (!result.success) {
+      const errors = result.error.flatten().fieldErrors;
+      if (errors.email?.[0]) setEmailError(errors.email[0]);
+      if (errors.phone?.[0]) setPhoneError(errors.phone[0]);
+      return false;
+    }
+    
+    return true;
+  };
+
   const handleCheckout = async () => {
-    if (!email || !phone) {
+    if (!validateForm()) {
       toast({
-        title: 'Please fill in your details',
-        description: 'Email and phone number are required for order delivery.',
+        title: 'Please fix the errors',
+        description: 'Check your email and phone number.',
         variant: 'destructive',
       });
       return;
@@ -238,10 +273,18 @@ const Cart = () => {
                       <input
                         type="email"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          if (emailError) setEmailError('');
+                        }}
                         placeholder="your@email.com"
-                        className="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                        className={`w-full px-4 py-2.5 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring ${
+                          emailError ? 'border-destructive' : 'border-input'
+                        }`}
                       />
+                      {emailError && (
+                        <p className="text-xs text-destructive mt-1">{emailError}</p>
+                      )}
                     </div>
                     <div>
                       <label className="text-sm font-medium text-foreground mb-1.5 block">
@@ -250,10 +293,18 @@ const Cart = () => {
                       <input
                         type="tel"
                         value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
+                        onChange={(e) => {
+                          setPhone(e.target.value);
+                          if (phoneError) setPhoneError('');
+                        }}
                         placeholder="+91 98765 43210"
-                        className="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                        className={`w-full px-4 py-2.5 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring ${
+                          phoneError ? 'border-destructive' : 'border-input'
+                        }`}
                       />
+                      {phoneError && (
+                        <p className="text-xs text-destructive mt-1">{phoneError}</p>
+                      )}
                     </div>
                   </div>
 
