@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { ShoppingCart, Check, Download, Star, Filter, Loader2 } from 'lucide-react';
@@ -28,6 +28,11 @@ const Products = () => {
   const addItem = useCartStore((state) => state.addItem);
   const items = useCartStore((state) => state.items);
   const { toast } = useToast();
+
+  // Scroll to top when page loads
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const categories = [
     { id: 'all', label: 'All Products' },
