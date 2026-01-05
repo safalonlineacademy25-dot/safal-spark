@@ -36,9 +36,12 @@ const Products = () => {
 
   const categories = [
     { id: 'all', label: 'All Products' },
-    { id: 'notes', label: 'Notes' },
+    { id: 'notes', label: 'Competitive Exam Notes' },
     { id: 'mock-papers', label: 'Mock Papers' },
-    { id: 'combo', label: 'Combo Packs' },
+    { id: 'pune-university', label: 'Pune University Notes' },
+    { id: 'engineering', label: 'Engineering Notes' },
+    { id: 'iit', label: 'IIT Notes' },
+    { id: 'others', label: 'Others' },
   ];
 
   const filteredProducts =
@@ -160,7 +163,10 @@ const Products = () => {
                         <div className={`text-6xl fallback-icon ${getImageUrl(product.image_url) ? 'hidden' : ''}`}>
                           {product.category === 'notes' && '📚'}
                           {product.category === 'mock-papers' && '📝'}
-                          {product.category === 'combo' && '🎁'}
+                          {product.category === 'pune-university' && '🎓'}
+                          {product.category === 'engineering' && '⚙️'}
+                          {product.category === 'iit' && '🏛️'}
+                          {product.category === 'others' && '📖'}
                         </div>
                       </div>
 

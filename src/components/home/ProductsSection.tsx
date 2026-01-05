@@ -21,9 +21,12 @@ const getImageUrl = (url: string | null): string | null => {
 
 const CATEGORY_LABELS: Record<string, string> = {
   'all': 'All Products',
-  'notes': 'Notes',
+  'notes': 'Competitive Exam Notes',
   'mock-papers': 'Mock Papers',
-  'combo': 'Combo Packs',
+  'pune-university': 'Pune University Notes',
+  'engineering': 'Engineering Notes',
+  'iit': 'IIT Notes',
+  'others': 'Others',
 };
 
 const ProductsSection = () => {
@@ -177,7 +180,10 @@ const ProductsSection = () => {
                     <div className={`text-6xl fallback-icon ${getImageUrl(product.image_url) ? 'hidden' : ''}`}>
                       {product.category === 'notes' && '📚'}
                       {product.category === 'mock-papers' && '📝'}
-                      {product.category === 'combo' && '🎁'}
+                      {product.category === 'pune-university' && '🎓'}
+                      {product.category === 'engineering' && '⚙️'}
+                      {product.category === 'iit' && '🏛️'}
+                      {product.category === 'others' && '📖'}
                     </div>
                   </div>
 
