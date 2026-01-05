@@ -154,9 +154,12 @@ const EditProductDialog = ({ product, children }: EditProductDialogProps) => {
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="notes">Notes</SelectItem>
+                  <SelectItem value="notes">Competitive Exam Notes</SelectItem>
                   <SelectItem value="mock-papers">Mock Papers</SelectItem>
-                  <SelectItem value="combo">Combo Pack</SelectItem>
+                  <SelectItem value="pune-university">Pune University Notes</SelectItem>
+                  <SelectItem value="engineering">Engineering Notes</SelectItem>
+                  <SelectItem value="iit">IIT Notes</SelectItem>
+                  <SelectItem value="others">Others</SelectItem>
                 </SelectContent>
               </Select>
             </div>
