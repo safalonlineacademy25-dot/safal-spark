@@ -329,10 +329,13 @@ const AdminDashboard = () => {
                           <tr key={product.id} className="border-b border-border last:border-0 hover:bg-muted/30">
                             <td className="p-4">
                               <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                                <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-lg">
                                   {product.category === 'notes' && '📚'}
                                   {product.category === 'mock-papers' && '📝'}
-                                  {product.category === 'combo' && '🎁'}
+                                  {product.category === 'pune-university' && '🎓'}
+                                  {product.category === 'engineering' && '⚙️'}
+                                  {product.category === 'iit' && '🏛️'}
+                                  {product.category === 'others' && '📦'}
                                 </div>
                                 <span className="font-medium text-foreground">{product.name}</span>
                               </div>
