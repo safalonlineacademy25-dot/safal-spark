@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.send-whatsapp-download]
 verify_jwt = false
+
+[functions.download-file]
+verify_jwt = false
