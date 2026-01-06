@@ -22,6 +22,7 @@ import {
   FileDown,
   CreditCard,
   AlertTriangle,
+  RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth, signOut } from '@/hooks/useAuth';
@@ -34,14 +35,17 @@ import DeleteProductDialog from '@/components/admin/DeleteProductDialog';
 import OrderDetailsDialog from '@/components/admin/OrderDetailsDialog';
 import ProductQRCodeDialog from '@/components/admin/ProductQRCodeDialog';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { user, isAdmin, isLoading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const { data: products, isLoading: productsLoading } = useProducts();
-  const { data: orders, isLoading: ordersLoading } = useOrders();
+  const { data: orders, isLoading: ordersLoading, refetch: refetchOrders } = useOrders();
   const { data: customers, isLoading: customersLoading } = useCustomers();
+  const [resendingEmail, setResendingEmail] = useState<string | null>(null);
+  const [resendingWhatsApp, setResendingWhatsApp] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading) {
@@ -120,6 +124,96 @@ const AdminDashboard = () => {
     URL.revokeObjectURL(url);
     
     toast.success('Customers exported successfully');
+  };
+
+  // Resend email delivery
+  const handleResendEmail = async (orderId: string) => {
+    setResendingEmail(orderId);
+    try {
+      // First get download tokens for this order
+      const { data: tokens, error: tokensError } = await supabase
+        .from('download_tokens')
+        .select('token, product_id, products:product_id(name)')
+        .eq('order_id', orderId);
+
+      if (tokensError) throw tokensError;
+
+      const order = orders?.find(o => o.id === orderId);
+      if (!order) throw new Error('Order not found');
+
+      const products = tokens?.map((t: any) => ({
+        name: t.products?.name || 'Product',
+        downloadToken: t.token,
+      })) || [];
+
+      const { data, error } = await supabase.functions.invoke('send-download-email', {
+        body: {
+          orderId,
+          customerEmail: order.customer_email,
+          customerName: order.customer_name,
+          products,
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success('Email resent successfully', {
+        description: `Download link sent to ${order.customer_email}`,
+      });
+      refetchOrders();
+    } catch (error: any) {
+      console.error('Resend email error:', error);
+      toast.error('Failed to resend email', {
+        description: error.message || 'Please try again',
+      });
+    } finally {
+      setResendingEmail(null);
+    }
+  };
+
+  // Resend WhatsApp delivery
+  const handleResendWhatsApp = async (orderId: string) => {
+    setResendingWhatsApp(orderId);
+    try {
+      // First get download tokens for this order
+      const { data: tokens, error: tokensError } = await supabase
+        .from('download_tokens')
+        .select('token, product_id, products:product_id(name)')
+        .eq('order_id', orderId);
+
+      if (tokensError) throw tokensError;
+
+      const order = orders?.find(o => o.id === orderId);
+      if (!order) throw new Error('Order not found');
+
+      const products = tokens?.map((t: any) => ({
+        name: t.products?.name || 'Product',
+        downloadToken: t.token,
+      })) || [];
+
+      const { data, error } = await supabase.functions.invoke('send-whatsapp-download', {
+        body: {
+          orderId,
+          customerPhone: order.customer_phone,
+          customerName: order.customer_name,
+          products,
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success('WhatsApp message resent successfully', {
+        description: `Download link sent to ${order.customer_phone}`,
+      });
+      refetchOrders();
+    } catch (error: any) {
+      console.error('Resend WhatsApp error:', error);
+      toast.error('Failed to resend WhatsApp message', {
+        description: error.message || 'Please try again',
+      });
+    } finally {
+      setResendingWhatsApp(null);
+    }
   };
 
   if (authLoading) {
@@ -700,6 +794,7 @@ const AdminDashboard = () => {
                             <th className="text-left p-4 text-sm font-medium text-muted-foreground">Customer</th>
                             <th className="text-left p-4 text-sm font-medium text-muted-foreground">Delivery Status</th>
                             <th className="text-left p-4 text-sm font-medium text-muted-foreground">Date</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -730,6 +825,24 @@ const AdminDashboard = () => {
                                 </td>
                                 <td className="p-4 text-sm text-muted-foreground">
                                   {order.created_at ? format(new Date(order.created_at), 'MMM d, h:mm a') : 'N/A'}
+                                </td>
+                                <td className="p-4">
+                                  {(order.delivery_status === 'failed' || order.delivery_status === 'pending') && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleResendWhatsApp(order.id)}
+                                      disabled={resendingWhatsApp === order.id}
+                                      className="gap-1.5"
+                                    >
+                                      {resendingWhatsApp === order.id ? (
+                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                      ) : (
+                                        <RefreshCw className="h-3.5 w-3.5" />
+                                      )}
+                                      Resend
+                                    </Button>
+                                  )}
                                 </td>
                               </tr>
                             ))}
@@ -773,6 +886,7 @@ const AdminDashboard = () => {
                             <th className="text-left p-4 text-sm font-medium text-muted-foreground">Customer</th>
                             <th className="text-left p-4 text-sm font-medium text-muted-foreground">Delivery Status</th>
                             <th className="text-left p-4 text-sm font-medium text-muted-foreground">Date</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -803,6 +917,24 @@ const AdminDashboard = () => {
                                 </td>
                                 <td className="p-4 text-sm text-muted-foreground">
                                   {order.created_at ? format(new Date(order.created_at), 'MMM d, h:mm a') : 'N/A'}
+                                </td>
+                                <td className="p-4">
+                                  {(order.delivery_status === 'failed' || order.delivery_status === 'pending') && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleResendEmail(order.id)}
+                                      disabled={resendingEmail === order.id}
+                                      className="gap-1.5"
+                                    >
+                                      {resendingEmail === order.id ? (
+                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                      ) : (
+                                        <RefreshCw className="h-3.5 w-3.5" />
+                                      )}
+                                      Resend
+                                    </Button>
+                                  )}
                                 </td>
                               </tr>
                             ))}
