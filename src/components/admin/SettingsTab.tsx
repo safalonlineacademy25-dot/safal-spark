@@ -89,22 +89,21 @@ const SettingsTab = () => {
   const fetchAdminUsers = async () => {
     setLoadingAdmins(true);
     try {
-      const { data: roles, error } = await supabase
-        .from('user_roles')
-        .select('id, user_id, created_at')
-        .eq('role', 'admin');
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
+
+      const { data, error } = await supabase.functions.invoke('get-admin-users', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
 
       if (error) throw error;
 
-      // Get user emails from auth (we'll show user_id as fallback)
-      const adminList: AdminUser[] = (roles || []).map((role) => ({
-        id: role.id,
-        user_id: role.user_id,
-        email: role.user_id, // Will be updated if we can get email
-        created_at: role.created_at,
-      }));
-
-      setAdminUsers(adminList);
+      setAdminUsers(data.adminUsers || []);
     } catch (error: any) {
       console.error('Error fetching admin users:', error);
       toast.error('Failed to load admin users');
@@ -295,8 +294,8 @@ const SettingsTab = () => {
                   className="p-4 flex items-center justify-between hover:bg-muted/30"
                 >
                   <div>
-                    <p className="text-sm font-medium text-foreground font-mono">
-                      {admin.user_id.substring(0, 8)}...
+                    <p className="text-sm font-medium text-foreground">
+                      {admin.email}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       Added {admin.created_at ? new Date(admin.created_at).toLocaleDateString() : 'N/A'}
