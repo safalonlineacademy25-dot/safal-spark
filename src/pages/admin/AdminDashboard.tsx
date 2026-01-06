@@ -126,25 +126,78 @@ const AdminDashboard = () => {
     toast.success('Customers exported successfully');
   };
 
+  // Helper to get or create download tokens for an order
+  const getOrCreateDownloadTokens = async (orderId: string) => {
+    // First try to get existing tokens
+    const { data: existingTokens, error: tokensError } = await supabase
+      .from('download_tokens')
+      .select('token, product_id, products:product_id(name)')
+      .eq('order_id', orderId);
+
+    if (tokensError) throw tokensError;
+
+    // If tokens exist, return them
+    if (existingTokens && existingTokens.length > 0) {
+      return existingTokens.map((t: any) => ({
+        name: t.products?.name || 'Product',
+        downloadToken: t.token,
+      }));
+    }
+
+    // No tokens exist - create them from order_items
+    const { data: orderItems, error: itemsError } = await supabase
+      .from('order_items')
+      .select('product_id, product_name')
+      .eq('order_id', orderId);
+
+    if (itemsError) throw itemsError;
+
+    if (!orderItems || orderItems.length === 0) {
+      throw new Error('No products found for this order');
+    }
+
+    // Create download tokens for each product
+    const newTokens = [];
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
+
+    for (const item of orderItems) {
+      if (!item.product_id) continue;
+      
+      const token = crypto.randomUUID();
+      const { error: insertError } = await supabase
+        .from('download_tokens')
+        .insert({
+          order_id: orderId,
+          product_id: item.product_id,
+          token,
+          expires_at: expiresAt.toISOString(),
+          download_count: 0,
+        });
+
+      if (insertError) throw insertError;
+
+      newTokens.push({
+        name: item.product_name,
+        downloadToken: token,
+      });
+    }
+
+    if (newTokens.length === 0) {
+      throw new Error('No valid products to create download tokens for');
+    }
+
+    return newTokens;
+  };
+
   // Resend email delivery
   const handleResendEmail = async (orderId: string) => {
     setResendingEmail(orderId);
     try {
-      // First get download tokens for this order
-      const { data: tokens, error: tokensError } = await supabase
-        .from('download_tokens')
-        .select('token, product_id, products:product_id(name)')
-        .eq('order_id', orderId);
-
-      if (tokensError) throw tokensError;
-
       const order = orders?.find(o => o.id === orderId);
       if (!order) throw new Error('Order not found');
 
-      const products = tokens?.map((t: any) => ({
-        name: t.products?.name || 'Product',
-        downloadToken: t.token,
-      })) || [];
+      const products = await getOrCreateDownloadTokens(orderId);
 
       const { data, error } = await supabase.functions.invoke('send-download-email', {
         body: {
@@ -175,21 +228,10 @@ const AdminDashboard = () => {
   const handleResendWhatsApp = async (orderId: string) => {
     setResendingWhatsApp(orderId);
     try {
-      // First get download tokens for this order
-      const { data: tokens, error: tokensError } = await supabase
-        .from('download_tokens')
-        .select('token, product_id, products:product_id(name)')
-        .eq('order_id', orderId);
-
-      if (tokensError) throw tokensError;
-
       const order = orders?.find(o => o.id === orderId);
       if (!order) throw new Error('Order not found');
 
-      const products = tokens?.map((t: any) => ({
-        name: t.products?.name || 'Product',
-        downloadToken: t.token,
-      })) || [];
+      const products = await getOrCreateDownloadTokens(orderId);
 
       const { data, error } = await supabase.functions.invoke('send-whatsapp-download', {
         body: {
