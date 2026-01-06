@@ -37,6 +37,7 @@ import DeleteProductDialog from '@/components/admin/DeleteProductDialog';
 import OrderDetailsDialog from '@/components/admin/OrderDetailsDialog';
 import ProductQRCodeDialog from '@/components/admin/ProductQRCodeDialog';
 import DBSnapshotTab from '@/components/admin/DBSnapshotTab';
+import SettingsTab from '@/components/admin/SettingsTab';
 import PaginationControls from '@/components/admin/PaginationControls';
 import { usePagination } from '@/hooks/usePagination';
 import { toast } from 'sonner';
@@ -1123,21 +1124,7 @@ const AdminDashboard = () => {
               <DBSnapshotTab isActive={activeTab === 'dbsnapshot'} />
             )}
 
-            {activeTab === 'settings' && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex flex-col items-center justify-center py-16"
-              >
-                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                  <Settings className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">Settings</h3>
-                <p className="text-muted-foreground text-center max-w-md">
-                  This section is coming soon.
-                </p>
-              </motion.div>
-            )}
+            {activeTab === 'settings' && <SettingsTab />}
           </div>
         </main>
       </div>
