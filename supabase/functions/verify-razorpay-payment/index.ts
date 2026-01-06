@@ -24,9 +24,25 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-// Get Razorpay credentials from environment
-const RAZORPAY_KEY_SECRET = Deno.env.get('RAZORPAY_KEY_SECRET') || 'test_secret_key';
-const IS_TEST_MODE = !Deno.env.get('RAZORPAY_KEY_SECRET');
+// Helper function to get settings from database
+async function getSettings(supabase: any): Promise<Record<string, string>> {
+  const { data, error } = await supabase
+    .from('settings')
+    .select('key, value');
+  
+  if (error) {
+    console.error("Error fetching settings:", error);
+    return {};
+  }
+  
+  const settings: Record<string, string> = {};
+  if (data) {
+    data.forEach((s: { key: string; value: string | null }) => {
+      if (s.value) settings[s.key] = s.value;
+    });
+  }
+  return settings;
+}
 
 // Helper function to convert ArrayBuffer to hex string
 function arrayBufferToHex(buffer: ArrayBuffer): string {
@@ -40,10 +56,11 @@ async function verifyRazorpaySignature(
   razorpay_order_id: string,
   razorpay_payment_id: string,
   razorpay_signature: string,
-  secret: string
+  secret: string,
+  isTestMode: boolean
 ): Promise<boolean> {
   // In test mode, accept test signatures
-  if (IS_TEST_MODE) {
+  if (isTestMode) {
     console.log("⚠️ Test mode - skipping signature verification");
     return true;
   }
@@ -181,6 +198,16 @@ serve(async (req) => {
       throw new Error("Payment ID and Order ID are required");
     }
 
+    // Create Supabase client
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Get Razorpay settings from database
+    const settings = await getSettings(supabase);
+    const RAZORPAY_KEY_SECRET = settings['razorpay_key_secret'] || Deno.env.get('RAZORPAY_KEY_SECRET') || 'test_secret_key';
+    const IS_TEST_MODE = settings['razorpay_test_mode'] === 'true' || !settings['razorpay_key_secret'];
+    
+    console.log("Using settings from database. Test mode:", IS_TEST_MODE);
+
     // Verify Razorpay signature (critical security check)
     if (!IS_TEST_MODE && !razorpay_signature) {
       throw new Error("Payment signature is required for verification");
@@ -190,7 +217,8 @@ serve(async (req) => {
       razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature || '',
-      RAZORPAY_KEY_SECRET
+      RAZORPAY_KEY_SECRET,
+      IS_TEST_MODE
     );
 
     if (!isValidSignature) {
@@ -199,9 +227,6 @@ serve(async (req) => {
     }
 
     console.log("Signature verified successfully");
-
-    // Create Supabase client
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     // Update order with payment details
     const { data: order, error: updateError } = await supabase

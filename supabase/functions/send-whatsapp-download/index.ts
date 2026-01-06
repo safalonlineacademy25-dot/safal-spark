@@ -1,8 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const whatsappToken = Deno.env.get("WHATSAPP_ACCESS_TOKEN") || "dummy_whatsapp_token_123";
-const whatsappPhoneId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID") || "dummy_phone_id";
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -24,6 +22,26 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Credentials': 'true',
   };
+}
+
+// Helper function to get settings from database
+async function getSettings(supabase: any): Promise<Record<string, string>> {
+  const { data, error } = await supabase
+    .from('settings')
+    .select('key, value');
+  
+  if (error) {
+    console.error("Error fetching settings:", error);
+    return {};
+  }
+  
+  const settings: Record<string, string> = {};
+  if (data) {
+    data.forEach((s: { key: string; value: string | null }) => {
+      if (s.value) settings[s.key] = s.value;
+    });
+  }
+  return settings;
 }
 
 interface WhatsAppDownloadRequest {
@@ -69,6 +87,17 @@ serve(async (req: Request): Promise<Response> => {
     console.log("Order ID:", orderId);
     console.log("Products:", products);
 
+    // Create Supabase client and get settings
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const settings = await getSettings(supabase);
+    
+    // Get WhatsApp credentials from database, fallback to env, then to test values
+    const whatsappToken = settings['whatsapp_access_token'] || Deno.env.get("WHATSAPP_ACCESS_TOKEN") || "dummy_whatsapp_token_123";
+    const whatsappPhoneId = settings['whatsapp_phone_number_id'] || Deno.env.get("WHATSAPP_PHONE_NUMBER_ID") || "dummy_phone_id";
+    const whatsappEnabled = settings['whatsapp_enabled'] !== 'false';
+    
+    console.log("WhatsApp enabled:", whatsappEnabled, "Phone ID:", whatsappPhoneId.substring(0, 5) + "...");
+
     const formattedPhone = formatPhoneNumber(customerPhone);
     console.log("Formatted phone:", formattedPhone);
 
@@ -99,6 +128,19 @@ ${productsList}
 Need help? Reply to this message!
 
 _SOA Resources - Quality CA Study Materials_`;
+
+    // Check if WhatsApp is disabled
+    if (!whatsappEnabled) {
+      console.log("⚠️ WhatsApp delivery is disabled in settings");
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: "WhatsApp delivery disabled",
+          preview: { to: formattedPhone, downloadLinks }
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Check if using dummy token (for testing)
     if (whatsappToken.includes("dummy") || whatsappToken.includes("test")) {
@@ -150,7 +192,6 @@ _SOA Resources - Quality CA Study Materials_`;
     }
 
     // Update order delivery status
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     await supabase
       .from("orders")
       .update({ 

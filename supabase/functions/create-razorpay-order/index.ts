@@ -21,9 +21,25 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
   };
 }
 
-// Razorpay Test Keys (publicly available for testing)
-const RAZORPAY_KEY_ID = Deno.env.get('RAZORPAY_KEY_ID') || "rzp_test_1234567890abcd";
-const RAZORPAY_KEY_SECRET = Deno.env.get('RAZORPAY_KEY_SECRET') || "test_secret_key_1234567890";
+// Helper function to get settings from database
+async function getSettings(supabase: any): Promise<Record<string, string>> {
+  const { data, error } = await supabase
+    .from('settings')
+    .select('key, value');
+  
+  if (error) {
+    console.error("Error fetching settings:", error);
+    return {};
+  }
+  
+  const settings: Record<string, string> = {};
+  if (data) {
+    data.forEach((s: { key: string; value: string | null }) => {
+      if (s.value) settings[s.key] = s.value;
+    });
+  }
+  return settings;
+}
 
 serve(async (req) => {
   const origin = req.headers.get('origin');
@@ -55,6 +71,13 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Get Razorpay settings from database
+    const settings = await getSettings(supabase);
+    const RAZORPAY_KEY_ID = settings['razorpay_key_id'] || Deno.env.get('RAZORPAY_KEY_ID') || "rzp_test_1234567890abcd";
+    const isTestMode = settings['razorpay_test_mode'] === 'true' || !settings['razorpay_key_id'];
+    
+    console.log("Using Razorpay key:", RAZORPAY_KEY_ID.substring(0, 10) + "...", "Test mode:", isTestMode);
 
     // Generate order number
     const { data: orderNumberData, error: orderNumberError } = await supabase.rpc('generate_order_number');
