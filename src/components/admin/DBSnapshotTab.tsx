@@ -1,5 +1,15 @@
 import { motion } from 'framer-motion';
-import { Database, Loader2, RefreshCw, Table2, HardDrive, Image, FileArchive, FileDown, FileJson } from 'lucide-react';
+import {
+  Database,
+  Loader2,
+  RefreshCw,
+  Table2,
+  HardDrive,
+  Image,
+  FileArchive,
+  FileDown,
+  FileJson,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -27,12 +37,12 @@ const TABLE_CONFIG = [
   { name: 'customers', displayName: 'Customers', description: 'Customer contact information' },
   { name: 'download_tokens', displayName: 'Download Tokens', description: 'Secure download access tokens' },
   { name: 'user_roles', displayName: 'User Roles', description: 'Admin user permissions' },
-];
+] as const;
 
 const BUCKET_CONFIG = [
   { name: 'product-images', displayName: 'Product Images', isPublic: true },
   { name: 'product-files', displayName: 'Product Files', isPublic: false },
-];
+] as const;
 
 const formatBytes = (bytes: number): string => {
   if (bytes === 0) return '0 B';
@@ -42,56 +52,7 @@ const formatBytes = (bytes: number): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
-const fetchBucketStats = async (bucketName: string): Promise<{ fileCount: number; totalSize: number }> => {
-  try {
-    const { data: files, error } = await supabase.storage
-      .from(bucketName)
-      .list('', { limit: 1000 });
-
-    if (error) {
-      console.error(`Error fetching ${bucketName}:`, error);
-      return { fileCount: 0, totalSize: 0 };
-    }
-
-    let fileCount = 0;
-    let totalSize = 0;
-
-    const folderPromises = (files || []).map(async (file) => {
-      if (file.metadata) {
-        return { count: 1, size: file.metadata.size || 0 };
-      } else if (file.id) {
-        const { data: folderFiles } = await supabase.storage
-          .from(bucketName)
-          .list(file.name, { limit: 1000 });
-
-        let folderCount = 0;
-        let folderSize = 0;
-        for (const f of folderFiles || []) {
-          if (f.metadata) {
-            folderCount++;
-            folderSize += f.metadata.size || 0;
-          }
-        }
-        return { count: folderCount, size: folderSize };
-      }
-      return { count: 0, size: 0 };
-    });
-
-    const results = await Promise.all(folderPromises);
-    for (const result of results) {
-      fileCount += result.count;
-      totalSize += result.size;
-    }
-
-    return { fileCount, totalSize };
-  } catch (error) {
-    console.error(`Error fetching bucket stats for ${bucketName}:`, error);
-    return { fileCount: 0, totalSize: 0 };
-  }
-};
-
-const fetchSnapshotData = async () => {
-  // Fetch table counts in parallel
+const fetchTableCounts = async (): Promise<TableInfo[]> => {
   const tablePromises = TABLE_CONFIG.map(async (config) => {
     const { count, error } = await supabase
       .from(config.name as any)
@@ -105,9 +66,70 @@ const fetchSnapshotData = async () => {
     };
   });
 
-  // Fetch bucket stats in parallel
+  return Promise.all(tablePromises);
+};
+
+const fetchBucketStatsPaged = async (bucketName: string): Promise<{ fileCount: number; totalSize: number }> => {
+  // Goal: be fast + avoid deep folder recursion.
+  // We do a flat, paginated listing and sum file sizes from object metadata.
+
+  const LIMIT = 1000;
+  let fileCount = 0;
+  let totalSize = 0;
+
+  // Prefer listV2 if available (cursor pagination, flat listing).
+  const fileApi = supabase.storage.from(bucketName) as any;
+  if (typeof fileApi.listV2 === 'function') {
+    let cursor: string | undefined = undefined;
+
+    for (let page = 0; page < 50; page++) {
+      const { data, error } = await fileApi.listV2({ limit: LIMIT, cursor, with_delimiter: false });
+      if (error) {
+        console.error(`Error listing bucket ${bucketName}:`, error);
+        return { fileCount: 0, totalSize: 0 };
+      }
+
+      const objects: any[] = data?.objects || [];
+      for (const obj of objects) {
+        fileCount += 1;
+        totalSize += obj?.metadata?.size || 0;
+      }
+
+      cursor = data?.nextCursor;
+      if (!cursor) break;
+    }
+
+    return { fileCount, totalSize };
+  }
+
+  // Fallback to list (offset pagination)
+  for (let offset = 0; offset < 50000; offset += LIMIT) {
+    const { data: files, error } = await supabase.storage
+      .from(bucketName)
+      .list('', { limit: LIMIT, offset });
+
+    if (error) {
+      console.error(`Error listing bucket ${bucketName}:`, error);
+      return { fileCount: 0, totalSize: 0 };
+    }
+
+    const items = files || [];
+    for (const f of items) {
+      if (f?.metadata) {
+        fileCount += 1;
+        totalSize += f.metadata.size || 0;
+      }
+    }
+
+    if (items.length < LIMIT) break;
+  }
+
+  return { fileCount, totalSize };
+};
+
+const fetchBucketStatsAll = async (): Promise<BucketInfo[]> => {
   const bucketPromises = BUCKET_CONFIG.map(async (config) => {
-    const stats = await fetchBucketStats(config.name);
+    const stats = await fetchBucketStatsPaged(config.name);
     return {
       name: config.name,
       displayName: config.displayName,
@@ -117,30 +139,43 @@ const fetchSnapshotData = async () => {
     };
   });
 
-  const [tables, buckets] = await Promise.all([
-    Promise.all(tablePromises),
-    Promise.all(bucketPromises),
-  ]);
-
-  return { tables, buckets, fetchedAt: new Date() };
+  return Promise.all(bucketPromises);
 };
 
 const DBSnapshotTab = () => {
-  const { data, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ['db-snapshot'],
-    queryFn: fetchSnapshotData,
-    staleTime: 5 * 60 * 1000, // 5 minutes - data stays fresh
-    gcTime: 10 * 60 * 1000, // 10 minutes - cache retained
+  const {
+    data: tables = [],
+    isLoading: tablesLoading,
+    isFetching: tablesFetching,
+    refetch: refetchTables,
+    dataUpdatedAt: tablesUpdatedAt,
+  } = useQuery({
+    queryKey: ['db-snapshot', 'tables'],
+    queryFn: fetchTableCounts,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
-  const tables = data?.tables || [];
-  const buckets = data?.buckets || [];
-  const lastUpdated = data?.fetchedAt || null;
-  const loading = isLoading;
+  const {
+    data: buckets = [],
+    isLoading: bucketsLoading,
+    isFetching: bucketsFetching,
+    refetch: refetchBuckets,
+    dataUpdatedAt: bucketsUpdatedAt,
+  } = useQuery({
+    queryKey: ['db-snapshot', 'buckets'],
+    queryFn: fetchBucketStatsAll,
+    // buckets can be large; cache longer
+    staleTime: 30 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
+  });
 
   const totalRows = tables.reduce((sum, t) => sum + t.rowCount, 0);
   const totalFiles = buckets.reduce((sum, b) => sum + b.fileCount, 0);
   const totalStorage = buckets.reduce((sum, b) => sum + b.totalSize, 0);
+
+  const lastUpdatedAt = Math.max(tablesUpdatedAt || 0, bucketsUpdatedAt || 0);
+  const lastUpdated = lastUpdatedAt ? new Date(lastUpdatedAt) : null;
 
   const exportAsJSON = () => {
     const exportData = {
@@ -152,19 +187,11 @@ const DBSnapshotTab = () => {
         totalStorageBytes: totalStorage,
         totalStorageFormatted: formatBytes(totalStorage),
       },
-      tables: tables.map(t => ({
-        name: t.name,
-        displayName: t.displayName,
-        rowCount: t.rowCount,
-        description: t.description,
-      })),
-      storageBuckets: buckets.map(b => ({
-        name: b.name,
-        displayName: b.displayName,
-        fileCount: b.fileCount,
+      tables,
+      storageBuckets: buckets.map((b) => ({
+        ...b,
         sizeBytes: b.totalSize,
         sizeFormatted: formatBytes(b.totalSize),
-        isPublic: b.isPublic,
       })),
     };
 
@@ -180,18 +207,11 @@ const DBSnapshotTab = () => {
   };
 
   const exportAsCSV = () => {
-    // Tables CSV
     const tableHeaders = ['Table Name', 'Display Name', 'Row Count', 'Description'];
-    const tableRows = tables.map(t => [
-      t.name,
-      t.displayName,
-      t.rowCount.toString(),
-      `"${t.description}"`,
-    ]);
+    const tableRows = tables.map((t) => [t.name, t.displayName, t.rowCount.toString(), `"${t.description}"`]);
 
-    // Buckets CSV
     const bucketHeaders = ['Bucket Name', 'Display Name', 'File Count', 'Size (Bytes)', 'Size (Formatted)', 'Public'];
-    const bucketRows = buckets.map(b => [
+    const bucketRows = buckets.map((b) => [
       b.name,
       b.displayName,
       b.fileCount.toString(),
@@ -206,11 +226,11 @@ const DBSnapshotTab = () => {
       '',
       '## Tables',
       tableHeaders.join(','),
-      ...tableRows.map(row => row.join(',')),
+      ...tableRows.map((row) => row.join(',')),
       '',
       '## Storage Buckets',
       bucketHeaders.join(','),
-      ...bucketRows.map(row => row.join(',')),
+      ...bucketRows.map((row) => row.join(',')),
       '',
       '## Summary',
       `Total Tables,${TABLE_CONFIG.length}`,
@@ -230,25 +250,26 @@ const DBSnapshotTab = () => {
     URL.revokeObjectURL(url);
   };
 
+  const refreshAll = async () => {
+    await Promise.all([refetchTables(), refetchBuckets()]);
+  };
+
+  const isRefreshing = tablesFetching || bucketsFetching;
+
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="space-y-6"
-    >
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-lg font-semibold text-foreground">Database Snapshot</h2>
-          <p className="text-sm text-muted-foreground">
-            Overview of database tables and storage buckets
-          </p>
+          <p className="text-sm text-muted-foreground">Overview of database tables and storage buckets</p>
         </div>
+
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={exportAsCSV}
-            disabled={loading || tables.length === 0}
+            disabled={tablesLoading || tables.length === 0}
             className="gap-1.5"
           >
             <FileDown className="h-4 w-4" />
@@ -258,20 +279,14 @@ const DBSnapshotTab = () => {
             variant="outline"
             size="sm"
             onClick={exportAsJSON}
-            disabled={loading || tables.length === 0}
+            disabled={tablesLoading || tables.length === 0}
             className="gap-1.5"
           >
             <FileJson className="h-4 w-4" />
             JSON
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+          <Button variant="outline" size="sm" onClick={refreshAll} disabled={isRefreshing} className="gap-2">
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
         </div>
@@ -288,6 +303,7 @@ const DBSnapshotTab = () => {
           </div>
           <p className="text-2xl font-bold text-foreground">{TABLE_CONFIG.length}</p>
         </div>
+
         <div className="bg-card rounded-xl border border-border p-5">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 rounded-lg bg-secondary/10">
@@ -295,10 +311,9 @@ const DBSnapshotTab = () => {
             </div>
             <span className="text-sm text-muted-foreground">Total Rows</span>
           </div>
-          <p className="text-2xl font-bold text-foreground">
-            {loading ? '...' : totalRows.toLocaleString()}
-          </p>
+          <p className="text-2xl font-bold text-foreground">{tablesLoading ? '...' : totalRows.toLocaleString()}</p>
         </div>
+
         <div className="bg-card rounded-xl border border-border p-5">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 rounded-lg bg-primary/10">
@@ -306,10 +321,9 @@ const DBSnapshotTab = () => {
             </div>
             <span className="text-sm text-muted-foreground">Total Files</span>
           </div>
-          <p className="text-2xl font-bold text-foreground">
-            {loading ? '...' : totalFiles.toLocaleString()}
-          </p>
+          <p className="text-2xl font-bold text-foreground">{bucketsLoading ? '...' : totalFiles.toLocaleString()}</p>
         </div>
+
         <div className="bg-card rounded-xl border border-border p-5">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 rounded-lg bg-secondary/10">
@@ -317,9 +331,7 @@ const DBSnapshotTab = () => {
             </div>
             <span className="text-sm text-muted-foreground">Storage Used</span>
           </div>
-          <p className="text-2xl font-bold text-foreground">
-            {loading ? '...' : formatBytes(totalStorage)}
-          </p>
+          <p className="text-2xl font-bold text-foreground">{bucketsLoading ? '...' : formatBytes(totalStorage)}</p>
         </div>
       </div>
 
@@ -331,7 +343,8 @@ const DBSnapshotTab = () => {
             Storage Buckets
           </h3>
         </div>
-        {loading ? (
+
+        {bucketsLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
@@ -342,14 +355,16 @@ const DBSnapshotTab = () => {
                 key={bucket.name}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
+                transition={{ delay: index * 0.05 }}
                 className="bg-muted/30 rounded-lg p-4 border border-border"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                      bucket.name === 'product-images' ? 'bg-primary/10' : 'bg-secondary/10'
-                    }`}>
+                    <div
+                      className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                        bucket.name === 'product-images' ? 'bg-primary/10' : 'bg-secondary/10'
+                      }`}
+                    >
                       {bucket.name === 'product-images' ? (
                         <Image className="h-5 w-5 text-primary" />
                       ) : (
@@ -361,14 +376,15 @@ const DBSnapshotTab = () => {
                       <p className="text-xs text-muted-foreground font-mono">{bucket.name}</p>
                     </div>
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded-full ${
-                    bucket.isPublic 
-                      ? 'bg-secondary/10 text-secondary' 
-                      : 'bg-primary/10 text-primary'
-                  }`}>
+                  <span
+                    className={`text-xs px-2 py-1 rounded-full ${
+                      bucket.isPublic ? 'bg-secondary/10 text-secondary' : 'bg-primary/10 text-primary'
+                    }`}
+                  >
                     {bucket.isPublic ? 'Public' : 'Private'}
                   </span>
                 </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Files</p>
@@ -393,7 +409,8 @@ const DBSnapshotTab = () => {
             Database Tables
           </h3>
         </div>
-        {loading ? (
+
+        {tablesLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
@@ -416,7 +433,7 @@ const DBSnapshotTab = () => {
                       key={table.name}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
+                      transition={{ delay: index * 0.03 }}
                       className="border-b border-border last:border-0 hover:bg-muted/30"
                     >
                       <td className="p-4">
@@ -424,18 +441,12 @@ const DBSnapshotTab = () => {
                           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                             <Table2 className="h-5 w-5 text-primary" />
                           </div>
-                          <span className="font-medium text-foreground font-mono text-sm">
-                            {table.displayName}
-                          </span>
+                          <span className="font-medium text-foreground font-mono text-sm">{table.displayName}</span>
                         </div>
                       </td>
-                      <td className="p-4 text-sm text-muted-foreground">
-                        {table.description}
-                      </td>
+                      <td className="p-4 text-sm text-muted-foreground">{table.description}</td>
                       <td className="p-4 text-right">
-                        <span className="text-lg font-bold text-foreground">
-                          {table.rowCount.toLocaleString()}
-                        </span>
+                        <span className="text-lg font-bold text-foreground">{table.rowCount.toLocaleString()}</span>
                       </td>
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -445,9 +456,7 @@ const DBSnapshotTab = () => {
                               style={{ width: `${Math.min(parseFloat(percentage), 100)}%` }}
                             />
                           </div>
-                          <span className="text-sm text-muted-foreground w-12 text-right">
-                            {percentage}%
-                          </span>
+                          <span className="text-sm text-muted-foreground w-12 text-right">{percentage}%</span>
                         </div>
                       </td>
                     </motion.tr>
@@ -460,13 +469,9 @@ const DBSnapshotTab = () => {
                     Total
                   </td>
                   <td className="p-4 text-right">
-                    <span className="text-lg font-bold text-foreground">
-                      {totalRows.toLocaleString()}
-                    </span>
+                    <span className="text-lg font-bold text-foreground">{totalRows.toLocaleString()}</span>
                   </td>
-                  <td className="p-4 text-right text-sm text-muted-foreground">
-                    100%
-                  </td>
+                  <td className="p-4 text-right text-sm text-muted-foreground">100%</td>
                 </tr>
               </tfoot>
             </table>
@@ -474,10 +479,9 @@ const DBSnapshotTab = () => {
         )}
       </div>
 
-      {/* Last Updated */}
       <div className="text-center text-sm text-muted-foreground">
         Last updated: {lastUpdated ? lastUpdated.toLocaleString() : 'Never'}
-        {!loading && <span className="ml-2 text-xs">(cached for 5 min)</span>}
+        <span className="ml-2 text-xs">(tables cached 5m, buckets cached 30m)</span>
       </div>
     </motion.div>
   );
