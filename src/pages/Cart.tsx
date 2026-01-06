@@ -60,6 +60,11 @@ const Cart = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Scroll to top on mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Handle QR code add parameter
   useEffect(() => {
     const productIdToAdd = searchParams.get('add');
