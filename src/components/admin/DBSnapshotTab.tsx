@@ -1,8 +1,9 @@
 import { motion } from 'framer-motion';
-import { Database, Loader2, RefreshCw, Table2, HardDrive, Image, FileArchive } from 'lucide-react';
+import { Database, Loader2, RefreshCw, Table2, HardDrive, Image, FileArchive, FileDown, FileJson } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { format } from 'date-fns';
 
 interface TableInfo {
   name: string;
@@ -141,29 +142,139 @@ const DBSnapshotTab = () => {
   const totalFiles = buckets.reduce((sum, b) => sum + b.fileCount, 0);
   const totalStorage = buckets.reduce((sum, b) => sum + b.totalSize, 0);
 
+  const exportAsJSON = () => {
+    const exportData = {
+      exportedAt: new Date().toISOString(),
+      summary: {
+        totalTables: TABLE_CONFIG.length,
+        totalRows,
+        totalFiles,
+        totalStorageBytes: totalStorage,
+        totalStorageFormatted: formatBytes(totalStorage),
+      },
+      tables: tables.map(t => ({
+        name: t.name,
+        displayName: t.displayName,
+        rowCount: t.rowCount,
+        description: t.description,
+      })),
+      storageBuckets: buckets.map(b => ({
+        name: b.name,
+        displayName: b.displayName,
+        fileCount: b.fileCount,
+        sizeBytes: b.totalSize,
+        sizeFormatted: formatBytes(b.totalSize),
+        isPublic: b.isPublic,
+      })),
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `db-snapshot-${format(new Date(), 'yyyy-MM-dd-HHmmss')}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const exportAsCSV = () => {
+    // Tables CSV
+    const tableHeaders = ['Table Name', 'Display Name', 'Row Count', 'Description'];
+    const tableRows = tables.map(t => [
+      t.name,
+      t.displayName,
+      t.rowCount.toString(),
+      `"${t.description}"`,
+    ]);
+
+    // Buckets CSV
+    const bucketHeaders = ['Bucket Name', 'Display Name', 'File Count', 'Size (Bytes)', 'Size (Formatted)', 'Public'];
+    const bucketRows = buckets.map(b => [
+      b.name,
+      b.displayName,
+      b.fileCount.toString(),
+      b.totalSize.toString(),
+      formatBytes(b.totalSize),
+      b.isPublic ? 'Yes' : 'No',
+    ]);
+
+    const csvContent = [
+      '# Database Snapshot Export',
+      `# Exported: ${new Date().toISOString()}`,
+      '',
+      '## Tables',
+      tableHeaders.join(','),
+      ...tableRows.map(row => row.join(',')),
+      '',
+      '## Storage Buckets',
+      bucketHeaders.join(','),
+      ...bucketRows.map(row => row.join(',')),
+      '',
+      '## Summary',
+      `Total Tables,${TABLE_CONFIG.length}`,
+      `Total Rows,${totalRows}`,
+      `Total Files,${totalFiles}`,
+      `Total Storage,${formatBytes(totalStorage)}`,
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `db-snapshot-${format(new Date(), 'yyyy-MM-dd-HHmmss')}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="space-y-6"
     >
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-lg font-semibold text-foreground">Database Snapshot</h2>
           <p className="text-sm text-muted-foreground">
             Overview of database tables and storage buckets
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => refetch()}
-          disabled={isFetching}
-          className="gap-2"
-        >
-          <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportAsCSV}
+            disabled={loading || tables.length === 0}
+            className="gap-1.5"
+          >
+            <FileDown className="h-4 w-4" />
+            CSV
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportAsJSON}
+            disabled={loading || tables.length === 0}
+            className="gap-1.5"
+          >
+            <FileJson className="h-4 w-4" />
+            JSON
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
