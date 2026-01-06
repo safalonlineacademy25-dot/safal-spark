@@ -992,7 +992,7 @@ const AdminDashboard = () => {
             )}
 
             {activeTab === 'dbsnapshot' && (
-              <DBSnapshotTab />
+              <DBSnapshotTab isActive={activeTab === 'dbsnapshot'} />
             )}
 
             {activeTab === 'settings' && (
