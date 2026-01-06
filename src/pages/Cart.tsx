@@ -152,13 +152,11 @@ const Cart = () => {
         throw new Error(verifyData?.error || verifyError?.message || 'Payment verification failed');
       }
 
-      toast({
-        title: 'Payment successful!',
-        description: `Order ${verifyData.order_number} confirmed. Check admin dashboard to see the order.`,
-      });
-
       // Clear cart after successful payment
       clearCart();
+      
+      // Navigate to success page with order details
+      navigate(`/order-success?order=${verifyData.order_number}&email=${encodeURIComponent(email)}`);
       
     } catch (error: any) {
       console.error('Checkout error:', error);
