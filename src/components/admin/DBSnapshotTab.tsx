@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Database, Loader2, RefreshCw, Table2, HardDrive, Image, FileArchive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 
 interface TableInfo {
   name: string;
@@ -41,99 +41,101 @@ const formatBytes = (bytes: number): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
-const DBSnapshotTab = () => {
-  const [tables, setTables] = useState<TableInfo[]>([]);
-  const [buckets, setBuckets] = useState<BucketInfo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+const fetchBucketStats = async (bucketName: string): Promise<{ fileCount: number; totalSize: number }> => {
+  try {
+    const { data: files, error } = await supabase.storage
+      .from(bucketName)
+      .list('', { limit: 1000 });
 
-  const fetchBucketStats = async (bucketName: string): Promise<{ fileCount: number; totalSize: number }> => {
-    try {
-      const { data: files, error } = await supabase.storage
-        .from(bucketName)
-        .list('', { limit: 1000 });
-
-      if (error) {
-        console.error(`Error fetching ${bucketName}:`, error);
-        return { fileCount: 0, totalSize: 0 };
-      }
-
-      let fileCount = 0;
-      let totalSize = 0;
-
-      for (const file of files || []) {
-        if (file.metadata) {
-          fileCount++;
-          totalSize += file.metadata.size || 0;
-        } else if (file.id) {
-          // It's a folder, list its contents
-          const { data: folderFiles } = await supabase.storage
-            .from(bucketName)
-            .list(file.name, { limit: 1000 });
-
-          for (const f of folderFiles || []) {
-            if (f.metadata) {
-              fileCount++;
-              totalSize += f.metadata.size || 0;
-            }
-          }
-        }
-      }
-
-      return { fileCount, totalSize };
-    } catch (error) {
-      console.error(`Error fetching bucket stats for ${bucketName}:`, error);
+    if (error) {
+      console.error(`Error fetching ${bucketName}:`, error);
       return { fileCount: 0, totalSize: 0 };
     }
-  };
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      // Fetch table counts in parallel
-      const tablePromises = TABLE_CONFIG.map(async (config) => {
-        const { count, error } = await supabase
-          .from(config.name as any)
-          .select('*', { count: 'exact', head: true });
+    let fileCount = 0;
+    let totalSize = 0;
 
-        return {
-          name: config.name,
-          displayName: config.displayName,
-          rowCount: error ? 0 : (count || 0),
-          description: config.description,
-        };
-      });
+    const folderPromises = (files || []).map(async (file) => {
+      if (file.metadata) {
+        return { count: 1, size: file.metadata.size || 0 };
+      } else if (file.id) {
+        const { data: folderFiles } = await supabase.storage
+          .from(bucketName)
+          .list(file.name, { limit: 1000 });
 
-      // Fetch bucket stats in parallel
-      const bucketPromises = BUCKET_CONFIG.map(async (config) => {
-        const stats = await fetchBucketStats(config.name);
-        return {
-          name: config.name,
-          displayName: config.displayName,
-          fileCount: stats.fileCount,
-          totalSize: stats.totalSize,
-          isPublic: config.isPublic,
-        };
-      });
+        let folderCount = 0;
+        let folderSize = 0;
+        for (const f of folderFiles || []) {
+          if (f.metadata) {
+            folderCount++;
+            folderSize += f.metadata.size || 0;
+          }
+        }
+        return { count: folderCount, size: folderSize };
+      }
+      return { count: 0, size: 0 };
+    });
 
-      const [tableData, bucketData] = await Promise.all([
-        Promise.all(tablePromises),
-        Promise.all(bucketPromises),
-      ]);
-
-      setTables(tableData);
-      setBuckets(bucketData);
-      setLastUpdated(new Date());
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
+    const results = await Promise.all(folderPromises);
+    for (const result of results) {
+      fileCount += result.count;
+      totalSize += result.size;
     }
-  };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+    return { fileCount, totalSize };
+  } catch (error) {
+    console.error(`Error fetching bucket stats for ${bucketName}:`, error);
+    return { fileCount: 0, totalSize: 0 };
+  }
+};
+
+const fetchSnapshotData = async () => {
+  // Fetch table counts in parallel
+  const tablePromises = TABLE_CONFIG.map(async (config) => {
+    const { count, error } = await supabase
+      .from(config.name as any)
+      .select('*', { count: 'exact', head: true });
+
+    return {
+      name: config.name,
+      displayName: config.displayName,
+      rowCount: error ? 0 : (count || 0),
+      description: config.description,
+    };
+  });
+
+  // Fetch bucket stats in parallel
+  const bucketPromises = BUCKET_CONFIG.map(async (config) => {
+    const stats = await fetchBucketStats(config.name);
+    return {
+      name: config.name,
+      displayName: config.displayName,
+      fileCount: stats.fileCount,
+      totalSize: stats.totalSize,
+      isPublic: config.isPublic,
+    };
+  });
+
+  const [tables, buckets] = await Promise.all([
+    Promise.all(tablePromises),
+    Promise.all(bucketPromises),
+  ]);
+
+  return { tables, buckets, fetchedAt: new Date() };
+};
+
+const DBSnapshotTab = () => {
+  const { data, isLoading, refetch, isFetching } = useQuery({
+    queryKey: ['db-snapshot'],
+    queryFn: fetchSnapshotData,
+    staleTime: 5 * 60 * 1000, // 5 minutes - data stays fresh
+    gcTime: 10 * 60 * 1000, // 10 minutes - cache retained
+  });
+
+  const tables = data?.tables || [];
+  const buckets = data?.buckets || [];
+  const lastUpdated = data?.fetchedAt || null;
+  const loading = isLoading;
 
   const totalRows = tables.reduce((sum, t) => sum + t.rowCount, 0);
   const totalFiles = buckets.reduce((sum, b) => sum + b.fileCount, 0);
@@ -155,11 +157,11 @@ const DBSnapshotTab = () => {
         <Button
           variant="outline"
           size="sm"
-          onClick={fetchData}
-          disabled={loading}
+          onClick={() => refetch()}
+          disabled={isFetching}
           className="gap-2"
         >
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
       </div>
@@ -364,6 +366,7 @@ const DBSnapshotTab = () => {
       {/* Last Updated */}
       <div className="text-center text-sm text-muted-foreground">
         Last updated: {lastUpdated ? lastUpdated.toLocaleString() : 'Never'}
+        {!loading && <span className="ml-2 text-xs">(cached for 5 min)</span>}
       </div>
     </motion.div>
   );
