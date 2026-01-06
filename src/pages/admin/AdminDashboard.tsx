@@ -24,6 +24,7 @@ import {
   AlertTriangle,
   RefreshCw,
   Database,
+  Home,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth, signOut } from '@/hooks/useAuth';
@@ -366,8 +367,15 @@ const AdminDashboard = () => {
             ))}
           </nav>
 
-          {/* Logout */}
-          <div className="p-4 border-t border-border">
+          {/* Footer Actions */}
+          <div className="p-4 border-t border-border space-y-1">
+            <Link
+              to="/"
+              className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              <Home className="h-5 w-5" />
+              Go to Home
+            </Link>
             <button
               onClick={handleLogout}
               className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
