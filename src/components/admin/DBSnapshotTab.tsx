@@ -142,7 +142,11 @@ const fetchBucketStatsAll = async (): Promise<BucketInfo[]> => {
   return Promise.all(bucketPromises);
 };
 
-const DBSnapshotTab = () => {
+interface DBSnapshotTabProps {
+  isActive?: boolean;
+}
+
+const DBSnapshotTab = ({ isActive = false }: DBSnapshotTabProps) => {
   const {
     data: tables = [],
     isLoading: tablesLoading,
@@ -154,6 +158,7 @@ const DBSnapshotTab = () => {
     queryFn: fetchTableCounts,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
+    enabled: isActive,
   });
 
   const {
@@ -165,9 +170,9 @@ const DBSnapshotTab = () => {
   } = useQuery({
     queryKey: ['db-snapshot', 'buckets'],
     queryFn: fetchBucketStatsAll,
-    // buckets can be large; cache longer
     staleTime: 30 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
+    enabled: isActive,
   });
 
   const totalRows = tables.reduce((sum, t) => sum + t.rowCount, 0);
