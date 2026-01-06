@@ -23,6 +23,7 @@ import {
   CreditCard,
   AlertTriangle,
   RefreshCw,
+  Database,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth, signOut } from '@/hooks/useAuth';
@@ -34,6 +35,7 @@ import EditProductDialog from '@/components/admin/EditProductDialog';
 import DeleteProductDialog from '@/components/admin/DeleteProductDialog';
 import OrderDetailsDialog from '@/components/admin/OrderDetailsDialog';
 import ProductQRCodeDialog from '@/components/admin/ProductQRCodeDialog';
+import DBSnapshotTab from '@/components/admin/DBSnapshotTab';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -74,6 +76,7 @@ const AdminDashboard = () => {
     { id: 'customers', label: 'Customers', icon: Users },
     { id: 'email', label: 'Email Logs', icon: Mail },
     { id: 'whatsapp', label: 'WhatsApp Logs', icon: MessageCircle },
+    { id: 'dbsnapshot', label: 'DB Snapshot', icon: Database },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
@@ -986,6 +989,10 @@ const AdminDashboard = () => {
                   )}
                 </div>
               </motion.div>
+            )}
+
+            {activeTab === 'dbsnapshot' && (
+              <DBSnapshotTab />
             )}
 
             {activeTab === 'settings' && (
