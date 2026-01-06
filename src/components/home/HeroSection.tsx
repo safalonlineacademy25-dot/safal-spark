@@ -80,12 +80,6 @@ const HeroSection = () => {
                   Download Notes Now
                 </Button>
               </Link>
-              <Link to="/products?category=mock-papers">
-                <Button size="xl" variant="hero-outline" className="w-full sm:w-auto">
-                  <FileText className="mr-2 h-5 w-5" />
-                  View Mock Papers
-                </Button>
-              </Link>
             </motion.div>
 
             {/* Trust Points */}
