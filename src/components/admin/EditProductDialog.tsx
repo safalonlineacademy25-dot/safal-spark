@@ -9,6 +9,8 @@ import { Switch } from '@/components/ui/switch';
 import { Edit, Loader2, Upload, X } from 'lucide-react';
 import { useUpdateProduct, Product } from '@/hooks/useProducts';
 import { useImageUpload } from '@/hooks/useImageUpload';
+import { useProductFileUpload } from '@/hooks/useProductFileUpload';
+import FileUploadProgress from './FileUploadProgress';
 
 interface EditProductDialogProps {
   product: Product;
@@ -30,10 +32,19 @@ const EditProductDialog = ({ product, children }: EditProductDialogProps) => {
   });
   const [featuresInput, setFeaturesInput] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [existingFileName, setExistingFileName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const productFileInputRef = useRef<HTMLInputElement>(null);
 
   const updateProduct = useUpdateProduct();
-  const { uploadImage, isUploading } = useImageUpload();
+  const { uploadImage, isUploading: isImageUploading } = useImageUpload();
+  const { 
+    uploadFile, 
+    cancelUpload, 
+    isUploading: isFileUploading, 
+    progress: fileProgress 
+  } = useProductFileUpload();
 
   useEffect(() => {
     if (open && product) {
@@ -50,6 +61,14 @@ const EditProductDialog = ({ product, children }: EditProductDialogProps) => {
       });
       setFeaturesInput(product.features?.join('\n') || '');
       setImagePreview(null);
+      setSelectedFile(null);
+      // Extract filename from existing URL
+      if (product.file_url) {
+        const fileName = product.file_url.split('/').pop() || null;
+        setExistingFileName(fileName);
+      } else {
+        setExistingFileName(null);
+      }
     }
   }, [open, product]);
 
@@ -79,6 +98,30 @@ const EditProductDialog = ({ product, children }: EditProductDialogProps) => {
     }
   };
 
+  const handleProductFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setSelectedFile(file);
+    setExistingFileName(null);
+    
+    // Upload to Supabase Storage
+    const url = await uploadFile(file, product.id);
+    if (url) {
+      setFormData({ ...formData, file_url: url });
+    }
+  };
+
+  const removeProductFile = () => {
+    setSelectedFile(null);
+    setExistingFileName(null);
+    setFormData({ ...formData, file_url: '' });
+    if (productFileInputRef.current) {
+      productFileInputRef.current.value = '';
+    }
+    cancelUpload();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -103,6 +146,7 @@ const EditProductDialog = ({ product, children }: EditProductDialogProps) => {
   };
 
   const displayImage = imagePreview || formData.image_url;
+  const displayFileName = selectedFile?.name || existingFileName;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -235,7 +279,7 @@ const EditProductDialog = ({ product, children }: EditProductDialogProps) => {
                 >
                   <X className="h-4 w-4" />
                 </button>
-                {isUploading && (
+                {isImageUploading && (
                   <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
                   </div>
@@ -245,10 +289,10 @@ const EditProductDialog = ({ product, children }: EditProductDialogProps) => {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
+                disabled={isImageUploading}
                 className="w-full h-40 rounded-lg border-2 border-dashed border-border hover:border-primary/50 transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground"
               >
-                {isUploading ? (
+                {isImageUploading ? (
                   <Loader2 className="h-8 w-8 animate-spin" />
                 ) : (
                   <>
@@ -272,13 +316,41 @@ const EditProductDialog = ({ product, children }: EditProductDialogProps) => {
             />
           </div>
 
+          {/* Product File Upload */}
           <div className="space-y-2">
-            <Label htmlFor="edit-file_url">File URL (Download Link)</Label>
+            <Label>Product File (PDF, ZIP, etc.)</Label>
+            <input
+              ref={productFileInputRef}
+              type="file"
+              accept=".pdf,.zip,.rar,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
+              onChange={handleProductFileSelect}
+              className="hidden"
+            />
+            
+            <FileUploadProgress
+              fileName={displayFileName}
+              fileSize={selectedFile?.size || 0}
+              isUploading={isFileUploading}
+              progress={fileProgress}
+              onCancel={cancelUpload}
+              onRemove={removeProductFile}
+              onSelect={() => productFileInputRef.current?.click()}
+              disabled={isFileUploading}
+            />
+            
+            <p className="text-xs text-muted-foreground">
+              Or paste an external URL below
+            </p>
             <Input
               id="edit-file_url"
               value={formData.file_url}
-              onChange={(e) => setFormData({ ...formData, file_url: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, file_url: e.target.value });
+                setSelectedFile(null);
+                setExistingFileName(null);
+              }}
               placeholder="https://..."
+              disabled={isFileUploading}
             />
           </div>
 
@@ -306,7 +378,7 @@ const EditProductDialog = ({ product, children }: EditProductDialogProps) => {
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={updateProduct.isPending || isUploading}>
+            <Button type="submit" disabled={updateProduct.isPending || isImageUploading || isFileUploading}>
               {updateProduct.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Save Changes
             </Button>
