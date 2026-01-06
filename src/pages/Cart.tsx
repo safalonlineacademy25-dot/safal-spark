@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { Trash2, ShoppingBag, ArrowRight, Shield, MessageCircle, Mail, Loader2 } from 'lucide-react';
@@ -7,10 +7,11 @@ import Footer from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/lib/store';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
+import { useActiveProducts } from '@/hooks/useProducts';
 
 // Validation schema for checkout form
 const checkoutSchema = z.object({
@@ -47,7 +48,9 @@ const getImageUrl = (url: string): string => {
 };
 
 const Cart = () => {
-  const { items, removeItem, clearCart, getTotal } = useCartStore();
+  const { items, removeItem, clearCart, getTotal, addItem } = useCartStore();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { data: allProducts } = useActiveProducts();
   const [whatsappOptIn, setWhatsappOptIn] = useState(true);
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -56,6 +59,28 @@ const Cart = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Handle QR code add parameter
+  useEffect(() => {
+    const productIdToAdd = searchParams.get('add');
+    if (productIdToAdd && allProducts) {
+      const product = allProducts.find(p => p.id === productIdToAdd);
+      if (product) {
+        // Check if already in cart
+        const existingItem = items.find(item => item.product.id === productIdToAdd);
+        if (!existingItem) {
+          addItem(product);
+          toast({
+            title: 'Product added to cart',
+            description: `${product.name} has been added to your cart.`,
+          });
+        }
+      }
+      // Remove the add parameter from URL
+      searchParams.delete('add');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, allProducts, items, addItem, setSearchParams, toast]);
 
   const validateForm = (): boolean => {
     setEmailError('');
