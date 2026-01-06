@@ -117,13 +117,31 @@ export const useUpdateProduct = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      toast.success('Product updated successfully');
+    onMutate: async (updatedProduct) => {
+      await queryClient.cancelQueries({ queryKey: ['products'] });
+      
+      const previousProducts = queryClient.getQueryData<Product[]>(['products']);
+      
+      queryClient.setQueryData<Product[]>(['products'], (old) =>
+        old?.map((p) =>
+          p.id === updatedProduct.id ? { ...p, ...updatedProduct, updated_at: new Date().toISOString() } : p
+        )
+      );
+      
+      return { previousProducts };
     },
-    onError: (error) => {
+    onError: (error, _, context) => {
+      if (context?.previousProducts) {
+        queryClient.setQueryData(['products'], context.previousProducts);
+      }
       console.error('Error updating product:', error);
       toast.error('Failed to update product');
+    },
+    onSuccess: () => {
+      toast.success('Product updated successfully');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
     },
   });
 };
@@ -140,13 +158,29 @@ export const useDeleteProduct = () => {
       
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      toast.success('Product deleted successfully');
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['products'] });
+      
+      const previousProducts = queryClient.getQueryData<Product[]>(['products']);
+      
+      queryClient.setQueryData<Product[]>(['products'], (old) =>
+        old?.filter((p) => p.id !== id)
+      );
+      
+      return { previousProducts };
     },
-    onError: (error) => {
+    onError: (error, _, context) => {
+      if (context?.previousProducts) {
+        queryClient.setQueryData(['products'], context.previousProducts);
+      }
       console.error('Error deleting product:', error);
       toast.error('Failed to delete product. Please check your admin permissions.');
+    },
+    onSuccess: () => {
+      toast.success('Product deleted successfully');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
     },
   });
 };
