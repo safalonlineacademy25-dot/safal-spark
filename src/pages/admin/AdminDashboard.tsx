@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
@@ -36,6 +36,8 @@ import DeleteProductDialog from '@/components/admin/DeleteProductDialog';
 import OrderDetailsDialog from '@/components/admin/OrderDetailsDialog';
 import ProductQRCodeDialog from '@/components/admin/ProductQRCodeDialog';
 import DBSnapshotTab from '@/components/admin/DBSnapshotTab';
+import PaginationControls from '@/components/admin/PaginationControls';
+import { usePagination } from '@/hooks/usePagination';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -48,6 +50,28 @@ const AdminDashboard = () => {
   const { data: customers, isLoading: customersLoading } = useCustomers();
   const [resendingEmail, setResendingEmail] = useState<string | null>(null);
   const [resendingWhatsApp, setResendingWhatsApp] = useState<string | null>(null);
+
+  // Filtered data for specific tabs
+  const failedPayments = useMemo(() => 
+    orders?.filter(o => o.status === 'pending' || o.status === 'failed') || [],
+    [orders]
+  );
+  const whatsappLogs = useMemo(() => 
+    orders?.filter(o => o.whatsapp_optin && o.status === 'paid') || [],
+    [orders]
+  );
+  const emailLogs = useMemo(() => 
+    orders?.filter(o => o.status === 'paid') || [],
+    [orders]
+  );
+
+  // Pagination for each tab
+  const productsPagination = usePagination({ data: products, itemsPerPage: 15 });
+  const ordersPagination = usePagination({ data: orders, itemsPerPage: 15 });
+  const customersPagination = usePagination({ data: customers, itemsPerPage: 15 });
+  const paymentsPagination = usePagination({ data: failedPayments, itemsPerPage: 15 });
+  const whatsappPagination = usePagination({ data: whatsappLogs, itemsPerPage: 15 });
+  const emailPagination = usePagination({ data: emailLogs, itemsPerPage: 15 });
 
   useEffect(() => {
     if (!authLoading) {
@@ -457,49 +481,61 @@ const AdminDashboard = () => {
                       No products found. Add your first product above.
                     </div>
                   ) : (
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-border bg-muted/30">
-                          <th className="text-left p-4 text-sm font-medium text-muted-foreground">Product</th>
-                          <th className="text-left p-4 text-sm font-medium text-muted-foreground">Category</th>
-                          <th className="text-left p-4 text-sm font-medium text-muted-foreground">Price</th>
-                          <th className="text-left p-4 text-sm font-medium text-muted-foreground">Downloads</th>
-                          <th className="text-left p-4 text-sm font-medium text-muted-foreground">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {products.map((product) => (
-                          <tr key={product.id} className="border-b border-border last:border-0 hover:bg-muted/30">
-                            <td className="p-4">
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-lg">
-                                  {product.category === 'notes' && '📚'}
-                                  {product.category === 'mock-papers' && '📝'}
-                                  {product.category === 'pune-university' && '🎓'}
-                                  {product.category === 'engineering' && '⚙️'}
-                                  {product.category === 'iit' && '🏛️'}
-                                  {product.category === 'others' && '📦'}
-                                </div>
-                                <span className="font-medium text-foreground">{product.name}</span>
-                              </div>
-                            </td>
-                            <td className="p-4 text-sm text-muted-foreground capitalize">{product.category}</td>
-                            <td className="p-4 text-sm font-medium price-text">₹{product.price}</td>
-                            <td className="p-4 text-sm text-muted-foreground">{product.download_count?.toLocaleString() || 0}</td>
-                            <td className="p-4">
-                              <div className="flex items-center gap-2">
-                                <ProductQRCodeDialog productId={product.id} productName={product.name} />
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                                <EditProductDialog product={product} />
-                                <DeleteProductDialog productId={product.id} productName={product.name} />
-                              </div>
-                            </td>
+                    <>
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-border bg-muted/30">
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Product</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Category</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Price</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Downloads</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Actions</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {productsPagination.paginatedData.map((product) => (
+                            <tr key={product.id} className="border-b border-border last:border-0 hover:bg-muted/30">
+                              <td className="p-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-lg">
+                                    {product.category === 'notes' && '📚'}
+                                    {product.category === 'mock-papers' && '📝'}
+                                    {product.category === 'pune-university' && '🎓'}
+                                    {product.category === 'engineering' && '⚙️'}
+                                    {product.category === 'iit' && '🏛️'}
+                                    {product.category === 'others' && '📦'}
+                                  </div>
+                                  <span className="font-medium text-foreground">{product.name}</span>
+                                </div>
+                              </td>
+                              <td className="p-4 text-sm text-muted-foreground capitalize">{product.category}</td>
+                              <td className="p-4 text-sm font-medium price-text">₹{product.price}</td>
+                              <td className="p-4 text-sm text-muted-foreground">{product.download_count?.toLocaleString() || 0}</td>
+                              <td className="p-4">
+                                <div className="flex items-center gap-2">
+                                  <ProductQRCodeDialog productId={product.id} productName={product.name} />
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  <EditProductDialog product={product} />
+                                  <DeleteProductDialog productId={product.id} productName={product.name} />
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      <PaginationControls
+                        currentPage={productsPagination.currentPage}
+                        totalPages={productsPagination.totalPages}
+                        startIndex={productsPagination.startIndex}
+                        endIndex={productsPagination.endIndex}
+                        totalItems={productsPagination.totalItems}
+                        onPrevPage={productsPagination.prevPage}
+                        onNextPage={productsPagination.nextPage}
+                        onGoToPage={productsPagination.goToPage}
+                      />
+                    </>
                   )}
                 </div>
               </motion.div>
@@ -542,7 +578,7 @@ const AdminDashboard = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {orders.map((order) => (
+                          {ordersPagination.paginatedData.map((order) => (
                             <tr key={order.id} className="border-b border-border last:border-0 hover:bg-muted/30">
                               <td className="p-4 text-sm font-medium text-foreground font-mono">
                                 {order.order_number}
@@ -588,6 +624,16 @@ const AdminDashboard = () => {
                           ))}
                         </tbody>
                       </table>
+                      <PaginationControls
+                        currentPage={ordersPagination.currentPage}
+                        totalPages={ordersPagination.totalPages}
+                        startIndex={ordersPagination.startIndex}
+                        endIndex={ordersPagination.endIndex}
+                        totalItems={ordersPagination.totalItems}
+                        onPrevPage={ordersPagination.prevPage}
+                        onNextPage={ordersPagination.nextPage}
+                        onGoToPage={ordersPagination.goToPage}
+                      />
                     </div>
                   )}
                 </div>
@@ -628,49 +674,61 @@ const AdminDashboard = () => {
                       No customers found yet. Customers will appear here after placing orders.
                     </div>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b border-border bg-muted/30">
-                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Customer</th>
-                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Email</th>
-                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Phone</th>
-                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">WhatsApp Opt-in</th>
-                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Joined</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {customers.map((customer) => (
-                            <tr key={customer.id} className="border-b border-border last:border-0 hover:bg-muted/30">
-                              <td className="p-4">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                                    <Users className="h-5 w-5 text-primary" />
-                                  </div>
-                                  <span className="font-medium text-foreground">{customer.name || 'N/A'}</span>
-                                </div>
-                              </td>
-                              <td className="p-4 text-sm text-foreground">{customer.email}</td>
-                              <td className="p-4 text-sm text-muted-foreground">{customer.phone}</td>
-                              <td className="p-4">
-                                <span
-                                  className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
-                                    customer.whatsapp_optin
-                                      ? 'bg-secondary/10 text-secondary'
-                                      : 'bg-muted text-muted-foreground'
-                                  }`}
-                                >
-                                  {customer.whatsapp_optin ? 'Yes' : 'No'}
-                                </span>
-                              </td>
-                              <td className="p-4 text-sm text-muted-foreground">
-                                {customer.created_at ? format(new Date(customer.created_at), 'MMM d, yyyy') : 'N/A'}
-                              </td>
+                    <>
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b border-border bg-muted/30">
+                              <th className="text-left p-4 text-sm font-medium text-muted-foreground">Customer</th>
+                              <th className="text-left p-4 text-sm font-medium text-muted-foreground">Email</th>
+                              <th className="text-left p-4 text-sm font-medium text-muted-foreground">Phone</th>
+                              <th className="text-left p-4 text-sm font-medium text-muted-foreground">WhatsApp Opt-in</th>
+                              <th className="text-left p-4 text-sm font-medium text-muted-foreground">Joined</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          </thead>
+                          <tbody>
+                            {customersPagination.paginatedData.map((customer) => (
+                              <tr key={customer.id} className="border-b border-border last:border-0 hover:bg-muted/30">
+                                <td className="p-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                                      <Users className="h-5 w-5 text-primary" />
+                                    </div>
+                                    <span className="font-medium text-foreground">{customer.name || 'N/A'}</span>
+                                  </div>
+                                </td>
+                                <td className="p-4 text-sm text-foreground">{customer.email}</td>
+                                <td className="p-4 text-sm text-muted-foreground">{customer.phone}</td>
+                                <td className="p-4">
+                                  <span
+                                    className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
+                                      customer.whatsapp_optin
+                                        ? 'bg-secondary/10 text-secondary'
+                                        : 'bg-muted text-muted-foreground'
+                                    }`}
+                                  >
+                                    {customer.whatsapp_optin ? 'Yes' : 'No'}
+                                  </span>
+                                </td>
+                                <td className="p-4 text-sm text-muted-foreground">
+                                  {customer.created_at ? format(new Date(customer.created_at), 'MMM d, yyyy') : 'N/A'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <PaginationControls
+                        currentPage={customersPagination.currentPage}
+                        totalPages={customersPagination.totalPages}
+                        startIndex={customersPagination.startIndex}
+                        endIndex={customersPagination.endIndex}
+                        totalItems={customersPagination.totalItems}
+                        onPrevPage={customersPagination.prevPage}
+                        onNextPage={customersPagination.nextPage}
+                        onGoToPage={customersPagination.goToPage}
+                      />
+                    </>
                   )}
                 </div>
               </motion.div>
@@ -737,23 +795,22 @@ const AdminDashboard = () => {
                       <p className="text-sm">All payment transactions are successful! 🎉</p>
                     </div>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b border-border">
-                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Order #</th>
-                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Customer</th>
-                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Amount</th>
-                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Status</th>
-                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Razorpay Order ID</th>
-                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Payment ID</th>
-                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Date</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {orders
-                            .filter(o => o.status === 'pending' || o.status === 'failed')
-                            .map((order) => (
+                    <>
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b border-border">
+                              <th className="text-left p-4 text-sm font-medium text-muted-foreground">Order #</th>
+                              <th className="text-left p-4 text-sm font-medium text-muted-foreground">Customer</th>
+                              <th className="text-left p-4 text-sm font-medium text-muted-foreground">Amount</th>
+                              <th className="text-left p-4 text-sm font-medium text-muted-foreground">Status</th>
+                              <th className="text-left p-4 text-sm font-medium text-muted-foreground">Razorpay Order ID</th>
+                              <th className="text-left p-4 text-sm font-medium text-muted-foreground">Payment ID</th>
+                              <th className="text-left p-4 text-sm font-medium text-muted-foreground">Date</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {paymentsPagination.paginatedData.map((order) => (
                               <tr 
                                 key={order.id} 
                                 className={`border-b border-border last:border-0 hover:bg-muted/30 ${
@@ -799,9 +856,20 @@ const AdminDashboard = () => {
                                 </td>
                               </tr>
                             ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          </tbody>
+                        </table>
+                      </div>
+                      <PaginationControls
+                        currentPage={paymentsPagination.currentPage}
+                        totalPages={paymentsPagination.totalPages}
+                        startIndex={paymentsPagination.startIndex}
+                        endIndex={paymentsPagination.endIndex}
+                        totalItems={paymentsPagination.totalItems}
+                        onPrevPage={paymentsPagination.prevPage}
+                        onNextPage={paymentsPagination.nextPage}
+                        onGoToPage={paymentsPagination.goToPage}
+                      />
+                    </>
                   )}
                 </div>
               </motion.div>
@@ -825,27 +893,26 @@ const AdminDashboard = () => {
                     <div className="flex items-center justify-center py-12">
                       <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                     </div>
-                  ) : !orders || orders.filter(o => o.whatsapp_optin && o.status === 'paid').length === 0 ? (
+                  ) : whatsappLogs.length === 0 ? (
                     <div className="text-center py-12 text-muted-foreground">
                       No WhatsApp deliveries yet. Messages will appear here after paid orders with WhatsApp opt-in.
                     </div>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b border-border bg-muted/30">
-                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Order #</th>
-                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Phone</th>
-                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Customer</th>
-                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Delivery Status</th>
-                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Date</th>
-                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {orders
-                            .filter(o => o.whatsapp_optin && o.status === 'paid')
-                            .map((order) => (
+                    <>
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b border-border bg-muted/30">
+                              <th className="text-left p-4 text-sm font-medium text-muted-foreground">Order #</th>
+                              <th className="text-left p-4 text-sm font-medium text-muted-foreground">Phone</th>
+                              <th className="text-left p-4 text-sm font-medium text-muted-foreground">Customer</th>
+                              <th className="text-left p-4 text-sm font-medium text-muted-foreground">Delivery Status</th>
+                              <th className="text-left p-4 text-sm font-medium text-muted-foreground">Date</th>
+                              <th className="text-left p-4 text-sm font-medium text-muted-foreground">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {whatsappPagination.paginatedData.map((order) => (
                               <tr key={order.id} className="border-b border-border last:border-0 hover:bg-muted/30">
                                 <td className="p-4 text-sm font-medium text-foreground font-mono">{order.order_number}</td>
                                 <td className="p-4">
@@ -891,9 +958,20 @@ const AdminDashboard = () => {
                                 </td>
                               </tr>
                             ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          </tbody>
+                        </table>
+                      </div>
+                      <PaginationControls
+                        currentPage={whatsappPagination.currentPage}
+                        totalPages={whatsappPagination.totalPages}
+                        startIndex={whatsappPagination.startIndex}
+                        endIndex={whatsappPagination.endIndex}
+                        totalItems={whatsappPagination.totalItems}
+                        onPrevPage={whatsappPagination.prevPage}
+                        onNextPage={whatsappPagination.nextPage}
+                        onGoToPage={whatsappPagination.goToPage}
+                      />
+                    </>
                   )}
                 </div>
               </motion.div>
@@ -908,7 +986,7 @@ const AdminDashboard = () => {
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-foreground">Email Delivery Logs</h2>
                   <div className="text-sm text-muted-foreground">
-                    {orders?.filter(o => o.status === 'paid').length || 0} emails sent
+                    {emailLogs.length} emails sent
                   </div>
                 </div>
 
@@ -917,27 +995,26 @@ const AdminDashboard = () => {
                     <div className="flex items-center justify-center py-12">
                       <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                     </div>
-                  ) : !orders || orders.filter(o => o.status === 'paid').length === 0 ? (
+                  ) : emailLogs.length === 0 ? (
                     <div className="text-center py-12 text-muted-foreground">
                       No email deliveries yet. Emails will appear here after paid orders.
                     </div>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b border-border bg-muted/30">
-                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Order #</th>
-                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Email</th>
-                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Customer</th>
-                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Delivery Status</th>
-                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Date</th>
-                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {orders
-                            .filter(o => o.status === 'paid')
-                            .map((order) => (
+                    <>
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b border-border bg-muted/30">
+                              <th className="text-left p-4 text-sm font-medium text-muted-foreground">Order #</th>
+                              <th className="text-left p-4 text-sm font-medium text-muted-foreground">Email</th>
+                              <th className="text-left p-4 text-sm font-medium text-muted-foreground">Customer</th>
+                              <th className="text-left p-4 text-sm font-medium text-muted-foreground">Delivery Status</th>
+                              <th className="text-left p-4 text-sm font-medium text-muted-foreground">Date</th>
+                              <th className="text-left p-4 text-sm font-medium text-muted-foreground">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {emailPagination.paginatedData.map((order) => (
                               <tr key={order.id} className="border-b border-border last:border-0 hover:bg-muted/30">
                                 <td className="p-4 text-sm font-medium text-foreground font-mono">{order.order_number}</td>
                                 <td className="p-4">
@@ -983,9 +1060,20 @@ const AdminDashboard = () => {
                                 </td>
                               </tr>
                             ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          </tbody>
+                        </table>
+                      </div>
+                      <PaginationControls
+                        currentPage={emailPagination.currentPage}
+                        totalPages={emailPagination.totalPages}
+                        startIndex={emailPagination.startIndex}
+                        endIndex={emailPagination.endIndex}
+                        totalItems={emailPagination.totalItems}
+                        onPrevPage={emailPagination.prevPage}
+                        onNextPage={emailPagination.nextPage}
+                        onGoToPage={emailPagination.goToPage}
+                      />
+                    </>
                   )}
                 </div>
               </motion.div>
