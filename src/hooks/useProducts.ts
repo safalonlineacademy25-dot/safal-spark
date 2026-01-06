@@ -51,13 +51,53 @@ export const useAddProduct = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      toast.success('Product added successfully');
+    onMutate: async (newProduct) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['products'] });
+      
+      // Snapshot previous value
+      const previousProducts = queryClient.getQueryData<Product[]>(['products']);
+      
+      // Optimistically add to cache with temp id
+      const optimisticProduct: Product = {
+        id: `temp-${Date.now()}`,
+        name: newProduct.name,
+        category: newProduct.category,
+        price: newProduct.price,
+        original_price: newProduct.original_price ?? null,
+        description: newProduct.description ?? null,
+        image_url: newProduct.image_url ?? null,
+        file_url: newProduct.file_url ?? null,
+        badge: newProduct.badge ?? null,
+        is_active: newProduct.is_active ?? true,
+        features: newProduct.features ?? null,
+        download_count: 0,
+        seo_title: null,
+        seo_description: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      
+      queryClient.setQueryData<Product[]>(['products'], (old) => 
+        old ? [optimisticProduct, ...old] : [optimisticProduct]
+      );
+      
+      return { previousProducts };
     },
-    onError: (error) => {
+    onError: (error, _, context) => {
+      // Rollback on error
+      if (context?.previousProducts) {
+        queryClient.setQueryData(['products'], context.previousProducts);
+      }
       console.error('Error adding product:', error);
       toast.error('Failed to add product. Please check your admin permissions.');
+    },
+    onSuccess: () => {
+      toast.success('Product added successfully');
+    },
+    onSettled: () => {
+      // Always refetch to sync with server
+      queryClient.invalidateQueries({ queryKey: ['products'] });
     },
   });
 };
