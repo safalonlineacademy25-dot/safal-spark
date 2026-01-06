@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, QueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables, TablesInsert } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
@@ -10,22 +10,34 @@ interface UseProductsOptions {
   enabled?: boolean;
 }
 
+// Query function for products - extracted for reuse in prefetching
+const fetchProducts = async () => {
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .order('created_at', { ascending: false });
+  
+  if (error) throw error;
+  return data as Product[];
+};
+
 export const useProducts = (options: UseProductsOptions = {}) => {
   const { enabled = true } = options;
   
   return useQuery({
     queryKey: ['products'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data as Product[];
-    },
+    queryFn: fetchProducts,
     enabled,
     staleTime: 1000 * 60 * 2, // 2 minutes stale time for better caching
+  });
+};
+
+// Prefetch function for products - call on hover to preload data
+export const prefetchProducts = (queryClient: QueryClient) => {
+  queryClient.prefetchQuery({
+    queryKey: ['products'],
+    queryFn: fetchProducts,
+    staleTime: 1000 * 60 * 2,
   });
 };
 
