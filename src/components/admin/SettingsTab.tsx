@@ -47,6 +47,9 @@ interface AdminUser {
 interface DeliverySettings {
   emailEnabled: boolean;
   whatsappEnabled: boolean;
+  resendApiKey: string;
+  whatsappAccessToken: string;
+  whatsappPhoneNumberId: string;
 }
 
 interface PaymentSettings {
@@ -77,8 +80,13 @@ const SettingsTab = () => {
   const [deliverySettings, setDeliverySettings] = useState<DeliverySettings>({
     emailEnabled: true,
     whatsappEnabled: true,
+    resendApiKey: '',
+    whatsappAccessToken: '',
+    whatsappPhoneNumberId: '',
   });
   const [savingDelivery, setSavingDelivery] = useState(false);
+  const [showResendKey, setShowResendKey] = useState(false);
+  const [showWhatsappToken, setShowWhatsappToken] = useState(false);
 
   // Load admin users
   useEffect(() => {
@@ -228,7 +236,9 @@ const SettingsTab = () => {
     setSavingDelivery(true);
     try {
       localStorage.setItem('admin_delivery_settings', JSON.stringify(deliverySettings));
-      toast.success('Delivery preferences saved');
+      toast.success('Delivery settings saved', {
+        description: 'Note: For production, configure RESEND_API_KEY, WHATSAPP_ACCESS_TOKEN, and WHATSAPP_PHONE_NUMBER_ID as Supabase secrets.',
+      });
     } catch (error: any) {
       toast.error('Failed to save delivery settings');
     } finally {
@@ -473,10 +483,101 @@ const SettingsTab = () => {
             </div>
           </div>
 
+          {/* Email API Key */}
+          <div className="space-y-2">
+            <Label htmlFor="resend-api-key">Resend API Key</Label>
+            <div className="relative">
+              <Input
+                id="resend-api-key"
+                type={showResendKey ? 'text' : 'password'}
+                placeholder="re_xxxxxxxxxxxxx"
+                value={deliverySettings.resendApiKey}
+                onChange={(e) =>
+                  setDeliverySettings((prev) => ({ ...prev, resendApiKey: e.target.value }))
+                }
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                onClick={() => setShowResendKey(!showResendKey)}
+              >
+                {showResendKey ? (
+                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <Eye className="h-4 w-4 text-muted-foreground" />
+                )}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Get your API key from{' '}
+              <a href="https://resend.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                resend.com/api-keys
+              </a>
+            </p>
+          </div>
+
+          {/* WhatsApp API Keys */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="whatsapp-access-token">WhatsApp Access Token</Label>
+              <div className="relative">
+                <Input
+                  id="whatsapp-access-token"
+                  type={showWhatsappToken ? 'text' : 'password'}
+                  placeholder="••••••••••••••••••••"
+                  value={deliverySettings.whatsappAccessToken}
+                  onChange={(e) =>
+                    setDeliverySettings((prev) => ({ ...prev, whatsappAccessToken: e.target.value }))
+                  }
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                  onClick={() => setShowWhatsappToken(!showWhatsappToken)}
+                >
+                  {showWhatsappToken ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="whatsapp-phone-id">WhatsApp Phone Number ID</Label>
+              <Input
+                id="whatsapp-phone-id"
+                placeholder="123456789012345"
+                value={deliverySettings.whatsappPhoneNumberId}
+                onChange={(e) =>
+                  setDeliverySettings((prev) => ({ ...prev, whatsappPhoneNumberId: e.target.value }))
+                }
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Get these from your{' '}
+            <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+              Meta for Developers
+            </a>{' '}
+            WhatsApp Business API settings.
+          </p>
+
           <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50 text-sm">
             <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
             <p className="text-muted-foreground">
               When both are enabled, customers who opt-in to WhatsApp will receive links on both channels. Others will receive email only.
+            </p>
+          </div>
+
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-yellow-500/10 text-sm">
+            <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5 shrink-0" />
+            <p className="text-yellow-700 dark:text-yellow-500">
+              <strong>Important:</strong> For production, configure RESEND_API_KEY, WHATSAPP_ACCESS_TOKEN, and WHATSAPP_PHONE_NUMBER_ID as Supabase Edge Function secrets instead of saving here.
             </p>
           </div>
 
@@ -486,7 +587,7 @@ const SettingsTab = () => {
             ) : (
               <Save className="h-4 w-4 mr-2" />
             )}
-            Save Delivery Preferences
+            Save Delivery Settings
           </Button>
         </CardContent>
       </Card>
