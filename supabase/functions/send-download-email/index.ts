@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const resendApiKey = Deno.env.get("RESEND_API_KEY") || "re_test_dummy_key_123";
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -23,6 +22,26 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Credentials': 'true',
   };
+}
+
+// Helper function to get settings from database
+async function getSettings(supabase: any): Promise<Record<string, string>> {
+  const { data, error } = await supabase
+    .from('settings')
+    .select('key, value');
+  
+  if (error) {
+    console.error("Error fetching settings:", error);
+    return {};
+  }
+  
+  const settings: Record<string, string> = {};
+  if (data) {
+    data.forEach((s: { key: string; value: string | null }) => {
+      if (s.value) settings[s.key] = s.value;
+    });
+  }
+  return settings;
 }
 
 interface DownloadEmailRequest {
@@ -50,6 +69,16 @@ serve(async (req: Request): Promise<Response> => {
     console.log("Sending download email to:", customerEmail);
     console.log("Order ID:", orderId);
     console.log("Products:", products);
+
+    // Create Supabase client and get settings
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const settings = await getSettings(supabase);
+    
+    // Get Resend API key from database, fallback to env, then to test key
+    const resendApiKey = settings['resend_api_key'] || Deno.env.get("RESEND_API_KEY") || "re_test_dummy_key_123";
+    const emailEnabled = settings['email_enabled'] !== 'false';
+    
+    console.log("Email enabled:", emailEnabled, "Using API key:", resendApiKey.substring(0, 10) + "...");
 
     // Generate download links
     const baseUrl = "https://hujuqkhbdptsdnbnkslo.supabase.co/functions/v1/download-file";
@@ -119,7 +148,19 @@ serve(async (req: Request): Promise<Response> => {
       </html>
     `;
 
-    // Check if using dummy key (for testing)
+    // Check if email is disabled or using dummy key (for testing)
+    if (!emailEnabled) {
+      console.log("⚠️ Email delivery is disabled in settings");
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: "Email delivery disabled",
+          preview: { to: customerEmail, downloadLinks }
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     if (resendApiKey.includes("dummy") || resendApiKey.includes("test")) {
       console.log("⚠️ Using dummy API key - email not actually sent");
       console.log("Email would be sent to:", customerEmail);
@@ -162,7 +203,6 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // Update order delivery status
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     await supabase
       .from("orders")
       .update({ 

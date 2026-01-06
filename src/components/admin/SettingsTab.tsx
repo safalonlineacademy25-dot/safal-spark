@@ -120,25 +120,41 @@ const SettingsTab = () => {
     }
   };
 
-  const loadSettings = () => {
-    // Load from localStorage (in production, you'd load from database)
-    const savedPayment = localStorage.getItem('admin_payment_settings');
-    const savedDelivery = localStorage.getItem('admin_delivery_settings');
+  const loadSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('settings')
+        .select('key, value');
 
-    if (savedPayment) {
-      try {
-        setPaymentSettings(JSON.parse(savedPayment));
-      } catch (e) {
-        console.error('Failed to parse payment settings');
+      if (error) {
+        console.error('Error loading settings:', error);
+        return;
       }
-    }
 
-    if (savedDelivery) {
-      try {
-        setDeliverySettings(JSON.parse(savedDelivery));
-      } catch (e) {
-        console.error('Failed to parse delivery settings');
+      if (data) {
+        const settingsMap: Record<string, string> = {};
+        data.forEach((s: { key: string; value: string | null }) => {
+          if (s.value) settingsMap[s.key] = s.value;
+        });
+
+        // Load payment settings
+        setPaymentSettings({
+          razorpayKeyId: settingsMap['razorpay_key_id'] || '',
+          razorpayKeySecret: settingsMap['razorpay_key_secret'] || '',
+          testMode: settingsMap['razorpay_test_mode'] === 'true',
+        });
+
+        // Load delivery settings
+        setDeliverySettings({
+          emailEnabled: settingsMap['email_enabled'] !== 'false',
+          whatsappEnabled: settingsMap['whatsapp_enabled'] !== 'false',
+          resendApiKey: settingsMap['resend_api_key'] || '',
+          whatsappAccessToken: settingsMap['whatsapp_access_token'] || '',
+          whatsappPhoneNumberId: settingsMap['whatsapp_phone_number_id'] || '',
+        });
       }
+    } catch (error) {
+      console.error('Failed to load settings:', error);
     }
   };
 
@@ -215,18 +231,29 @@ const SettingsTab = () => {
     }
   };
 
+  const upsertSetting = async (key: string, value: string) => {
+    const { error } = await supabase
+      .from('settings')
+      .upsert({ key, value }, { onConflict: 'key' });
+    
+    if (error) throw error;
+  };
+
   const handleSavePaymentSettings = async () => {
     setSavingPayment(true);
     try {
-      // In production, you'd save these as Supabase secrets via edge function
-      // For now, save to localStorage (NOT RECOMMENDED for production)
-      localStorage.setItem('admin_payment_settings', JSON.stringify(paymentSettings));
+      await Promise.all([
+        upsertSetting('razorpay_key_id', paymentSettings.razorpayKeyId),
+        upsertSetting('razorpay_key_secret', paymentSettings.razorpayKeySecret),
+        upsertSetting('razorpay_test_mode', paymentSettings.testMode.toString()),
+      ]);
       
-      toast.success('Payment settings saved', {
-        description: 'Note: For production, configure RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET as Supabase secrets.',
-      });
+      toast.success('Payment settings saved to database');
     } catch (error: any) {
-      toast.error('Failed to save payment settings');
+      console.error('Error saving payment settings:', error);
+      toast.error('Failed to save payment settings', {
+        description: error.message,
+      });
     } finally {
       setSavingPayment(false);
     }
@@ -235,12 +262,20 @@ const SettingsTab = () => {
   const handleSaveDeliverySettings = async () => {
     setSavingDelivery(true);
     try {
-      localStorage.setItem('admin_delivery_settings', JSON.stringify(deliverySettings));
-      toast.success('Delivery settings saved', {
-        description: 'Note: For production, configure RESEND_API_KEY, WHATSAPP_ACCESS_TOKEN, and WHATSAPP_PHONE_NUMBER_ID as Supabase secrets.',
-      });
+      await Promise.all([
+        upsertSetting('email_enabled', deliverySettings.emailEnabled.toString()),
+        upsertSetting('whatsapp_enabled', deliverySettings.whatsappEnabled.toString()),
+        upsertSetting('resend_api_key', deliverySettings.resendApiKey),
+        upsertSetting('whatsapp_access_token', deliverySettings.whatsappAccessToken),
+        upsertSetting('whatsapp_phone_number_id', deliverySettings.whatsappPhoneNumberId),
+      ]);
+      
+      toast.success('Delivery settings saved to database');
     } catch (error: any) {
-      toast.error('Failed to save delivery settings');
+      console.error('Error saving delivery settings:', error);
+      toast.error('Failed to save delivery settings', {
+        description: error.message,
+      });
     } finally {
       setSavingDelivery(false);
     }
@@ -409,10 +444,10 @@ const SettingsTab = () => {
             />
           </div>
 
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-yellow-500/10 text-sm">
-            <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5 shrink-0" />
-            <p className="text-yellow-700 dark:text-yellow-500">
-              <strong>Important:</strong> For production, configure RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET as Supabase Edge Function secrets instead of saving here.
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/10 text-sm">
+            <AlertCircle className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+            <p className="text-foreground">
+              <strong>Note:</strong> Settings are securely stored in the database and used by edge functions for payment processing.
             </p>
           </div>
 
@@ -574,10 +609,10 @@ const SettingsTab = () => {
             </p>
           </div>
 
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-yellow-500/10 text-sm">
-            <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5 shrink-0" />
-            <p className="text-yellow-700 dark:text-yellow-500">
-              <strong>Important:</strong> For production, configure RESEND_API_KEY, WHATSAPP_ACCESS_TOKEN, and WHATSAPP_PHONE_NUMBER_ID as Supabase Edge Function secrets instead of saving here.
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/10 text-sm">
+            <AlertCircle className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+            <p className="text-foreground">
+              <strong>Note:</strong> Settings are securely stored in the database and used by edge functions for email and WhatsApp delivery.
             </p>
           </div>
 
