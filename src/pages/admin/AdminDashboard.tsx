@@ -45,9 +45,16 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const { user, isAdmin, isLoading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
-  const { data: products, isLoading: productsLoading } = useProducts();
-  const { data: orders, isLoading: ordersLoading, refetch: refetchOrders } = useOrders();
-  const { data: customers, isLoading: customersLoading } = useCustomers();
+  
+  // Determine which data needs to be fetched based on active tab
+  const needsProducts = activeTab === 'dashboard' || activeTab === 'products';
+  const needsOrders = activeTab === 'dashboard' || activeTab === 'orders' || activeTab === 'payments' || activeTab === 'email' || activeTab === 'whatsapp';
+  const needsCustomers = activeTab === 'customers';
+  
+  // Only fetch data when the relevant tab is active - improves initial load performance
+  const { data: products, isLoading: productsLoading } = useProducts({ enabled: needsProducts });
+  const { data: orders, isLoading: ordersLoading, refetch: refetchOrders } = useOrders({ enabled: needsOrders });
+  const { data: customers, isLoading: customersLoading } = useCustomers({ enabled: needsCustomers });
   const [resendingEmail, setResendingEmail] = useState<string | null>(null);
   const [resendingWhatsApp, setResendingWhatsApp] = useState<string | null>(null);
 

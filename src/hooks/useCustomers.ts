@@ -4,7 +4,13 @@ import type { Tables } from '@/integrations/supabase/types';
 
 export type Customer = Tables<'customers'>;
 
-export const useCustomers = () => {
+interface UseCustomersOptions {
+  enabled?: boolean;
+}
+
+export const useCustomers = (options: UseCustomersOptions = {}) => {
+  const { enabled = true } = options;
+  
   return useQuery({
     queryKey: ['customers'],
     queryFn: async () => {
@@ -16,5 +22,7 @@ export const useCustomers = () => {
       if (error) throw error;
       return data as Customer[];
     },
+    enabled,
+    staleTime: 1000 * 60 * 2, // 2 minutes stale time
   });
 };

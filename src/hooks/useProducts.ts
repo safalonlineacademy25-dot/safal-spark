@@ -6,7 +6,13 @@ import { toast } from 'sonner';
 export type Product = Tables<'products'>;
 export type ProductInsert = TablesInsert<'products'>;
 
-export const useProducts = () => {
+interface UseProductsOptions {
+  enabled?: boolean;
+}
+
+export const useProducts = (options: UseProductsOptions = {}) => {
+  const { enabled = true } = options;
+  
   return useQuery({
     queryKey: ['products'],
     queryFn: async () => {
@@ -18,6 +24,8 @@ export const useProducts = () => {
       if (error) throw error;
       return data as Product[];
     },
+    enabled,
+    staleTime: 1000 * 60 * 2, // 2 minutes stale time for better caching
   });
 };
 

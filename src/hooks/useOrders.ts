@@ -9,7 +9,13 @@ export interface OrderWithItems extends Order {
   order_items: OrderItem[];
 }
 
-export const useOrders = () => {
+interface UseOrdersOptions {
+  enabled?: boolean;
+}
+
+export const useOrders = (options: UseOrdersOptions = {}) => {
+  const { enabled = true } = options;
+  
   return useQuery({
     queryKey: ['orders'],
     queryFn: async () => {
@@ -21,6 +27,8 @@ export const useOrders = () => {
       if (error) throw error;
       return data as Order[];
     },
+    enabled,
+    staleTime: 1000 * 60 * 2, // 2 minutes stale time
   });
 };
 
