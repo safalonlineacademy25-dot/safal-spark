@@ -20,6 +20,8 @@ import {
   Search,
   Loader2,
   FileDown,
+  CreditCard,
+  AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth, signOut } from '@/hooks/useAuth';
@@ -64,6 +66,7 @@ const AdminDashboard = () => {
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'products', label: 'Products', icon: Package },
     { id: 'orders', label: 'Orders', icon: ShoppingCart },
+    { id: 'payments', label: 'Payment Logs', icon: CreditCard },
     { id: 'customers', label: 'Customers', icon: Users },
     { id: 'email', label: 'Email Logs', icon: Mail },
     { id: 'whatsapp', label: 'WhatsApp Logs', icon: MessageCircle },
@@ -531,6 +534,207 @@ const AdminDashboard = () => {
                     </div>
                   )}
                 </div>
+              </motion.div>
+            )}
+
+            {activeTab === 'payments' && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="space-y-6"
+              >
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-foreground">Payment Logs</h2>
+                  <div className="flex items-center gap-4">
+                    <span className="text-sm text-muted-foreground">
+                      {orders?.filter(o => o.status === 'pending' || o.status === 'failed').length || 0} pending/failed
+                    </span>
+                    <span className="text-sm text-secondary">
+                      {orders?.filter(o => o.status === 'paid').length || 0} successful
+                    </span>
+                  </div>
+                </div>
+
+                {/* Stats Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="bg-card rounded-xl border border-border p-5">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="p-2 rounded-lg bg-secondary/10">
+                        <CreditCard className="h-5 w-5 text-secondary" />
+                      </div>
+                      <span className="text-sm text-muted-foreground">Successful</span>
+                    </div>
+                    <p className="text-2xl font-bold text-foreground">
+                      {orders?.filter(o => o.status === 'paid' || o.status === 'completed').length || 0}
+                    </p>
+                  </div>
+                  <div className="bg-card rounded-xl border border-border p-5">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="p-2 rounded-lg bg-yellow-500/10">
+                        <CreditCard className="h-5 w-5 text-yellow-600" />
+                      </div>
+                      <span className="text-sm text-muted-foreground">Pending</span>
+                    </div>
+                    <p className="text-2xl font-bold text-foreground">
+                      {orders?.filter(o => o.status === 'pending').length || 0}
+                    </p>
+                  </div>
+                  <div className="bg-card rounded-xl border border-border p-5">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="p-2 rounded-lg bg-destructive/10">
+                        <AlertTriangle className="h-5 w-5 text-destructive" />
+                      </div>
+                      <span className="text-sm text-muted-foreground">Failed</span>
+                    </div>
+                    <p className="text-2xl font-bold text-foreground">
+                      {orders?.filter(o => o.status === 'failed').length || 0}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-card rounded-xl border border-border overflow-hidden">
+                  <div className="p-4 border-b border-border bg-muted/30">
+                    <h3 className="font-medium text-foreground">All Payment Transactions</h3>
+                  </div>
+                  {ordersLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : !orders || orders.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      No payment transactions yet.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-border">
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Order #</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Customer</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Amount</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Razorpay Order ID</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Payment ID</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Status</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Date</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {orders.map((order) => (
+                            <tr 
+                              key={order.id} 
+                              className={`border-b border-border last:border-0 hover:bg-muted/30 ${
+                                order.status === 'failed' ? 'bg-destructive/5' : 
+                                order.status === 'pending' ? 'bg-yellow-500/5' : ''
+                              }`}
+                            >
+                              <td className="p-4 text-sm font-medium text-foreground font-mono">
+                                {order.order_number}
+                              </td>
+                              <td className="p-4">
+                                <div className="text-sm text-foreground">{order.customer_email}</div>
+                                <div className="text-xs text-muted-foreground">{order.customer_phone}</div>
+                              </td>
+                              <td className="p-4 text-sm font-medium price-text">₹{order.total_amount}</td>
+                              <td className="p-4">
+                                <code className="text-xs bg-muted px-2 py-1 rounded text-muted-foreground">
+                                  {order.razorpay_order_id || 'N/A'}
+                                </code>
+                              </td>
+                              <td className="p-4">
+                                {order.razorpay_payment_id ? (
+                                  <code className="text-xs bg-muted px-2 py-1 rounded text-muted-foreground">
+                                    {order.razorpay_payment_id}
+                                  </code>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground italic">Not received</span>
+                                )}
+                              </td>
+                              <td className="p-4">
+                                <span
+                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium capitalize ${
+                                    order.status === 'completed' || order.status === 'paid'
+                                      ? 'bg-secondary/10 text-secondary'
+                                      : order.status === 'pending'
+                                      ? 'bg-yellow-500/10 text-yellow-600'
+                                      : 'bg-destructive/10 text-destructive'
+                                  }`}
+                                >
+                                  {(order.status === 'failed' || order.status === 'pending') && (
+                                    <AlertTriangle className="h-3 w-3" />
+                                  )}
+                                  {order.status}
+                                </span>
+                              </td>
+                              <td className="p-4 text-sm text-muted-foreground">
+                                {order.created_at ? format(new Date(order.created_at), 'MMM d, h:mm a') : 'N/A'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                {/* Failed/Pending Orders Detail */}
+                {orders && orders.filter(o => o.status === 'pending' || o.status === 'failed').length > 0 && (
+                  <div className="bg-card rounded-xl border border-destructive/20 overflow-hidden">
+                    <div className="p-4 border-b border-border bg-destructive/5 flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-destructive" />
+                      <h3 className="font-medium text-foreground">Failed & Pending Payments</h3>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-border">
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Order #</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Customer</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Amount</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Status</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Razorpay Order ID</th>
+                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Created</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {orders
+                            .filter(o => o.status === 'pending' || o.status === 'failed')
+                            .map((order) => (
+                              <tr key={order.id} className="border-b border-border last:border-0 hover:bg-muted/30">
+                                <td className="p-4 text-sm font-medium text-foreground font-mono">
+                                  {order.order_number}
+                                </td>
+                                <td className="p-4">
+                                  <div className="text-sm text-foreground">{order.customer_email}</div>
+                                  <div className="text-xs text-muted-foreground">{order.customer_phone}</div>
+                                </td>
+                                <td className="p-4 text-sm font-medium price-text">₹{order.total_amount}</td>
+                                <td className="p-4">
+                                  <span
+                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium capitalize ${
+                                      order.status === 'pending'
+                                        ? 'bg-yellow-500/10 text-yellow-600'
+                                        : 'bg-destructive/10 text-destructive'
+                                    }`}
+                                  >
+                                    <AlertTriangle className="h-3 w-3" />
+                                    {order.status}
+                                  </span>
+                                </td>
+                                <td className="p-4">
+                                  <code className="text-xs bg-muted px-2 py-1 rounded text-muted-foreground">
+                                    {order.razorpay_order_id || 'N/A'}
+                                  </code>
+                                </td>
+                                <td className="p-4 text-sm text-muted-foreground">
+                                  {order.created_at ? format(new Date(order.created_at), 'MMM d, yyyy h:mm a') : 'N/A'}
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </motion.div>
             )}
 
