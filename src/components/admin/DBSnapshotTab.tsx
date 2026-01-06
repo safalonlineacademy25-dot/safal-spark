@@ -90,36 +90,39 @@ const DBSnapshotTab = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch table counts
-      const tableData: TableInfo[] = [];
-      for (const config of TABLE_CONFIG) {
+      // Fetch table counts in parallel
+      const tablePromises = TABLE_CONFIG.map(async (config) => {
         const { count, error } = await supabase
           .from(config.name as any)
           .select('*', { count: 'exact', head: true });
 
-        tableData.push({
+        return {
           name: config.name,
           displayName: config.displayName,
           rowCount: error ? 0 : (count || 0),
           description: config.description,
-        });
-      }
-      setTables(tableData);
+        };
+      });
 
-      // Fetch bucket stats
-      const bucketData: BucketInfo[] = [];
-      for (const config of BUCKET_CONFIG) {
+      // Fetch bucket stats in parallel
+      const bucketPromises = BUCKET_CONFIG.map(async (config) => {
         const stats = await fetchBucketStats(config.name);
-        bucketData.push({
+        return {
           name: config.name,
           displayName: config.displayName,
           fileCount: stats.fileCount,
           totalSize: stats.totalSize,
           isPublic: config.isPublic,
-        });
-      }
-      setBuckets(bucketData);
+        };
+      });
 
+      const [tableData, bucketData] = await Promise.all([
+        Promise.all(tablePromises),
+        Promise.all(bucketPromises),
+      ]);
+
+      setTables(tableData);
+      setBuckets(bucketData);
       setLastUpdated(new Date());
     } catch (error) {
       console.error('Error fetching data:', error);
