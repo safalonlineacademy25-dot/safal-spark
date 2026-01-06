@@ -26,6 +26,10 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
 
 const MAX_DOWNLOADS = 3;
 
+// Rate limit configuration: 10 download attempts per minute per IP/token
+const RATE_LIMIT_MAX_REQUESTS = 10;
+const RATE_LIMIT_WINDOW_SECONDS = 60;
+
 serve(async (req: Request): Promise<Response> => {
   const origin = req.headers.get('origin');
   const corsHeaders = getCorsHeaders(origin);
@@ -34,6 +38,9 @@ serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Create Supabase client with service role
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
     const url = new URL(req.url);
@@ -52,8 +59,39 @@ serve(async (req: Request): Promise<Response> => {
 
     console.log("Processing download for token:", token.substring(0, 8) + "...");
 
-    // Create Supabase client with service role
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    // Rate limiting: Use IP + token as identifier
+    const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                     req.headers.get('cf-connecting-ip') || 
+                     'unknown';
+    const rateLimitIdentifier = `${clientIP}:${token.substring(0, 8)}`;
+    
+    const { data: isAllowed, error: rateLimitError } = await supabase.rpc('check_rate_limit', {
+      _identifier: rateLimitIdentifier,
+      _endpoint: 'download-file',
+      _max_requests: RATE_LIMIT_MAX_REQUESTS,
+      _window_seconds: RATE_LIMIT_WINDOW_SECONDS
+    });
+
+    if (rateLimitError) {
+      console.error("Rate limit check error:", rateLimitError);
+      // Continue if rate limit check fails - don't block legitimate requests
+    } else if (!isAllowed) {
+      console.warn("Rate limit exceeded for download:", rateLimitIdentifier);
+      return new Response(
+        JSON.stringify({ 
+          error: "Too many download attempts. Please wait a moment before trying again.",
+          retry_after: RATE_LIMIT_WINDOW_SECONDS
+        }),
+        { 
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
+            "Content-Type": "application/json",
+            "Retry-After": String(RATE_LIMIT_WINDOW_SECONDS)
+          } 
+        }
+      );
+    }
 
     // Validate download token
     const { data: tokenData, error: tokenError } = await supabase

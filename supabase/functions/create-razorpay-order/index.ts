@@ -41,6 +41,10 @@ async function getSettings(supabase: any): Promise<Record<string, string>> {
   return settings;
 }
 
+// Rate limit configuration: 5 orders per minute per IP/email
+const RATE_LIMIT_MAX_REQUESTS = 5;
+const RATE_LIMIT_WINDOW_SECONDS = 60;
+
 serve(async (req) => {
   const origin = req.headers.get('origin');
   const corsHeaders = getCorsHeaders(origin);
@@ -49,6 +53,11 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Create Supabase client early for rate limiting
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
     const { items, customer_email, customer_phone, whatsapp_optin } = await req.json();
@@ -63,14 +72,44 @@ serve(async (req) => {
       throw new Error("Customer email and phone are required");
     }
 
+    // Rate limiting: Use email + IP as identifier
+    const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                     req.headers.get('cf-connecting-ip') || 
+                     'unknown';
+    const rateLimitIdentifier = `${customer_email}:${clientIP}`;
+    
+    const { data: isAllowed, error: rateLimitError } = await supabase.rpc('check_rate_limit', {
+      _identifier: rateLimitIdentifier,
+      _endpoint: 'create-razorpay-order',
+      _max_requests: RATE_LIMIT_MAX_REQUESTS,
+      _window_seconds: RATE_LIMIT_WINDOW_SECONDS
+    });
+
+    if (rateLimitError) {
+      console.error("Rate limit check error:", rateLimitError);
+      // Continue if rate limit check fails - don't block legitimate requests
+    } else if (!isAllowed) {
+      console.warn("Rate limit exceeded for:", rateLimitIdentifier);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Too many requests. Please wait a moment before trying again.",
+          retry_after: RATE_LIMIT_WINDOW_SECONDS
+        }),
+        { 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'Retry-After': String(RATE_LIMIT_WINDOW_SECONDS)
+          }, 
+          status: 429 
+        }
+      );
+    }
+
     // Calculate total amount
     const totalAmount = items.reduce((sum: number, item: any) => sum + item.product.price, 0);
     const amountInPaise = Math.round(totalAmount * 100);
-
-    // Create Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get Razorpay settings from database
     const settings = await getSettings(supabase);
