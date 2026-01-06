@@ -30,6 +30,7 @@ import AddProductDialog from '@/components/admin/AddProductDialog';
 import EditProductDialog from '@/components/admin/EditProductDialog';
 import DeleteProductDialog from '@/components/admin/DeleteProductDialog';
 import OrderDetailsDialog from '@/components/admin/OrderDetailsDialog';
+import ProductQRCodeDialog from '@/components/admin/ProductQRCodeDialog';
 import { toast } from 'sonner';
 
 const AdminDashboard = () => {
@@ -345,6 +346,7 @@ const AdminDashboard = () => {
                             <td className="p-4 text-sm text-muted-foreground">{product.download_count?.toLocaleString() || 0}</td>
                             <td className="p-4">
                               <div className="flex items-center gap-2">
+                                <ProductQRCodeDialog productId={product.id} productName={product.name} />
                                 <Button variant="ghost" size="icon" className="h-8 w-8">
                                   <Eye className="h-4 w-4" />
                                 </Button>
