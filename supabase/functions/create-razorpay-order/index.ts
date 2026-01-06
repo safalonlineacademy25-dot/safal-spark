@@ -1,16 +1,34 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// Allowed origins for CORS
+const ALLOWED_ORIGINS = [
+  'https://lovable.dev',
+  'https://hujuqkhbdptsdnbnkslo.supabase.co',
+  'http://localhost:5173',
+  'http://localhost:8080',
+];
+
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const allowedOrigin = origin && ALLOWED_ORIGINS.some(allowed => 
+    origin === allowed || origin.endsWith('.lovable.app')
+  ) ? origin : ALLOWED_ORIGINS[0];
+  
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Credentials': 'true',
+  };
+}
 
 // Razorpay Test Keys (publicly available for testing)
-const RAZORPAY_KEY_ID = "rzp_test_1234567890abcd";
-const RAZORPAY_KEY_SECRET = "test_secret_key_1234567890";
+const RAZORPAY_KEY_ID = Deno.env.get('RAZORPAY_KEY_ID') || "rzp_test_1234567890abcd";
+const RAZORPAY_KEY_SECRET = Deno.env.get('RAZORPAY_KEY_SECRET') || "test_secret_key_1234567890";
 
 serve(async (req) => {
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
