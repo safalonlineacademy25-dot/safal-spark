@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, QueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -13,22 +13,34 @@ interface UseOrdersOptions {
   enabled?: boolean;
 }
 
+// Query function for orders - extracted for reuse in prefetching
+const fetchOrders = async () => {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data as Order[];
+};
+
 export const useOrders = (options: UseOrdersOptions = {}) => {
   const { enabled = true } = options;
   
   return useQuery({
     queryKey: ['orders'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data as Order[];
-    },
+    queryFn: fetchOrders,
     enabled,
     staleTime: 1000 * 60 * 2, // 2 minutes stale time
+  });
+};
+
+// Prefetch function for orders - call on hover to preload data
+export const prefetchOrders = (queryClient: QueryClient) => {
+  queryClient.prefetchQuery({
+    queryKey: ['orders'],
+    queryFn: fetchOrders,
+    staleTime: 1000 * 60 * 2,
   });
 };
 

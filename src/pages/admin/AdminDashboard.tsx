@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
@@ -27,9 +27,9 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth, signOut } from '@/hooks/useAuth';
-import { useProducts } from '@/hooks/useProducts';
-import { useOrders } from '@/hooks/useOrders';
-import { useCustomers } from '@/hooks/useCustomers';
+import { useProducts, prefetchProducts } from '@/hooks/useProducts';
+import { useOrders, prefetchOrders } from '@/hooks/useOrders';
+import { useCustomers, prefetchCustomers } from '@/hooks/useCustomers';
 import AddProductDialog from '@/components/admin/AddProductDialog';
 import EditProductDialog from '@/components/admin/EditProductDialog';
 import DeleteProductDialog from '@/components/admin/DeleteProductDialog';
@@ -40,9 +40,11 @@ import PaginationControls from '@/components/admin/PaginationControls';
 import { usePagination } from '@/hooks/usePagination';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user, isAdmin, isLoading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   
@@ -57,6 +59,28 @@ const AdminDashboard = () => {
   const { data: customers, isLoading: customersLoading } = useCustomers({ enabled: needsCustomers });
   const [resendingEmail, setResendingEmail] = useState<string | null>(null);
   const [resendingWhatsApp, setResendingWhatsApp] = useState<string | null>(null);
+
+  // Prefetch data on tab hover for instant tab switching
+  const handleTabHover = useCallback((tabId: string) => {
+    switch (tabId) {
+      case 'dashboard':
+        prefetchProducts(queryClient);
+        prefetchOrders(queryClient);
+        break;
+      case 'products':
+        prefetchProducts(queryClient);
+        break;
+      case 'orders':
+      case 'payments':
+      case 'email':
+      case 'whatsapp':
+        prefetchOrders(queryClient);
+        break;
+      case 'customers':
+        prefetchCustomers(queryClient);
+        break;
+    }
+  }, [queryClient]);
 
   // Filtered data for specific tabs
   const failedPayments = useMemo(() => 
@@ -329,6 +353,7 @@ const AdminDashboard = () => {
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
+                onMouseEnter={() => handleTabHover(item.id)}
                 className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   activeTab === item.id
                     ? 'bg-primary text-primary-foreground'
