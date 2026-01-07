@@ -218,8 +218,9 @@ const Header = () => {
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                className="relative"
               >
-                <Button variant="ghost" size="icon" className="relative overflow-hidden group">
+                <Button variant="ghost" size="icon" className="relative group">
                   <ShoppingCart className="h-5 w-5 transition-transform group-hover:scale-110" />
                   <motion.div
                     className="absolute inset-0 bg-primary/10 rounded-md"
@@ -227,16 +228,16 @@ const Header = () => {
                     whileHover={{ scale: 1, opacity: 1 }}
                     transition={{ duration: 0.2 }}
                   />
-                  {itemCount > 0 && (
-                    <motion.span
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground"
-                    >
-                      {itemCount}
-                    </motion.span>
-                  )}
                 </Button>
+                {itemCount > 0 && (
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground shadow-md border-2 border-background"
+                  >
+                    {itemCount}
+                  </motion.span>
+                )}
               </motion.div>
             </Link>
 
