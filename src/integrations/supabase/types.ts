@@ -87,13 +87,6 @@ export type Database = {
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "download_tokens_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "public_products"
-            referencedColumns: ["id"]
-          },
         ]
       }
       order_items: {
@@ -137,13 +130,6 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "order_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "public_products"
             referencedColumns: ["id"]
           },
         ]
@@ -347,57 +333,9 @@ export type Database = {
       }
     }
     Views: {
-      public_products: {
-        Row: {
-          badge: string | null
-          category: string | null
-          created_at: string | null
-          description: string | null
-          features: string[] | null
-          id: string | null
-          image_url: string | null
-          is_active: boolean | null
-          name: string | null
-          original_price: number | null
-          price: number | null
-          seo_description: string | null
-          seo_title: string | null
-        }
-        Insert: {
-          badge?: string | null
-          category?: string | null
-          created_at?: string | null
-          description?: string | null
-          features?: string[] | null
-          id?: string | null
-          image_url?: string | null
-          is_active?: boolean | null
-          name?: string | null
-          original_price?: number | null
-          price?: number | null
-          seo_description?: string | null
-          seo_title?: string | null
-        }
-        Update: {
-          badge?: string | null
-          category?: string | null
-          created_at?: string | null
-          description?: string | null
-          features?: string[] | null
-          id?: string | null
-          image_url?: string | null
-          is_active?: boolean | null
-          name?: string | null
-          original_price?: number | null
-          price?: number | null
-          seo_description?: string | null
-          seo_title?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
-      can_access_file_url: { Args: never; Returns: boolean }
       check_rate_limit: {
         Args: {
           _endpoint: string

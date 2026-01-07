@@ -41,18 +41,20 @@ export const prefetchProducts = (queryClient: QueryClient) => {
   });
 };
 
+// Public products hook - excludes sensitive file_url column for security
 export const useActiveProducts = () => {
   return useQuery({
     queryKey: ['products', 'active'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('products')
-        .select('*')
+        .select('id, name, description, price, original_price, category, badge, features, image_url, seo_title, seo_description, is_active, download_count, created_at, updated_at')
         .eq('is_active', true)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as Product[];
+      // Return with null file_url for type safety
+      return (data || []).map(p => ({ ...p, file_url: null })) as Product[];
     },
   });
 };
