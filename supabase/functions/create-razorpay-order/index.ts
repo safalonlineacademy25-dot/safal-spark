@@ -162,13 +162,19 @@ serve(async (req) => {
     let razorpayOrderId: string;
     
     if (isTestMode) {
-      // In test mode, generate a simulated order ID
+      // In test mode, check if key_id is available for frontend
+      if (!RAZORPAY_KEY_ID) {
+        console.error("Test mode enabled but no Razorpay key ID configured");
+        throw new Error("Payment gateway not configured. Please set up Razorpay API keys in admin settings.");
+      }
+      // Generate a simulated order ID
       razorpayOrderId = `order_test_${Date.now()}`;
       console.log("Test mode: Generated simulated order ID:", razorpayOrderId);
     } else {
       // In live mode, create a real Razorpay order
       if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
-        throw new Error("Razorpay credentials not configured. Please set up your API keys in admin settings.");
+        console.error("Live mode requires both Razorpay key ID and secret");
+        throw new Error("Payment gateway not configured. Please set up Razorpay API keys in admin settings.");
       }
       
       const razorpayOrder = await createRazorpayOrder(

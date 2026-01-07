@@ -272,14 +272,39 @@ const Cart = () => {
         throw new Error(orderData?.error || orderError?.message || 'Failed to create order');
       }
 
+      // Check if we have valid Razorpay key
+      if (!orderData.key_id || orderData.key_id.trim() === '') {
+        throw new Error('Payment gateway is not configured. Please contact support.');
+      }
+
       // Open Razorpay checkout modal
       openRazorpayModal(orderData);
 
     } catch (error: any) {
       console.error('Checkout error:', error);
+      
+      // Provide user-friendly error messages
+      let errorTitle = 'Checkout failed';
+      let errorMessage = 'Something went wrong. Please try again.';
+      
+      const errorText = error.message?.toLowerCase() || '';
+      
+      if (errorText.includes('razorpay') || errorText.includes('payment gateway') || errorText.includes('api key') || errorText.includes('credentials')) {
+        errorTitle = 'Payment gateway not available';
+        errorMessage = 'The payment system is currently being configured. Please try again later or contact support.';
+      } else if (errorText.includes('rate limit') || errorText.includes('too many')) {
+        errorTitle = 'Too many attempts';
+        errorMessage = 'Please wait a moment before trying again.';
+      } else if (errorText.includes('network') || errorText.includes('fetch')) {
+        errorTitle = 'Connection error';
+        errorMessage = 'Please check your internet connection and try again.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
-        title: 'Checkout failed',
-        description: error.message || 'Something went wrong. Please try again.',
+        title: errorTitle,
+        description: errorMessage,
         variant: 'destructive',
       });
       setIsProcessing(false);
