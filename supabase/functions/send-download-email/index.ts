@@ -181,6 +181,12 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // Send actual email via Resend
+    // Use custom sender from settings, fallback to Resend's test sender
+    const senderEmail = settings['sender_email'] || "onboarding@resend.dev";
+    const senderName = settings['sender_name'] || "SOA Resources";
+    
+    console.log("Sending email from:", `${senderName} <${senderEmail}>`);
+    
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -188,7 +194,7 @@ serve(async (req: Request): Promise<Response> => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "SOA Resources <downloads@soaresources.com>",
+        from: `${senderName} <${senderEmail}>`,
         to: [customerEmail],
         subject: "Your Download is Ready! 🎉",
         html: emailHtml,
