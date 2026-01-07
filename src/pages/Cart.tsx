@@ -32,8 +32,8 @@ interface RazorpayOptions {
     email: string;
     contact: string;
   };
-  theme: {
-    color: string;
+  theme?: {
+    color?: string;
   };
   modal?: {
     ondismiss?: () => void;
@@ -43,6 +43,7 @@ interface RazorpayOptions {
 interface RazorpayInstance {
   open: () => void;
   close: () => void;
+  on?: (event: string, handler: (response: any) => void) => void;
 }
 
 interface RazorpayResponse {
@@ -227,9 +228,6 @@ const Cart = () => {
         email: email,
         contact: phone,
       },
-      theme: {
-        color: '#6366f1',
-      },
       modal: {
         ondismiss: () => {
           setIsProcessing(false);
@@ -241,8 +239,37 @@ const Cart = () => {
       },
     };
 
-    const razorpay = new window.Razorpay(options);
-    razorpay.open();
+    try {
+      const razorpay = new window.Razorpay(options);
+
+      // Razorpay emits `payment.failed` events for failures inside the modal
+      if (typeof razorpay.on === 'function') {
+        razorpay.on('payment.failed', (resp: any) => {
+          const description =
+            resp?.error?.description ||
+            resp?.error?.reason ||
+            resp?.error?.code ||
+            'Payment failed. Please try again.';
+
+          toast({
+            title: 'Payment failed',
+            description,
+            variant: 'destructive',
+          });
+
+          setIsProcessing(false);
+        });
+      }
+
+      razorpay.open();
+    } catch (e: any) {
+      toast({
+        title: 'Unable to start payment',
+        description: e?.message || 'Please refresh the page and try again.',
+        variant: 'destructive',
+      });
+      setIsProcessing(false);
+    }
   }, [email, phone, clearCart, navigate, toast, verifyPayment]);
 
   const handleCheckout = async () => {
