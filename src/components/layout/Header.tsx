@@ -125,9 +125,14 @@ const Header = () => {
             >
               <BookOpen className="h-7 w-7 text-primary-foreground" />
             </motion.div>
-            <span className="text-2xl font-bold text-foreground">
-              Safal<span className="text-gradient"> Online Academy</span>
-            </span>
+            <div className="flex flex-col">
+              <span className="text-2xl font-bold text-foreground">
+                Safal<span className="text-gradient"> Online Academy</span>
+              </span>
+              <span className="text-xs text-muted-foreground font-medium">
+                Study smart, Achieve Success!
+              </span>
+            </div>
           </Link>
 
           {/* Desktop Navigation with cursor glow */}
