@@ -118,21 +118,33 @@ const Header = () => {
           {/* Logo with hover effect */}
           <Link to="/" className="flex items-center gap-3 group">
             <motion.div 
-              className="flex h-12 w-12 items-center justify-center rounded-xl hero-gradient"
-              whileHover={{ scale: 1.1, rotate: 5 }}
+              className="flex h-12 w-12 items-center justify-center rounded-xl hero-gradient shadow-lg"
+              whileHover={{ scale: 1.15, rotate: 8, boxShadow: '0 8px 25px hsl(var(--primary) / 0.4)' }}
               whileTap={{ scale: 0.95 }}
               transition={{ type: 'spring', stiffness: 400, damping: 17 }}
             >
               <BookOpen className="h-7 w-7 text-primary-foreground" />
             </motion.div>
-            <div className="flex flex-col">
-              <span className="text-2xl font-bold text-foreground">
-                Safal<span className="text-gradient"> Online Academy</span>
-              </span>
-              <span className="text-xs text-muted-foreground font-medium">
+            <motion.div 
+              className="flex flex-col"
+              whileHover={{ x: 3 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+            >
+              <motion.span 
+                className="text-2xl font-bold text-foreground"
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+              >
+                Safal<span className="text-gradient group-hover:brightness-110 transition-all duration-300"> Online Academy</span>
+              </motion.span>
+              <motion.span 
+                className="text-xs text-muted-foreground font-medium group-hover:text-primary transition-colors duration-300"
+                initial={{ opacity: 0.8 }}
+                whileHover={{ opacity: 1 }}
+              >
                 Study smart, Achieve Success!
-              </span>
-            </div>
+              </motion.span>
+            </motion.div>
           </Link>
 
           {/* Desktop Navigation with cursor glow */}
