@@ -147,9 +147,14 @@ serve(async (req) => {
     const settings = await getSettings(supabase);
     const RAZORPAY_KEY_ID = settings['razorpay_key_id'] || Deno.env.get('RAZORPAY_KEY_ID') || "";
     const RAZORPAY_KEY_SECRET = settings['razorpay_key_secret'] || Deno.env.get('RAZORPAY_KEY_SECRET') || "";
-    const isTestMode = settings['razorpay_test_mode'] === 'true' || !settings['razorpay_key_id'];
-    
-    console.log("Using Razorpay key:", RAZORPAY_KEY_ID.substring(0, 10) + "...", "Test mode:", isTestMode);
+    const isTestMode = settings['razorpay_test_mode'] === 'true';
+
+    console.log(
+      "Using Razorpay key:",
+      RAZORPAY_KEY_ID ? RAZORPAY_KEY_ID.substring(0, 10) + "..." : "<missing>",
+      "Test mode:",
+      isTestMode
+    );
 
     // Generate order number
     const { data: orderNumberData, error: orderNumberError } = await supabase.rpc('generate_order_number');
@@ -159,35 +164,25 @@ serve(async (req) => {
     }
     const orderNumber = orderNumberData;
 
-    let razorpayOrderId: string;
-    
-    if (isTestMode) {
-      // In test mode, check if key_id is available for frontend
-      if (!RAZORPAY_KEY_ID) {
-        console.error("Test mode enabled but no Razorpay key ID configured");
-        throw new Error("Payment gateway not configured. Please set up Razorpay API keys in admin settings.");
-      }
-      // Generate a simulated order ID
-      razorpayOrderId = `order_test_${Date.now()}`;
-      console.log("Test mode: Generated simulated order ID:", razorpayOrderId);
-    } else {
-      // In live mode, create a real Razorpay order
-      if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
-        console.error("Live mode requires both Razorpay key ID and secret");
-        throw new Error("Payment gateway not configured. Please set up Razorpay API keys in admin settings.");
-      }
-      
-      const razorpayOrder = await createRazorpayOrder(
-        RAZORPAY_KEY_ID,
-        RAZORPAY_KEY_SECRET,
-        amountInPaise,
-        'INR',
-        orderNumber
+    // For Razorpay Checkout, we must create a real Razorpay order (even in test mode)
+    if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
+      console.error("Razorpay credentials missing (key id/secret)");
+      throw new Error(
+        "Payment gateway not configured. Please add Razorpay Key ID and Key Secret in Admin → Settings."
       );
-      razorpayOrderId = razorpayOrder.id;
-      console.log("Live mode: Created Razorpay order:", razorpayOrderId);
     }
-    
+
+    const razorpayOrder = await createRazorpayOrder(
+      RAZORPAY_KEY_ID,
+      RAZORPAY_KEY_SECRET,
+      amountInPaise,
+      'INR',
+      orderNumber
+    );
+
+    const razorpayOrderId = razorpayOrder.id;
+    console.log(`${isTestMode ? 'Test' : 'Live'} mode: Created Razorpay order:`, razorpayOrderId);
+
     console.log("Generated order number:", orderNumber, "Razorpay order ID:", razorpayOrderId);
 
     // Create order in database
