@@ -566,11 +566,24 @@ const Cart = () => {
                   <Button
                     type="button"
                     size="lg"
-                    className="w-full touch-manipulation"
+                    className="w-full touch-manipulation select-none"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                    }}
+                    onTouchStart={(e) => {
+                      // Prevent double-tap zoom on mobile
+                      e.currentTarget.style.opacity = '0.8';
+                    }}
+                    onTouchEnd={(e) => {
+                      e.currentTarget.style.opacity = '1';
+                    }}
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      handleCheckout();
+                      console.log('[Cart] Button clicked, isProcessing:', isProcessing);
+                      if (!isProcessing) {
+                        handleCheckout();
+                      }
                     }}
                     disabled={isProcessing}
                   >
