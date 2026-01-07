@@ -114,18 +114,18 @@ const Header = () => {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container-custom">
-        <div className="flex h-16 items-center justify-between">
+        <div className="flex h-20 items-center justify-between">
           {/* Logo with hover effect */}
-          <Link to="/" className="flex items-center gap-2 group">
+          <Link to="/" className="flex items-center gap-3 group">
             <motion.div 
-              className="flex h-9 w-9 items-center justify-center rounded-lg hero-gradient"
+              className="flex h-12 w-12 items-center justify-center rounded-xl hero-gradient"
               whileHover={{ scale: 1.1, rotate: 5 }}
               whileTap={{ scale: 0.95 }}
               transition={{ type: 'spring', stiffness: 400, damping: 17 }}
             >
-              <BookOpen className="h-5 w-5 text-primary-foreground" />
+              <BookOpen className="h-7 w-7 text-primary-foreground" />
             </motion.div>
-            <span className="text-xl font-bold text-foreground">
+            <span className="text-2xl font-bold text-foreground">
               Safal<span className="text-gradient">Academy</span>
             </span>
           </Link>
@@ -173,7 +173,7 @@ const Header = () => {
                 <Link
                   to={link.href}
                   onClick={(e) => handleNavClick(e, link)}
-                  className="relative z-10 block px-4 py-2 text-sm font-medium transition-colors"
+                  className="relative z-10 block px-5 py-2.5 text-base font-medium transition-colors"
                 >
                   <motion.span
                     className={`relative z-10 ${
