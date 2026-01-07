@@ -25,8 +25,9 @@ const checkoutSchema = z.object({
     .string()
     .trim()
     .min(1, 'Phone number is required')
-    .regex(/^[\+]?[0-9\s\-]{10,15}$/, 'Please enter a valid phone number (10-15 digits)')
-    .max(20, 'Phone number must be less than 20 characters'),
+    .min(10, 'Phone number must be at least 10 digits')
+    .max(15, 'Phone number must be less than 15 digits')
+    .regex(/^\+?[0-9]{10,15}$/, 'Please enter a valid phone number (digits only, 10-15 characters)'),
 });
 
 // Convert Google Drive sharing links to direct image URLs
@@ -322,10 +323,13 @@ const Cart = () => {
                         type="tel"
                         value={phone}
                         onChange={(e) => {
-                          setPhone(e.target.value);
+                          // Only allow digits and optional + at start
+                          const value = e.target.value.replace(/[^0-9+]/g, '').replace(/(?!^)\+/g, '');
+                          setPhone(value);
                           if (phoneError) setPhoneError('');
                         }}
-                        placeholder="+91 98765 43210"
+                        placeholder="+919876543210"
+                        maxLength={15}
                         className={`w-full px-4 py-2.5 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring ${
                           phoneError ? 'border-destructive' : 'border-input'
                         }`}
