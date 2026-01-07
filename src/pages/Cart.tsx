@@ -132,9 +132,14 @@ const Cart = () => {
     };
   }, []);
 
-  // Scroll to top on mount
+  // Scroll to top on mount and reset processing state on unmount
   useEffect(() => {
     window.scrollTo(0, 0);
+    
+    // Reset processing state on unmount (e.g., when navigating away)
+    return () => {
+      setIsProcessing(false);
+    };
   }, []);
 
   // Handle QR code add parameter
@@ -293,10 +298,16 @@ const Cart = () => {
   }, [email, phone, clearCart, navigate, toast, verifyPayment]);
 
   const handleCheckout = async () => {
-    console.log('Checkout initiated', { email, phone, itemCount: items.length });
+    console.log('[Cart] handleCheckout called', { email, phone, itemCount: items.length, isProcessing });
+    
+    // Prevent double-clicks
+    if (isProcessing) {
+      console.log('[Cart] Already processing, ignoring click');
+      return;
+    }
     
     if (!validateForm()) {
-      console.log('Form validation failed');
+      console.log('[Cart] Form validation failed');
       toast({
         title: 'Please fix the errors',
         description: 'Check your email and phone number.',
@@ -305,11 +316,24 @@ const Cart = () => {
       return;
     }
     
-    console.log('Form validation passed, creating order...');
+    console.log('[Cart] Form validation passed, creating order...');
 
     setIsProcessing(true);
+    
+    // Safety timeout - reset processing state after 30 seconds if something goes wrong
+    const timeoutId = setTimeout(() => {
+      console.log('[Cart] Checkout timeout - resetting processing state');
+      setIsProcessing(false);
+      toast({
+        title: 'Request timed out',
+        description: 'The payment request took too long. Please try again.',
+        variant: 'destructive',
+      });
+    }, 30000);
 
     try {
+      console.log('[Cart] Calling create-razorpay-order edge function...');
+      
       // Create order via edge function
       const { data: orderData, error: orderError } = await supabase.functions.invoke('create-razorpay-order', {
         body: {
@@ -319,6 +343,11 @@ const Cart = () => {
           whatsapp_optin: whatsappOptIn,
         },
       });
+      
+      console.log('[Cart] Edge function response:', { orderData, orderError });
+
+      // Clear the timeout since we got a response
+      clearTimeout(timeoutId);
 
       if (orderError || !orderData?.success) {
         throw new Error(orderData?.error || orderError?.message || 'Failed to create order');
@@ -329,11 +358,15 @@ const Cart = () => {
         throw new Error('Payment gateway is not configured. Please contact support.');
       }
 
+      console.log('[Cart] Opening Razorpay modal...');
       // Open Razorpay checkout modal
       openRazorpayModal(orderData);
 
     } catch (error: any) {
-      console.error('Checkout error:', error);
+      // Clear the timeout on error
+      clearTimeout(timeoutId);
+      
+      console.error('[Cart] Checkout error:', error);
       
       // Provide user-friendly error messages
       let errorTitle = 'Checkout failed';
@@ -347,7 +380,7 @@ const Cart = () => {
       } else if (errorText.includes('rate limit') || errorText.includes('too many')) {
         errorTitle = 'Too many attempts';
         errorMessage = 'Please wait a moment before trying again.';
-      } else if (errorText.includes('network') || errorText.includes('fetch')) {
+      } else if (errorText.includes('network') || errorText.includes('fetch') || errorText.includes('failed to fetch')) {
         errorTitle = 'Connection error';
         errorMessage = 'Please check your internet connection and try again.';
       } else if (error.message) {
