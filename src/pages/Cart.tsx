@@ -564,9 +564,14 @@ const Cart = () => {
                   </div>
 
                   <Button
+                    type="button"
                     size="lg"
-                    className="w-full"
-                    onClick={handleCheckout}
+                    className="w-full touch-manipulation"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleCheckout();
+                    }}
                     disabled={isProcessing}
                   >
                     {isProcessing ? (
