@@ -1,10 +1,9 @@
 import { useState, useRef, type MouseEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, Menu, X } from 'lucide-react';
+import { ShoppingCart, Menu, X, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/lib/store';
-import safalLogo from '@/assets/safal-logo.png';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -116,16 +115,19 @@ const Header = () => {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container-custom">
         <div className="flex h-20 items-center justify-between">
-{/* Logo with hover effect */}
-          <Link to="/" className="flex items-center group">
-            <motion.img 
-              src={safalLogo}
-              alt="Safal Online Academy"
-              className="h-14 w-auto object-contain"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.98 }}
+          {/* Logo with hover effect */}
+          <Link to="/" className="flex items-center gap-3 group">
+            <motion.div 
+              className="flex h-12 w-12 items-center justify-center rounded-xl hero-gradient"
+              whileHover={{ scale: 1.1, rotate: 5 }}
+              whileTap={{ scale: 0.95 }}
               transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-            />
+            >
+              <BookOpen className="h-7 w-7 text-primary-foreground" />
+            </motion.div>
+            <span className="text-2xl font-bold text-foreground">
+              Safal<span className="text-gradient">Academy</span>
+            </span>
           </Link>
 
           {/* Desktop Navigation with cursor glow */}
