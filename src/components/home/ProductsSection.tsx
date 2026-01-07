@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/lib/store';
 import { useToast } from '@/hooks/use-toast';
 import { useActiveProducts, Product } from '@/hooks/useProducts';
+import { fadeInUp, staggerContainer, staggerItem, viewportSettings } from '@/hooks/useScrollAnimation';
 
 // Convert Google Drive sharing link to direct image URL
 const getImageUrl = (url: string | null): string | null => {
@@ -69,17 +70,18 @@ const ProductsSection = () => {
     });
   };
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
+  const cardVariants = {
+    hidden: { opacity: 0, y: 40, scale: 0.95 },
+    visible: (i: number) => ({
       opacity: 1,
-      transition: { staggerChildren: 0.1 },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 30 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+      y: 0,
+      scale: 1,
+      transition: {
+        delay: i * 0.08,
+        duration: 0.5,
+        ease: [0.22, 1, 0.36, 1] as const
+      }
+    })
   };
 
   return (
@@ -87,15 +89,21 @@ const ProductsSection = () => {
       <div className="container-custom">
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
+          variants={fadeInUp}
+          initial="hidden"
+          whileInView="visible"
+          viewport={viewportSettings}
           className="text-center mb-10 md:mb-12"
         >
-          <span className="inline-block px-4 py-1.5 rounded-full bg-secondary/10 text-secondary text-sm font-medium mb-4">
+          <motion.span 
+            className="inline-block px-4 py-1.5 rounded-full bg-secondary/10 text-secondary text-sm font-medium mb-4"
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={viewportSettings}
+            transition={{ duration: 0.4 }}
+          >
             Our Products
-          </span>
+          </motion.span>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             All Study Materials
           </h2>
@@ -108,20 +116,27 @@ const ProductsSection = () => {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
+          viewport={viewportSettings}
           transition={{ duration: 0.4, delay: 0.1 }}
           className="flex flex-wrap justify-center gap-2 mb-10"
         >
-          {categories.map((category) => (
-            <Button
+          {categories.map((category, index) => (
+            <motion.div
               key={category}
-              variant={activeCategory === category ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setActiveCategory(category)}
-              className="capitalize"
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={viewportSettings}
+              transition={{ delay: 0.1 + index * 0.05 }}
             >
-              {CATEGORY_LABELS[category] || category}
-            </Button>
+              <Button
+                variant={activeCategory === category ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setActiveCategory(category)}
+                className="capitalize"
+              >
+                {CATEGORY_LABELS[category] || category}
+              </Button>
+            </motion.div>
           ))}
         </motion.div>
 
@@ -141,27 +156,34 @@ const ProductsSection = () => {
         ) : (
           <motion.div
             key={activeCategory}
-            variants={containerVariants}
             initial="hidden"
             animate="visible"
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8"
           >
-            {filteredProducts.map((product) => (
+            {filteredProducts.map((product, index) => (
               <motion.div
                 key={product.id}
-                variants={itemVariants}
+                custom={index}
+                variants={cardVariants}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: "-50px" }}
+                whileHover={{ y: -8, transition: { duration: 0.3 } }}
                 className="relative group"
               >
-                <div className="bg-card rounded-2xl border border-border overflow-hidden card-hover h-full flex flex-col">
+                <div className="bg-card rounded-2xl border border-border overflow-hidden hover:shadow-xl hover:border-primary/20 transition-all duration-300 h-full flex flex-col">
                   {/* Badge */}
                   {product.badge && (
-                    <div
+                    <motion.div
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.3 + index * 0.05 }}
                       className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-semibold z-10 ${
                         product.badge === 'best-value' ? 'badge-best' : 'badge-popular'
                       }`}
                     >
                       {product.badge === 'best-value' ? '🏆 Best Value' : '🔥 Popular'}
-                    </div>
+                    </motion.div>
                   )}
 
                   {/* Image */}
@@ -170,7 +192,7 @@ const ProductsSection = () => {
                       <img
                         src={getImageUrl(product.image_url)!}
                         alt={product.name}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';
                           e.currentTarget.parentElement?.querySelector('.fallback-icon')?.classList.remove('hidden');
@@ -198,8 +220,8 @@ const ProductsSection = () => {
 
                     {/* Features */}
                     <ul className="space-y-2 mb-6 flex-1">
-                      {(product.features || []).slice(0, 4).map((feature, index) => (
-                        <li key={index} className="flex items-start gap-2 text-sm">
+                      {(product.features || []).slice(0, 4).map((feature, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-sm">
                           <Check className="h-4 w-4 text-secondary mt-0.5 shrink-0" />
                           <span className="text-muted-foreground">{feature}</span>
                         </li>

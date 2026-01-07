@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Download, FileText, Shield, IndianRupee } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { staggerContainer, staggerItem } from '@/hooks/useScrollAnimation';
 
 const HeroSection = () => {
   const trustPoints = [
@@ -18,12 +19,15 @@ const HeroSection = () => {
 
       <div className="relative container-custom">
         <div className="min-h-[85vh] flex flex-col justify-center py-16 md:py-24">
-          <div className="max-w-4xl mx-auto text-center">
+          <motion.div 
+            className="max-w-4xl mx-auto text-center"
+            variants={staggerContainer}
+            initial="hidden"
+            animate="visible"
+          >
             {/* Badge */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
+              variants={staggerItem}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-foreground/10 backdrop-blur-sm border border-primary-foreground/20 mb-6"
             >
               <span className="flex h-2 w-2 rounded-full bg-secondary animate-pulse" />
@@ -34,34 +38,36 @@ const HeroSection = () => {
 
             {/* Headline */}
             <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
+              variants={staggerItem}
               className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-primary-foreground leading-tight mb-6"
             >
               Crack Competitive Exams with{' '}
               <span className="relative">
                 Smart, Exam-Ready Notes
-                <svg
+                <motion.svg
                   className="absolute -bottom-2 left-0 w-full"
                   viewBox="0 0 300 12"
                   fill="none"
+                  initial={{ pathLength: 0, opacity: 0 }}
+                  animate={{ pathLength: 1, opacity: 1 }}
+                  transition={{ delay: 0.8, duration: 0.8, ease: "easeOut" }}
                 >
-                  <path
+                  <motion.path
                     d="M2 8C50 4 150 2 298 8"
                     stroke="hsl(160 84% 39%)"
                     strokeWidth="4"
                     strokeLinecap="round"
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1 }}
+                    transition={{ delay: 0.8, duration: 0.8, ease: "easeOut" }}
                   />
-                </svg>
+                </motion.svg>
               </span>
             </motion.h1>
 
             {/* Subheadline */}
             <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
+              variants={staggerItem}
               className="text-lg md:text-xl text-primary-foreground/80 mb-8 max-w-2xl mx-auto"
             >
               High-quality notes and mock question papers designed specifically for Indian college students preparing for SSC, Banking, Railways & more.
@@ -69,14 +75,12 @@ const HeroSection = () => {
 
             {/* CTA Buttons */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
+              variants={staggerItem}
               className="flex flex-col sm:flex-row gap-4 justify-center mb-12"
             >
               <Link to="/products">
-                <Button size="xl" variant="hero-outline" className="w-full sm:w-auto">
-                  <Download className="mr-2 h-5 w-5" />
+                <Button size="xl" variant="hero-outline" className="w-full sm:w-auto group">
+                  <Download className="mr-2 h-5 w-5 transition-transform group-hover:-translate-y-0.5" />
                   Download Notes Now
                 </Button>
               </Link>
@@ -84,22 +88,23 @@ const HeroSection = () => {
 
             {/* Trust Points */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
+              variants={staggerItem}
               className="flex flex-wrap justify-center gap-6 md:gap-8"
             >
               {trustPoints.map((point, index) => (
-                <div
+                <motion.div
                   key={index}
                   className="flex items-center gap-2 text-primary-foreground/90"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 + index * 0.1, duration: 0.4 }}
                 >
                   <point.icon className="h-5 w-5" />
                   <span className="text-sm font-medium">{point.text}</span>
-                </div>
+                </motion.div>
               ))}
             </motion.div>
-          </div>
+          </motion.div>
         </div>
       </div>
 
