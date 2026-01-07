@@ -102,15 +102,20 @@ const Cart = () => {
   const navigate = useNavigate();
 
   // Check if WhatsApp delivery is enabled in admin settings
+  // Uses get_public_setting RPC to avoid exposing sensitive settings
   useEffect(() => {
     const fetchWhatsappSetting = async () => {
-      const { data } = await supabase
-        .from('settings')
-        .select('value')
-        .eq('key', 'whatsapp_enabled')
-        .single();
+      const { data, error } = await supabase
+        .rpc('get_public_setting', { setting_key: 'whatsapp_enabled' });
       
-      const isEnabled = data?.value === 'true';
+      if (error) {
+        console.log('[Cart] Could not fetch whatsapp setting:', error.message);
+        setWhatsappEnabled(false);
+        setWhatsappOptIn(false);
+        return;
+      }
+      
+      const isEnabled = data === 'true';
       setWhatsappEnabled(isEnabled);
       // If WhatsApp is disabled, set opt-in to false
       if (!isEnabled) {
