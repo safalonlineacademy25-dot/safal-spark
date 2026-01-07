@@ -293,7 +293,10 @@ const Cart = () => {
   }, [email, phone, clearCart, navigate, toast, verifyPayment]);
 
   const handleCheckout = async () => {
+    console.log('Checkout initiated', { email, phone, itemCount: items.length });
+    
     if (!validateForm()) {
+      console.log('Form validation failed');
       toast({
         title: 'Please fix the errors',
         description: 'Check your email and phone number.',
@@ -301,6 +304,8 @@ const Cart = () => {
       });
       return;
     }
+    
+    console.log('Form validation passed, creating order...');
 
     setIsProcessing(true);
 
