@@ -231,8 +231,16 @@ const Header = () => {
                 </Button>
                 {itemCount > 0 && (
                   <motion.span
+                    key={itemCount}
                     initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
+                    animate={{ 
+                      scale: [0, 1.3, 0.9, 1.1, 1],
+                      rotate: [0, 10, -10, 5, 0]
+                    }}
+                    transition={{ 
+                      duration: 0.5,
+                      ease: "easeOut"
+                    }}
                     className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground shadow-md border-2 border-background"
                   >
                     {itemCount}
