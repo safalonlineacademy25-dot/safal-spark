@@ -92,6 +92,7 @@ const Cart = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: allProducts } = useActiveProducts();
   const [whatsappOptIn, setWhatsappOptIn] = useState(true);
+  const [whatsappEnabled, setWhatsappEnabled] = useState(false);
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [emailError, setEmailError] = useState('');
@@ -99,6 +100,25 @@ const Cart = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Check if WhatsApp delivery is enabled in admin settings
+  useEffect(() => {
+    const fetchWhatsappSetting = async () => {
+      const { data } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'whatsapp_enabled')
+        .single();
+      
+      const isEnabled = data?.value === 'true';
+      setWhatsappEnabled(isEnabled);
+      // If WhatsApp is disabled, set opt-in to false
+      if (!isEnabled) {
+        setWhatsappOptIn(false);
+      }
+    };
+    fetchWhatsappSetting();
+  }, []);
 
   // Load Razorpay script
   useEffect(() => {
@@ -507,17 +527,19 @@ const Cart = () => {
                     </div>
                   </div>
 
-                  {/* WhatsApp Opt-in */}
-                  <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 mb-6">
-                    <Checkbox
-                      id="whatsapp"
-                      checked={whatsappOptIn}
-                      onCheckedChange={(checked) => setWhatsappOptIn(checked as boolean)}
-                    />
-                    <label htmlFor="whatsapp" className="text-sm text-muted-foreground cursor-pointer">
-                      I agree to receive my download link on WhatsApp
-                    </label>
-                  </div>
+                  {/* WhatsApp Opt-in - only show if enabled in admin settings */}
+                  {whatsappEnabled && (
+                    <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 mb-6">
+                      <Checkbox
+                        id="whatsapp"
+                        checked={whatsappOptIn}
+                        onCheckedChange={(checked) => setWhatsappOptIn(checked as boolean)}
+                      />
+                      <label htmlFor="whatsapp" className="text-sm text-muted-foreground cursor-pointer">
+                        I agree to receive my download link on WhatsApp
+                      </label>
+                    </div>
+                  )}
 
                   {/* Price Breakdown */}
                   <div className="space-y-3 mb-6 pb-6 border-b border-border">
@@ -565,10 +587,12 @@ const Cart = () => {
                       <Mail className="h-4 w-4 text-primary" />
                       <span>Download link sent to email</span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <MessageCircle className="h-4 w-4 text-secondary" />
-                      <span>WhatsApp delivery (if opted)</span>
-                    </div>
+                    {whatsappEnabled && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <MessageCircle className="h-4 w-4 text-secondary" />
+                        <span>WhatsApp delivery (if opted)</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
