@@ -7,11 +7,49 @@ import Footer from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/lib/store';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
 import { useActiveProducts } from '@/hooks/useProducts';
+
+// Declare Razorpay on window
+declare global {
+  interface Window {
+    Razorpay: new (options: RazorpayOptions) => RazorpayInstance;
+  }
+}
+
+interface RazorpayOptions {
+  key: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+  handler: (response: RazorpayResponse) => void;
+  prefill: {
+    email: string;
+    contact: string;
+  };
+  theme: {
+    color: string;
+  };
+  modal?: {
+    ondismiss?: () => void;
+  };
+}
+
+interface RazorpayInstance {
+  open: () => void;
+  close: () => void;
+}
+
+interface RazorpayResponse {
+  razorpay_payment_id: string;
+  razorpay_order_id: string;
+  razorpay_signature: string;
+}
 
 // Validation schema for checkout form
 const checkoutSchema = z.object({
@@ -61,6 +99,18 @@ const Cart = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Load Razorpay script
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    document.body.appendChild(script);
+    
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+
   // Scroll to top on mount
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -104,6 +154,97 @@ const Cart = () => {
     return true;
   };
 
+  const verifyPayment = useCallback(async (
+    orderId: string,
+    razorpayPaymentId: string,
+    razorpayOrderId: string,
+    razorpaySignature: string
+  ) => {
+    const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-razorpay-payment', {
+      body: {
+        order_id: orderId,
+        razorpay_payment_id: razorpayPaymentId,
+        razorpay_order_id: razorpayOrderId,
+        razorpay_signature: razorpaySignature,
+      },
+    });
+
+    if (verifyError || !verifyData?.success) {
+      throw new Error(verifyData?.error || verifyError?.message || 'Payment verification failed');
+    }
+
+    return verifyData;
+  }, []);
+
+  const openRazorpayModal = useCallback((orderData: {
+    key_id: string;
+    amount: number;
+    currency: string;
+    order_id: string;
+    razorpay_order_id: string;
+    order_number: string;
+    is_test_mode: boolean;
+  }) => {
+    if (!window.Razorpay) {
+      toast({
+        title: 'Payment gateway not loaded',
+        description: 'Please refresh the page and try again.',
+        variant: 'destructive',
+      });
+      setIsProcessing(false);
+      return;
+    }
+
+    const options: RazorpayOptions = {
+      key: orderData.key_id,
+      amount: orderData.amount,
+      currency: orderData.currency,
+      name: 'Safal Online Academy',
+      description: `Order ${orderData.order_number}`,
+      order_id: orderData.razorpay_order_id,
+      handler: async (response: RazorpayResponse) => {
+        try {
+          const verifyData = await verifyPayment(
+            orderData.order_id,
+            response.razorpay_payment_id,
+            response.razorpay_order_id,
+            response.razorpay_signature
+          );
+
+          clearCart();
+          navigate(`/order-success?order=${verifyData.order_number}&email=${encodeURIComponent(email)}`);
+        } catch (error: any) {
+          toast({
+            title: 'Payment verification failed',
+            description: error.message || 'Please contact support.',
+            variant: 'destructive',
+          });
+        } finally {
+          setIsProcessing(false);
+        }
+      },
+      prefill: {
+        email: email,
+        contact: phone,
+      },
+      theme: {
+        color: '#6366f1',
+      },
+      modal: {
+        ondismiss: () => {
+          setIsProcessing(false);
+          toast({
+            title: 'Payment cancelled',
+            description: 'You can try again when ready.',
+          });
+        },
+      },
+    };
+
+    const razorpay = new window.Razorpay(options);
+    razorpay.open();
+  }, [email, phone, clearCart, navigate, toast, verifyPayment]);
+
   const handleCheckout = async () => {
     if (!validateForm()) {
       toast({
@@ -131,34 +272,9 @@ const Cart = () => {
         throw new Error(orderData?.error || orderError?.message || 'Failed to create order');
       }
 
-      toast({
-        title: 'Order created!',
-        description: `Order ${orderData.order_number} - Simulating payment...`,
-      });
+      // Open Razorpay checkout modal
+      openRazorpayModal(orderData);
 
-      // For testing, simulate successful payment after a short delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      // Verify payment (simulated for testing)
-      const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-razorpay-payment', {
-        body: {
-          order_id: orderData.order_id,
-          razorpay_payment_id: `pay_test_${Date.now()}`,
-          razorpay_order_id: orderData.razorpay_order_id,
-          razorpay_signature: 'test_signature',
-        },
-      });
-
-      if (verifyError || !verifyData?.success) {
-        throw new Error(verifyData?.error || verifyError?.message || 'Payment verification failed');
-      }
-
-      // Clear cart after successful payment
-      clearCart();
-      
-      // Navigate to success page with order details
-      navigate(`/order-success?order=${verifyData.order_number}&email=${encodeURIComponent(email)}`);
-      
     } catch (error: any) {
       console.error('Checkout error:', error);
       toast({
@@ -166,7 +282,6 @@ const Cart = () => {
         description: error.message || 'Something went wrong. Please try again.',
         variant: 'destructive',
       });
-    } finally {
       setIsProcessing(false);
     }
   };

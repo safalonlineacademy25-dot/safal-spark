@@ -41,6 +41,38 @@ async function getSettings(supabase: any): Promise<Record<string, string>> {
   return settings;
 }
 
+// Create a real Razorpay order via their API
+async function createRazorpayOrder(
+  keyId: string,
+  keySecret: string,
+  amount: number,
+  currency: string,
+  receipt: string
+): Promise<{ id: string; amount: number; currency: string }> {
+  const auth = btoa(`${keyId}:${keySecret}`);
+  
+  const response = await fetch('https://api.razorpay.com/v1/orders', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Basic ${auth}`,
+    },
+    body: JSON.stringify({
+      amount,
+      currency,
+      receipt,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("Razorpay API error:", errorText);
+    throw new Error(`Razorpay API error: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
 // Rate limit configuration: 5 orders per minute per IP/email
 const RATE_LIMIT_MAX_REQUESTS = 5;
 const RATE_LIMIT_WINDOW_SECONDS = 60;
@@ -113,7 +145,8 @@ serve(async (req) => {
 
     // Get Razorpay settings from database
     const settings = await getSettings(supabase);
-    const RAZORPAY_KEY_ID = settings['razorpay_key_id'] || Deno.env.get('RAZORPAY_KEY_ID') || "rzp_test_1234567890abcd";
+    const RAZORPAY_KEY_ID = settings['razorpay_key_id'] || Deno.env.get('RAZORPAY_KEY_ID') || "";
+    const RAZORPAY_KEY_SECRET = settings['razorpay_key_secret'] || Deno.env.get('RAZORPAY_KEY_SECRET') || "";
     const isTestMode = settings['razorpay_test_mode'] === 'true' || !settings['razorpay_key_id'];
     
     console.log("Using Razorpay key:", RAZORPAY_KEY_ID.substring(0, 10) + "...", "Test mode:", isTestMode);
@@ -126,8 +159,28 @@ serve(async (req) => {
     }
     const orderNumber = orderNumberData;
 
-    // For testing, we'll simulate a Razorpay order ID
-    const razorpayOrderId = `order_test_${Date.now()}`;
+    let razorpayOrderId: string;
+    
+    if (isTestMode) {
+      // In test mode, generate a simulated order ID
+      razorpayOrderId = `order_test_${Date.now()}`;
+      console.log("Test mode: Generated simulated order ID:", razorpayOrderId);
+    } else {
+      // In live mode, create a real Razorpay order
+      if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
+        throw new Error("Razorpay credentials not configured. Please set up your API keys in admin settings.");
+      }
+      
+      const razorpayOrder = await createRazorpayOrder(
+        RAZORPAY_KEY_ID,
+        RAZORPAY_KEY_SECRET,
+        amountInPaise,
+        'INR',
+        orderNumber
+      );
+      razorpayOrderId = razorpayOrder.id;
+      console.log("Live mode: Created Razorpay order:", razorpayOrderId);
+    }
     
     console.log("Generated order number:", orderNumber, "Razorpay order ID:", razorpayOrderId);
 
@@ -183,6 +236,7 @@ serve(async (req) => {
         amount: amountInPaise,
         currency: 'INR',
         key_id: RAZORPAY_KEY_ID,
+        is_test_mode: isTestMode,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
