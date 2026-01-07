@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { MousePointer, CreditCard, Download } from 'lucide-react';
+import { fadeInUp, staggerContainer, viewportSettings } from '@/hooks/useScrollAnimation';
 
 const HowItWorksSection = () => {
   const steps = [
@@ -23,20 +24,40 @@ const HowItWorksSection = () => {
     },
   ];
 
+  const stepVariants = {
+    hidden: { opacity: 0, y: 50, scale: 0.95 },
+    visible: (i: number) => ({
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        delay: i * 0.2,
+        duration: 0.6,
+        ease: [0.22, 1, 0.36, 1] as const
+      }
+    })
+  };
+
   return (
     <section id="how-it-works" className="section-padding bg-muted/30">
       <div className="container-custom">
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
+          variants={fadeInUp}
+          initial="hidden"
+          whileInView="visible"
+          viewport={viewportSettings}
           className="text-center mb-12 md:mb-16"
         >
-          <span className="inline-block px-4 py-1.5 rounded-full bg-secondary/10 text-secondary text-sm font-medium mb-4">
+          <motion.span 
+            className="inline-block px-4 py-1.5 rounded-full bg-secondary/10 text-secondary text-sm font-medium mb-4"
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={viewportSettings}
+            transition={{ duration: 0.4 }}
+          >
             Simple Process
-          </span>
+          </motion.span>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             How It Works
           </h2>
@@ -48,25 +69,43 @@ const HowItWorksSection = () => {
         {/* Steps */}
         <div className="relative">
           {/* Connection Line */}
-          <div className="hidden lg:block absolute top-24 left-1/2 -translate-x-1/2 w-2/3 h-0.5 bg-gradient-to-r from-primary via-secondary to-primary opacity-20" />
+          <motion.div 
+            className="hidden lg:block absolute top-24 left-1/2 -translate-x-1/2 w-2/3 h-0.5 bg-gradient-to-r from-primary via-secondary to-primary opacity-20"
+            initial={{ scaleX: 0 }}
+            whileInView={{ scaleX: 1 }}
+            viewport={viewportSettings}
+            transition={{ duration: 1, delay: 0.5 }}
+          />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
             {steps.map((step, index) => (
               <motion.div
                 key={index}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.15 }}
+                custom={index}
+                variants={stepVariants}
+                initial="hidden"
+                whileInView="visible"
+                viewport={viewportSettings}
+                whileHover={{ y: -5 }}
                 className="relative text-center"
               >
                 {/* Step Number */}
-                <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-2xl hero-gradient mb-6">
+                <motion.div 
+                  className="relative inline-flex items-center justify-center w-20 h-20 rounded-2xl hero-gradient mb-6"
+                  whileHover={{ scale: 1.05, rotate: 3 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
                   <step.icon className="h-8 w-8 text-primary-foreground" />
-                  <span className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-card border-2 border-primary flex items-center justify-center text-xs font-bold text-primary">
+                  <motion.span 
+                    className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-card border-2 border-primary flex items-center justify-center text-xs font-bold text-primary"
+                    initial={{ scale: 0 }}
+                    whileInView={{ scale: 1 }}
+                    viewport={viewportSettings}
+                    transition={{ delay: 0.4 + index * 0.2, type: "spring", stiffness: 300 }}
+                  >
                     {step.step}
-                  </span>
-                </div>
+                  </motion.span>
+                </motion.div>
 
                 <h3 className="text-xl font-bold text-foreground mb-3">
                   {step.title}

@@ -417,28 +417,51 @@ const AdminDashboard = () => {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
                 className="space-y-6"
               >
                 {/* Stats */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <motion.div 
+                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+                  initial="hidden"
+                  animate="visible"
+                  variants={{
+                    hidden: { opacity: 0 },
+                    visible: {
+                      opacity: 1,
+                      transition: { staggerChildren: 0.1 }
+                    }
+                  }}
+                >
                   {stats.map((stat, index) => (
                     <motion.div
                       key={index}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      className="bg-card rounded-xl border border-border p-5"
+                      variants={{
+                        hidden: { opacity: 0, y: 30, scale: 0.95 },
+                        visible: { 
+                          opacity: 1, 
+                          y: 0, 
+                          scale: 1,
+                          transition: { duration: 0.4, ease: "easeOut" }
+                        }
+                      }}
+                      whileHover={{ y: -4, transition: { duration: 0.2 } }}
+                      className="bg-card rounded-xl border border-border p-5 hover:shadow-lg hover:border-primary/20 transition-all"
                     >
                       <div className="flex items-center justify-between mb-3">
-                        <div className={`p-2 rounded-lg bg-muted ${stat.color}`}>
+                        <motion.div 
+                          className={`p-2 rounded-lg bg-muted ${stat.color}`}
+                          whileHover={{ scale: 1.1, rotate: 5 }}
+                          transition={{ type: "spring", stiffness: 300 }}
+                        >
                           <stat.icon className="h-5 w-5" />
-                        </div>
+                        </motion.div>
                       </div>
                       <p className="text-2xl font-bold text-foreground">{stat.value}</p>
                       <p className="text-sm text-muted-foreground">{stat.label}</p>
                     </motion.div>
                   ))}
-                </div>
+                </motion.div>
 
                 {/* Recent Orders */}
                 <div className="bg-card rounded-xl border border-border">
@@ -503,8 +526,9 @@ const AdminDashboard = () => {
 
             {activeTab === 'products' && (
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
                 className="space-y-6"
               >
                 <div className="flex items-center justify-between">
@@ -584,8 +608,9 @@ const AdminDashboard = () => {
 
             {activeTab === 'orders' && (
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
                 className="space-y-6"
               >
                 <div className="flex items-center justify-between">
@@ -683,8 +708,9 @@ const AdminDashboard = () => {
 
             {activeTab === 'customers' && (
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
                 className="space-y-6"
               >
                 <div className="flex items-center justify-between">
@@ -777,8 +803,9 @@ const AdminDashboard = () => {
 
             {activeTab === 'payments' && (
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
                 className="space-y-6"
               >
                 <div className="flex items-center justify-between">
@@ -918,8 +945,9 @@ const AdminDashboard = () => {
 
             {activeTab === 'whatsapp' && (
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
                 className="space-y-6"
               >
                 <div className="flex items-center justify-between">
