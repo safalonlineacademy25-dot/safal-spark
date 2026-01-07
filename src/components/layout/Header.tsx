@@ -126,7 +126,7 @@ const Header = () => {
               <BookOpen className="h-7 w-7 text-primary-foreground" />
             </motion.div>
             <span className="text-2xl font-bold text-foreground">
-              Safal<span className="text-gradient">Academy</span>
+              Safal<span className="text-gradient"> Online Academy</span>
             </span>
           </Link>
 
