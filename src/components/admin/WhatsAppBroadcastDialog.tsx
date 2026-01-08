@@ -46,6 +46,8 @@ export default function WhatsAppBroadcastDialog({ trigger }: WhatsAppBroadcastDi
   const [productName, setProductName] = useState('');
   const [productDescription, setProductDescription] = useState('');
   const [templateName, setTemplateName] = useState('new_product_alert');
+  const [recipientCount, setRecipientCount] = useState<number | null>(null);
+  const [loadingCount, setLoadingCount] = useState(false);
 
   // Fetch products from database when dialog opens
   useEffect(() => {
@@ -74,6 +76,79 @@ export default function WhatsAppBroadcastDialog({ trigger }: WhatsAppBroadcastDi
     }
   };
 
+  // Fetch recipient count for a category
+  const fetchRecipientCount = async (selectedCategory: string) => {
+    if (!selectedCategory) {
+      setRecipientCount(null);
+      return;
+    }
+    
+    setLoadingCount(true);
+    try {
+      // Get unique customers who purchased from this category and opted in for WhatsApp
+      const { data, error } = await supabase
+        .from('orders')
+        .select('customer_phone')
+        .eq('status', 'paid')
+        .eq('whatsapp_optin', true);
+      
+      if (error) throw error;
+      
+      // Get order items for these orders to filter by category
+      const { data: orderItems, error: itemsError } = await supabase
+        .from('order_items')
+        .select('order_id, product_id');
+      
+      if (itemsError) throw itemsError;
+      
+      // Get products in the selected category
+      const { data: categoryProducts, error: productsError } = await supabase
+        .from('products')
+        .select('id')
+        .eq('category', selectedCategory);
+      
+      if (productsError) throw productsError;
+      
+      const categoryProductIds = new Set(categoryProducts?.map(p => p.id) || []);
+      const orderIdsWithCategory = new Set(
+        orderItems?.filter(item => item.product_id && categoryProductIds.has(item.product_id))
+          .map(item => item.order_id) || []
+      );
+      
+      // Count unique phone numbers from orders in this category
+      const uniquePhones = new Set(
+        data?.filter(order => orderIdsWithCategory.has(order.customer_phone))
+          .map(order => order.customer_phone) || []
+      );
+      
+      // Actually filter orders properly
+      const { data: filteredOrders, error: filteredError } = await supabase
+        .from('orders')
+        .select('id, customer_phone')
+        .eq('status', 'paid')
+        .eq('whatsapp_optin', true);
+      
+      if (filteredError) throw filteredError;
+      
+      const validOrderIds = new Set(filteredOrders?.map(o => o.id) || []);
+      const ordersInCategory = orderItems?.filter(
+        item => item.product_id && categoryProductIds.has(item.product_id) && validOrderIds.has(item.order_id)
+      ).map(item => item.order_id) || [];
+      
+      const phonesInCategory = new Set(
+        filteredOrders?.filter(o => ordersInCategory.includes(o.id))
+          .map(o => o.customer_phone) || []
+      );
+      
+      setRecipientCount(phonesInCategory.size);
+    } catch (error) {
+      console.error('Error fetching recipient count:', error);
+      setRecipientCount(null);
+    } finally {
+      setLoadingCount(false);
+    }
+  };
+
   // Auto-populate fields when a product is selected
   const handleProductSelect = (productId: string) => {
     setSelectedProductId(productId);
@@ -82,6 +157,7 @@ export default function WhatsAppBroadcastDialog({ trigger }: WhatsAppBroadcastDi
       setProductName(product.name);
       setCategory(product.category);
       setProductDescription(product.description || '');
+      fetchRecipientCount(product.category);
     }
   };
 
@@ -152,6 +228,7 @@ export default function WhatsAppBroadcastDialog({ trigger }: WhatsAppBroadcastDi
     setCategory('');
     setProductName('');
     setProductDescription('');
+    setRecipientCount(null);
   };
 
   return (
@@ -267,16 +344,28 @@ export default function WhatsAppBroadcastDialog({ trigger }: WhatsAppBroadcastDi
               />
             </div>
 
-            {/* Info Box */}
-            <div className="rounded-lg bg-muted p-3 text-sm">
+            {/* Recipient Count Box */}
+            <div className={`rounded-lg p-3 text-sm ${recipientCount !== null && recipientCount > 0 ? 'bg-green-500/10 border border-green-500/20' : 'bg-muted'}`}>
               <div className="flex items-start gap-2">
                 <Users className="h-4 w-4 mt-0.5 text-primary shrink-0" />
-                <div>
-                  <p className="font-medium">Who will receive this?</p>
-                  <p className="text-muted-foreground text-xs mt-1">
-                    Only customers who have purchased from the selected category 
-                    AND opted in for WhatsApp notifications.
-                  </p>
+                <div className="flex-1">
+                  <p className="font-medium">Recipients</p>
+                  {loadingCount ? (
+                    <p className="text-muted-foreground text-xs mt-1 flex items-center gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Counting recipients...
+                    </p>
+                  ) : recipientCount !== null ? (
+                    <p className={`text-xs mt-1 ${recipientCount > 0 ? 'text-green-600 dark:text-green-400 font-semibold' : 'text-amber-600 dark:text-amber-400'}`}>
+                      {recipientCount > 0 
+                        ? `${recipientCount} customer${recipientCount !== 1 ? 's' : ''} will receive this broadcast`
+                        : 'No eligible customers found for this category'}
+                    </p>
+                  ) : (
+                    <p className="text-muted-foreground text-xs mt-1">
+                      Select a product to see recipient count.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
