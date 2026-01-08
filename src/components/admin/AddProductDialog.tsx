@@ -31,6 +31,7 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
   });
   const [featuresInput, setFeaturesInput] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const productFileInputRef = useRef<HTMLInputElement>(null);
@@ -44,43 +45,35 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
     progress: fileProgress 
   } = useProductFileUpload();
 
-  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Defer upload - only show local preview instantly
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Show preview
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-
-    // Upload to Supabase
-    const url = await uploadImage(file);
-    if (url) {
-      setFormData({ ...formData, image_url: url });
-    }
+    setSelectedImageFile(file);
+    
+    // Show instant preview using object URL (much faster)
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreview(previewUrl);
   };
 
   const removeImage = () => {
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+    }
     setImagePreview(null);
+    setSelectedImageFile(null);
     setFormData({ ...formData, image_url: '' });
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  const handleProductFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Defer product file upload too - just store the file
+  const handleProductFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setSelectedFile(file);
-    
-    // Upload to Supabase Storage
-    const url = await uploadFile(file);
-    if (url) {
-      setFormData({ ...formData, file_url: url });
-    }
   };
 
   const removeProductFile = () => {
@@ -92,8 +85,32 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
     cancelUpload();
   };
 
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    let imageUrl = formData.image_url || null;
+    let fileUrl = formData.file_url || null;
+    
+    // Upload image if selected (deferred upload)
+    if (selectedImageFile && !formData.image_url) {
+      const url = await uploadImage(selectedImageFile);
+      if (url) {
+        imageUrl = url;
+      } else {
+        return; // Upload failed, error already shown
+      }
+    }
+    
+    // Upload product file if selected but not yet uploaded
+    if (selectedFile && !formData.file_url) {
+      const url = await uploadFile(selectedFile);
+      if (url) {
+        fileUrl = url;
+      } else {
+        return; // Upload failed
+      }
+    }
     
     const product: ProductInsert = {
       name: formData.name || '',
@@ -101,8 +118,8 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
       price: formData.price || 0,
       original_price: formData.original_price || null,
       description: formData.description || null,
-      image_url: formData.image_url || null,
-      file_url: formData.file_url || null,
+      image_url: imageUrl,
+      file_url: fileUrl,
       badge: formData.badge && formData.badge.trim().length > 0 ? formData.badge.trim() : null,
       is_active: formData.is_active ?? true,
       features: featuresInput ? featuresInput.split('\n').filter(f => f.trim()) : [],
@@ -118,6 +135,9 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
   };
 
   const resetForm = () => {
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+    }
     setFormData({
       name: '',
       description: '',
@@ -132,6 +152,7 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
     });
     setFeaturesInput('');
     setImagePreview(null);
+    setSelectedImageFile(null);
     setSelectedFile(null);
   };
 
