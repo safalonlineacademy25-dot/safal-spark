@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.get-admin-users]
 verify_jwt = false
+
+[functions.broadcast-whatsapp]
+verify_jwt = false
