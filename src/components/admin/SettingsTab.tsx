@@ -50,6 +50,7 @@ interface DeliverySettings {
   resendApiKey: string;
   whatsappAccessToken: string;
   whatsappPhoneNumberId: string;
+  whatsappTemplateName: string;
 }
 
 interface PaymentSettings {
@@ -83,6 +84,7 @@ const SettingsTab = () => {
     resendApiKey: '',
     whatsappAccessToken: '',
     whatsappPhoneNumberId: '',
+    whatsappTemplateName: '',
   });
   const [savingDelivery, setSavingDelivery] = useState(false);
   const [showResendKey, setShowResendKey] = useState(false);
@@ -151,6 +153,7 @@ const SettingsTab = () => {
           resendApiKey: settingsMap['resend_api_key'] || '',
           whatsappAccessToken: settingsMap['whatsapp_access_token'] || '',
           whatsappPhoneNumberId: settingsMap['whatsapp_phone_number_id'] || '',
+          whatsappTemplateName: settingsMap['whatsapp_template_name'] || '',
         });
       }
     } catch (error) {
@@ -268,6 +271,7 @@ const SettingsTab = () => {
         upsertSetting('resend_api_key', deliverySettings.resendApiKey),
         upsertSetting('whatsapp_access_token', deliverySettings.whatsappAccessToken),
         upsertSetting('whatsapp_phone_number_id', deliverySettings.whatsappPhoneNumberId),
+        upsertSetting('whatsapp_template_name', deliverySettings.whatsappTemplateName),
       ]);
       
       toast.success('Delivery settings saved to database');
@@ -594,6 +598,23 @@ const SettingsTab = () => {
               />
             </div>
           </div>
+
+          {/* WhatsApp Template Name */}
+          <div className="space-y-2">
+            <Label htmlFor="whatsapp-template-name">WhatsApp Template Name</Label>
+            <Input
+              id="whatsapp-template-name"
+              placeholder="soa_download_ready"
+              value={deliverySettings.whatsappTemplateName}
+              onChange={(e) =>
+                setDeliverySettings((prev) => ({ ...prev, whatsappTemplateName: e.target.value }))
+              }
+            />
+            <p className="text-xs text-muted-foreground">
+              The approved message template name from Meta Business Manager. Required for business-initiated messages.
+            </p>
+          </div>
+
           <p className="text-xs text-muted-foreground">
             Get these from your{' '}
             <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
