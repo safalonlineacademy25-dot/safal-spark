@@ -69,6 +69,10 @@ const Header = () => {
     if (path.startsWith('/#')) {
       return location.pathname === '/' && window.location.hash === path.replace('/', '');
     }
+    // Home should not be active when there's a hash
+    if (path === '/' && window.location.hash) {
+      return false;
+    }
     return location.pathname === path;
   };
 
