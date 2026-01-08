@@ -92,23 +92,41 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
     let imageUrl = formData.image_url || null;
     let fileUrl = formData.file_url || null;
     
-    // Upload image if selected (deferred upload)
+    // Run uploads in parallel for better performance
+    const uploadPromises: Promise<void>[] = [];
+    
+    // Image upload promise
     if (selectedImageFile && !formData.image_url) {
-      const url = await uploadImage(selectedImageFile);
-      if (url) {
-        imageUrl = url;
-      } else {
-        return; // Upload failed, error already shown
-      }
+      uploadPromises.push(
+        uploadImage(selectedImageFile).then((url) => {
+          if (url) {
+            imageUrl = url;
+          } else {
+            throw new Error('Image upload failed');
+          }
+        })
+      );
     }
     
-    // Upload product file if selected but not yet uploaded
+    // Product file upload promise
     if (selectedFile && !formData.file_url) {
-      const url = await uploadFile(selectedFile);
-      if (url) {
-        fileUrl = url;
-      } else {
-        return; // Upload failed
+      uploadPromises.push(
+        uploadFile(selectedFile).then((url) => {
+          if (url) {
+            fileUrl = url;
+          } else {
+            throw new Error('File upload failed');
+          }
+        })
+      );
+    }
+    
+    // Wait for all uploads to complete in parallel
+    if (uploadPromises.length > 0) {
+      try {
+        await Promise.all(uploadPromises);
+      } catch {
+        return; // Upload failed, error already shown by hooks
       }
     }
     
