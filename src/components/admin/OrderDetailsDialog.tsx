@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Eye, Loader2, Package, Mail, Phone, User, Calendar, CreditCard } from 'lucide-react';
+import { Eye, Loader2, Package, Mail, Phone, User, Calendar, CreditCard, MessageCircle, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -163,9 +163,62 @@ const OrderDetailsDialog = ({ order }: OrderDetailsDialogProps) => {
               </div>
             </div>
 
-            {/* WhatsApp Opt-in */}
-            <div className="text-sm text-muted-foreground">
-              WhatsApp Updates: {orderWithItems.whatsapp_optin ? '✅ Opted In' : '❌ Not Opted In'}
+            {/* WhatsApp Delivery Status */}
+            <div className="bg-muted/30 rounded-lg p-4 space-y-3">
+              <h3 className="font-semibold text-foreground flex items-center gap-2">
+                <MessageCircle className="h-4 w-4" />
+                WhatsApp Delivery
+              </h3>
+              <div className="flex flex-wrap items-center gap-4 text-sm">
+                {/* Opt-in Status */}
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Opt-in:</span>
+                  {orderWithItems.whatsapp_optin ? (
+                    <span className="inline-flex items-center gap-1 text-secondary">
+                      <CheckCircle2 className="h-4 w-4" />
+                      Yes
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-muted-foreground">
+                      <XCircle className="h-4 w-4" />
+                      No
+                    </span>
+                  )}
+                </div>
+
+                {/* Delivery Status (only show if opted in) */}
+                {orderWithItems.whatsapp_optin && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">Status:</span>
+                      {orderWithItems.delivery_status === 'sent' ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary/10 text-secondary text-xs font-medium">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Sent
+                        </span>
+                      ) : orderWithItems.delivery_status === 'failed' ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/10 text-destructive text-xs font-medium">
+                          <XCircle className="h-3 w-3" />
+                          Failed
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-600 text-xs font-medium">
+                          <Clock className="h-3 w-3" />
+                          Pending
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Delivery Attempts */}
+                    {(orderWithItems.delivery_attempts ?? 0) > 0 && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <span>Attempts:</span>
+                        <span className="font-medium text-foreground">{orderWithItems.delivery_attempts}</span>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
           </div>
         ) : (
