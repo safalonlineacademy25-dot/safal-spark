@@ -186,12 +186,17 @@ export default function WhatsAppBroadcastDialog({ trigger }: WhatsAppBroadcastDi
 
     setSending(true);
     try {
+      // Generate the product link (same format as QR codes)
+      const productLink = `${window.location.origin}/cart?add=${selectedProductId}`;
+      
       const { data, error } = await supabase.functions.invoke('broadcast-whatsapp', {
         body: {
           category,
           productName: productName.trim(),
           productDescription: productDescription.trim() || undefined,
           templateName: templateName.trim(),
+          productId: selectedProductId,
+          productLink,
         },
       });
 
@@ -373,8 +378,12 @@ export default function WhatsAppBroadcastDialog({ trigger }: WhatsAppBroadcastDi
             {/* Template Info */}
             <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
               <p className="font-medium text-foreground mb-1">Template Parameters:</p>
-              <code className="text-[10px]">
-                {'{{1}}'} customer_name, {'{{2}}'} product_name, {'{{3}}'} category, {'{{4}}'} description
+              <code className="text-[10px] leading-relaxed block">
+                {'{{1}}'} customer_name<br />
+                {'{{2}}'} product_name<br />
+                {'{{3}}'} category<br />
+                {'{{4}}'} description<br />
+                {'{{5}}'} product_link (QR code URL)
               </code>
             </div>
           </div>
