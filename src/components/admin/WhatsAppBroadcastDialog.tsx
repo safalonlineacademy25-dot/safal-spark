@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Send, Loader2, Users, Megaphone } from 'lucide-react';
 import {
   Dialog,
@@ -22,13 +22,15 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
-const PRODUCT_CATEGORIES = [
-  'Pune University Notes',
-  'Engineering Notes',
-  'IIT Notes',
-  'Competitive Exam Notes',
-  'Others',
-];
+interface Product {
+  id: string;
+  name: string;
+  category: string;
+  description: string | null;
+  price: number;
+  original_price: number | null;
+  badge: string | null;
+}
 
 interface WhatsAppBroadcastDialogProps {
   trigger?: React.ReactNode;
@@ -37,14 +39,64 @@ interface WhatsAppBroadcastDialogProps {
 export default function WhatsAppBroadcastDialog({ trigger }: WhatsAppBroadcastDialogProps) {
   const [open, setOpen] = useState(false);
   const [sending, setSending] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState('');
   const [category, setCategory] = useState('');
   const [productName, setProductName] = useState('');
   const [productDescription, setProductDescription] = useState('');
   const [templateName, setTemplateName] = useState('new_product_alert');
 
+  // Fetch products from database when dialog opens
+  useEffect(() => {
+    if (open) {
+      fetchProducts();
+    }
+  }, [open]);
+
+  const fetchProducts = async () => {
+    setLoadingProducts(true);
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, name, category, description, price, original_price, badge')
+        .eq('is_active', true)
+        .order('category', { ascending: true })
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setProducts(data || []);
+    } catch (error: any) {
+      console.error('Error fetching products:', error);
+      toast.error('Failed to load products');
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
+
+  // Auto-populate fields when a product is selected
+  const handleProductSelect = (productId: string) => {
+    setSelectedProductId(productId);
+    const product = products.find((p) => p.id === productId);
+    if (product) {
+      setProductName(product.name);
+      setCategory(product.category);
+      setProductDescription(product.description || '');
+    }
+  };
+
+  // Group products by category for the dropdown
+  const productsByCategory = products.reduce((acc, product) => {
+    if (!acc[product.category]) {
+      acc[product.category] = [];
+    }
+    acc[product.category].push(product);
+    return acc;
+  }, {} as Record<string, Product[]>);
+
   const handleBroadcast = async () => {
     if (!category) {
-      toast.error('Please select a category');
+      toast.error('Please select a product');
       return;
     }
     if (!productName.trim()) {
@@ -84,9 +136,7 @@ export default function WhatsAppBroadcastDialog({ trigger }: WhatsAppBroadcastDi
       }
 
       setOpen(false);
-      setCategory('');
-      setProductName('');
-      setProductDescription('');
+      resetForm();
     } catch (error: any) {
       console.error('Broadcast error:', error);
       toast.error('Broadcast failed', {
@@ -95,6 +145,13 @@ export default function WhatsAppBroadcastDialog({ trigger }: WhatsAppBroadcastDi
     } finally {
       setSending(false);
     }
+  };
+
+  const resetForm = () => {
+    setSelectedProductId('');
+    setCategory('');
+    setProductName('');
+    setProductDescription('');
   };
 
   return (
@@ -114,42 +171,60 @@ export default function WhatsAppBroadcastDialog({ trigger }: WhatsAppBroadcastDi
             WhatsApp Broadcast
           </DialogTitle>
           <DialogDescription>
-            Send a new product announcement to customers who purchased from a specific category.
+            Select a product to broadcast to customers who purchased from that category.
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
           {/* Left Column */}
           <div className="space-y-4">
-            {/* Category Selection */}
+            {/* Product Selection Dropdown */}
             <div className="space-y-2">
-              <Label htmlFor="category">Target Category</Label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger id="category">
-                  <SelectValue placeholder="Select category" />
+              <Label htmlFor="product-select">Select Product</Label>
+              <Select value={selectedProductId} onValueChange={handleProductSelect}>
+                <SelectTrigger id="product-select">
+                  <SelectValue placeholder={loadingProducts ? 'Loading products...' : 'Select a product'} />
                 </SelectTrigger>
-                <SelectContent className="bg-background border shadow-lg z-50">
-                  {PRODUCT_CATEGORIES.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
+                <SelectContent className="bg-background border shadow-lg z-50 max-h-60">
+                  {Object.entries(productsByCategory).map(([cat, prods]) => (
+                    <div key={cat}>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/50">
+                        {cat}
+                      </div>
+                      {prods.map((product) => (
+                        <SelectItem key={product.id} value={product.id}>
+                          <div className="flex items-center gap-2">
+                            <span>{product.name}</span>
+                            {product.badge && (
+                              <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                                {product.badge}
+                              </span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </div>
                   ))}
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Customers from this category will receive the message.
+                Products are grouped by category.
               </p>
             </div>
 
-            {/* Product Name */}
+            {/* Category (Auto-filled) */}
             <div className="space-y-2">
-              <Label htmlFor="product-name">New Product Name</Label>
+              <Label htmlFor="category">Target Category</Label>
               <Input
-                id="product-name"
-                placeholder="e.g., Advanced Physics Notes 2025"
-                value={productName}
-                onChange={(e) => setProductName(e.target.value)}
+                id="category"
+                value={category}
+                readOnly
+                className="bg-muted"
+                placeholder="Auto-filled from product"
               />
+              <p className="text-xs text-muted-foreground">
+                Customers from this category will receive the message.
+              </p>
             </div>
 
             {/* Template Name */}
@@ -169,12 +244,23 @@ export default function WhatsAppBroadcastDialog({ trigger }: WhatsAppBroadcastDi
 
           {/* Right Column */}
           <div className="space-y-4">
-            {/* Product Description */}
+            {/* Product Name (Auto-filled but editable) */}
             <div className="space-y-2">
-              <Label htmlFor="product-description">Short Description (Optional)</Label>
+              <Label htmlFor="product-name">Product Name</Label>
+              <Input
+                id="product-name"
+                placeholder="Select a product above"
+                value={productName}
+                onChange={(e) => setProductName(e.target.value)}
+              />
+            </div>
+
+            {/* Product Description (Auto-filled but editable) */}
+            <div className="space-y-2">
+              <Label htmlFor="product-description">Short Description</Label>
               <Textarea
                 id="product-description"
-                placeholder="e.g., Complete syllabus coverage with solved examples"
+                placeholder="Auto-filled from product or enter custom description"
                 value={productDescription}
                 onChange={(e) => setProductDescription(e.target.value)}
                 rows={3}
@@ -209,7 +295,7 @@ export default function WhatsAppBroadcastDialog({ trigger }: WhatsAppBroadcastDi
           <Button variant="outline" onClick={() => setOpen(false)} disabled={sending}>
             Cancel
           </Button>
-          <Button onClick={handleBroadcast} disabled={sending} className="gap-2">
+          <Button onClick={handleBroadcast} disabled={sending || !selectedProductId} className="gap-2">
             {sending ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
