@@ -107,9 +107,9 @@ export default function WhatsAppBroadcastDialog({ trigger }: WhatsAppBroadcastDi
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="border-b pb-4">
+          <DialogTitle className="flex items-center gap-2 text-lg">
             <Megaphone className="h-5 w-5 text-primary" />
             WhatsApp Broadcast
           </DialogTitle>
@@ -118,81 +118,94 @@ export default function WhatsAppBroadcastDialog({ trigger }: WhatsAppBroadcastDi
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          {/* Category Selection */}
-          <div className="space-y-2">
-            <Label htmlFor="category">Target Category</Label>
-            <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger id="category">
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                {PRODUCT_CATEGORIES.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Customers who purchased from this category will receive the message.
-            </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+          {/* Left Column */}
+          <div className="space-y-4">
+            {/* Category Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="category">Target Category</Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger id="category">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent className="bg-background border shadow-lg z-50">
+                  {PRODUCT_CATEGORIES.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Customers from this category will receive the message.
+              </p>
+            </div>
+
+            {/* Product Name */}
+            <div className="space-y-2">
+              <Label htmlFor="product-name">New Product Name</Label>
+              <Input
+                id="product-name"
+                placeholder="e.g., Advanced Physics Notes 2025"
+                value={productName}
+                onChange={(e) => setProductName(e.target.value)}
+              />
+            </div>
+
+            {/* Template Name */}
+            <div className="space-y-2">
+              <Label htmlFor="template-name">WhatsApp Template Name</Label>
+              <Input
+                id="template-name"
+                placeholder="new_product_alert"
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Must be approved in Meta Business Manager.
+              </p>
+            </div>
           </div>
 
-          {/* Product Name */}
-          <div className="space-y-2">
-            <Label htmlFor="product-name">New Product Name</Label>
-            <Input
-              id="product-name"
-              placeholder="e.g., Advanced Physics Notes 2025"
-              value={productName}
-              onChange={(e) => setProductName(e.target.value)}
-            />
-          </div>
+          {/* Right Column */}
+          <div className="space-y-4">
+            {/* Product Description */}
+            <div className="space-y-2">
+              <Label htmlFor="product-description">Short Description (Optional)</Label>
+              <Textarea
+                id="product-description"
+                placeholder="e.g., Complete syllabus coverage with solved examples"
+                value={productDescription}
+                onChange={(e) => setProductDescription(e.target.value)}
+                rows={3}
+              />
+            </div>
 
-          {/* Product Description */}
-          <div className="space-y-2">
-            <Label htmlFor="product-description">Short Description (Optional)</Label>
-            <Textarea
-              id="product-description"
-              placeholder="e.g., Complete syllabus coverage with solved examples"
-              value={productDescription}
-              onChange={(e) => setProductDescription(e.target.value)}
-              rows={2}
-            />
-          </div>
-
-          {/* Template Name */}
-          <div className="space-y-2">
-            <Label htmlFor="template-name">WhatsApp Template Name</Label>
-            <Input
-              id="template-name"
-              placeholder="new_product_alert"
-              value={templateName}
-              onChange={(e) => setTemplateName(e.target.value)}
-            />
-            <p className="text-xs text-muted-foreground">
-              Must be approved in Meta Business Manager. Template should have 4 body parameters:
-              {' '}customer_name, product_name, category, description.
-            </p>
-          </div>
-
-          {/* Info Box */}
-          <div className="rounded-lg bg-muted p-3 text-sm">
-            <div className="flex items-start gap-2">
-              <Users className="h-4 w-4 mt-0.5 text-primary" />
-              <div>
-                <p className="font-medium">Who will receive this?</p>
-                <p className="text-muted-foreground text-xs mt-1">
-                  Only customers who have purchased products from the selected category 
-                  AND opted in for WhatsApp notifications will receive this message.
-                </p>
+            {/* Info Box */}
+            <div className="rounded-lg bg-muted p-3 text-sm">
+              <div className="flex items-start gap-2">
+                <Users className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                <div>
+                  <p className="font-medium">Who will receive this?</p>
+                  <p className="text-muted-foreground text-xs mt-1">
+                    Only customers who have purchased from the selected category 
+                    AND opted in for WhatsApp notifications.
+                  </p>
+                </div>
               </div>
+            </div>
+
+            {/* Template Info */}
+            <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
+              <p className="font-medium text-foreground mb-1">Template Parameters:</p>
+              <code className="text-[10px]">
+                {'{{1}}'} customer_name, {'{{2}}'} product_name, {'{{3}}'} category, {'{{4}}'} description
+              </code>
             </div>
           </div>
         </div>
 
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-2 border-t pt-4">
           <Button variant="outline" onClick={() => setOpen(false)} disabled={sending}>
             Cancel
           </Button>
