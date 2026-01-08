@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Megaphone, Loader2, CheckCircle, XCircle, Users, RefreshCw } from 'lucide-react';
+import { Megaphone, Loader2, CheckCircle, XCircle, Users, RefreshCw, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import PaginationControls from './PaginationControls';
 import { usePagination } from '@/hooks/usePagination';
 import { motion } from 'framer-motion';
-
+import WhatsAppBroadcastDialog from './WhatsAppBroadcastDialog';
 interface BroadcastLog {
   id: string;
   category: string;
@@ -116,16 +116,19 @@ export default function BroadcastHistoryTab() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-foreground">Broadcast History</h2>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => fetchLogs(true)}
-          disabled={refreshing}
-          className="gap-2"
-        >
-          <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fetchLogs(true)}
+            disabled={refreshing}
+            className="gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <WhatsAppBroadcastDialog onBroadcastSent={() => fetchLogs(true)} />
+        </div>
       </div>
 
       {/* Table */}

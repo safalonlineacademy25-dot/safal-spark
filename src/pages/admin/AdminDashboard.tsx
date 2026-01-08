@@ -40,7 +40,6 @@ import ProductQRCodeDialog from '@/components/admin/ProductQRCodeDialog';
 import DBSnapshotTab from '@/components/admin/DBSnapshotTab';
 import SettingsTab from '@/components/admin/SettingsTab';
 import PaginationControls from '@/components/admin/PaginationControls';
-import WhatsAppBroadcastDialog from '@/components/admin/WhatsAppBroadcastDialog';
 import BroadcastHistoryTab from '@/components/admin/BroadcastHistoryTab';
 import { usePagination } from '@/hooks/usePagination';
 import { toast } from 'sonner';
@@ -956,12 +955,9 @@ const AdminDashboard = () => {
               >
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-foreground">WhatsApp Delivery Logs</h2>
-                  <div className="flex items-center gap-4">
-                    <span className="text-sm text-muted-foreground">
-                      {orders?.filter(o => o.whatsapp_optin).length || 0} WhatsApp opt-ins
-                    </span>
-                    <WhatsAppBroadcastDialog />
-                  </div>
+                  <span className="text-sm text-muted-foreground">
+                    {orders?.filter(o => o.whatsapp_optin).length || 0} WhatsApp opt-ins
+                  </span>
                 </div>
 
                 <div className="bg-card rounded-xl border border-border overflow-hidden">
