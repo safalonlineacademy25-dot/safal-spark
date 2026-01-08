@@ -213,6 +213,7 @@ serve(async (req: Request): Promise<Response> => {
         sent_count: results.sent,
         failed_count: results.failed,
         errors: results.errors.slice(0, 20),
+        product_link: productLink || null,
       });
       console.log("✅ Broadcast logged to database");
     } catch (logError: any) {
