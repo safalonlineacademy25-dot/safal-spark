@@ -57,21 +57,12 @@ const CTASection = () => {
 
             <motion.div 
               variants={staggerItem}
-              className="flex flex-col sm:flex-row gap-4 justify-center"
+              className="flex justify-center"
             >
               <Link to="/products">
                 <Button size="xl" variant="hero-outline" className="w-full sm:w-auto group">
                   Get Started Now
                   <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
-                </Button>
-              </Link>
-              <Link to="/products?category=combo">
-                <Button
-                  size="xl"
-                  variant="hero-outline"
-                  className="w-full sm:w-auto"
-                >
-                  View Combo Pack
                 </Button>
               </Link>
             </motion.div>
