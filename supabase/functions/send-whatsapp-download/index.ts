@@ -95,8 +95,11 @@ serve(async (req: Request): Promise<Response> => {
     const whatsappToken = settings['whatsapp_access_token'] || Deno.env.get("WHATSAPP_ACCESS_TOKEN") || "dummy_whatsapp_token_123";
     const whatsappPhoneId = settings['whatsapp_phone_number_id'] || Deno.env.get("WHATSAPP_PHONE_NUMBER_ID") || "dummy_phone_id";
     const whatsappEnabled = settings['whatsapp_enabled'] !== 'false';
+    // Template name - must be registered and approved in Meta Business Manager
+    const templateName = settings['whatsapp_template_name'] || "soa_download_ready";
     
     console.log("WhatsApp enabled:", whatsappEnabled, "Phone ID:", whatsappPhoneId.substring(0, 5) + "...");
+    console.log("Using template:", templateName);
 
     const formattedPhone = formatPhoneNumber(customerPhone);
     console.log("Formatted phone:", formattedPhone);
@@ -108,26 +111,14 @@ serve(async (req: Request): Promise<Response> => {
       url: `${baseUrl}?token=${p.downloadToken}`
     }));
 
-    // Build WhatsApp message
-    const productsList = downloadLinks.map((link, i) => 
-      `${i + 1}. *${link.name}*\n   📥 ${link.url}`
-    ).join("\n\n");
-
-    const messageText = `🎉 *Your Download is Ready!*
-
-Hi ${customerName || "there"}! 👋
-
-Thank you for your purchase from SOA Resources. Your digital products are ready:
-
-${productsList}
-
-📋 *Order ID:* ${orderId}
-
-⏰ Links expire in 7 days (3 downloads max).
-
-Need help? Reply to this message!
-
-_SOA Resources - Quality CA Study Materials_`;
+    // Build product list for template (max 3 products shown, rest summarized)
+    const productNames = products.map(p => p.name);
+    const productsDisplay = productNames.length <= 3 
+      ? productNames.join(", ")
+      : `${productNames.slice(0, 2).join(", ")} and ${productNames.length - 2} more`;
+    
+    // First download link (primary CTA)
+    const primaryDownloadUrl = downloadLinks[0]?.url || "";
 
     // Check if WhatsApp is disabled
     if (!whatsappEnabled) {
@@ -145,8 +136,8 @@ _SOA Resources - Quality CA Study Materials_`;
     // Check if using dummy token (for testing)
     if (whatsappToken.includes("dummy") || whatsappToken.includes("test")) {
       console.log("⚠️ Using dummy token - WhatsApp not actually sent");
-      console.log("Message would be sent to:", formattedPhone);
-      console.log("Message preview:", messageText);
+      console.log("Template would be sent to:", formattedPhone);
+      console.log("Template parameters:", { customerName, productsDisplay, orderId, primaryDownloadUrl });
       
       return new Response(
         JSON.stringify({ 
@@ -154,7 +145,8 @@ _SOA Resources - Quality CA Study Materials_`;
           message: "Test mode - WhatsApp simulated",
           preview: {
             to: formattedPhone,
-            body: messageText,
+            template: templateName,
+            parameters: { customerName, productsDisplay, orderId, primaryDownloadUrl },
             downloadLinks
           }
         }),
@@ -162,7 +154,56 @@ _SOA Resources - Quality CA Study Materials_`;
       );
     }
 
-    // Send actual WhatsApp message via Meta Cloud API
+    // Build template message body for Meta WhatsApp Cloud API
+    // Template: soa_download_ready
+    // Variables: {{1}} = customer_name, {{2}} = product_names, {{3}} = order_id
+    // Button: {{1}} = download_url
+    const templateMessage = {
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to: formattedPhone,
+      type: "template",
+      template: {
+        name: templateName,
+        language: {
+          code: "en"
+        },
+        components: [
+          {
+            type: "body",
+            parameters: [
+              {
+                type: "text",
+                text: customerName || "Customer"
+              },
+              {
+                type: "text",
+                text: productsDisplay
+              },
+              {
+                type: "text",
+                text: orderId
+              }
+            ]
+          },
+          {
+            type: "button",
+            sub_type: "url",
+            index: "0",
+            parameters: [
+            {
+                type: "text",
+                text: products[0]?.downloadToken || ""
+              }
+            ]
+          }
+        ]
+      }
+    };
+
+    console.log("Sending template message:", JSON.stringify(templateMessage, null, 2));
+
+    // Send WhatsApp template message via Meta Cloud API
     const response = await fetch(
       `https://graph.facebook.com/v18.0/${whatsappPhoneId}/messages`,
       {
@@ -171,37 +212,44 @@ _SOA Resources - Quality CA Study Materials_`;
           "Authorization": `Bearer ${whatsappToken}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          recipient_type: "individual",
-          to: formattedPhone,
-          type: "text",
-          text: {
-            preview_url: true,
-            body: messageText,
-          },
-        }),
+        body: JSON.stringify(templateMessage),
       }
     );
 
     const result = await response.json();
-    console.log("WhatsApp API response:", result);
+    console.log("WhatsApp API response:", JSON.stringify(result, null, 2));
 
     if (!response.ok) {
-      throw new Error(result.error?.message || "Failed to send WhatsApp message");
+      const errorMsg = result.error?.message || "Failed to send WhatsApp message";
+      const errorCode = result.error?.code;
+      
+      // Provide helpful error messages for common issues
+      if (errorCode === 132000) {
+        console.error("Template not found or not approved. Please check template name in Meta Business Manager.");
+      } else if (errorCode === 131047) {
+        console.error("Template parameters mismatch. Check that parameters match your approved template structure.");
+      }
+      
+      throw new Error(`${errorMsg} (code: ${errorCode})`);
     }
 
     // Update order delivery status
     await supabase
       .from("orders")
       .update({ 
-        delivery_status: "whatsapp_sent",
+        delivery_status: "sent",
         delivery_attempts: 1 
       })
       .eq("id", orderId);
 
+    console.log("✅ WhatsApp template message sent successfully");
+
     return new Response(
-      JSON.stringify({ success: true, messageId: result.messages?.[0]?.id }),
+      JSON.stringify({ 
+        success: true, 
+        messageId: result.messages?.[0]?.id,
+        template: templateName 
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
