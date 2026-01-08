@@ -25,6 +25,7 @@ import {
   RefreshCw,
   Database,
   Home,
+  History,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth, signOut } from '@/hooks/useAuth';
@@ -40,6 +41,7 @@ import DBSnapshotTab from '@/components/admin/DBSnapshotTab';
 import SettingsTab from '@/components/admin/SettingsTab';
 import PaginationControls from '@/components/admin/PaginationControls';
 import WhatsAppBroadcastDialog from '@/components/admin/WhatsAppBroadcastDialog';
+import BroadcastHistoryTab from '@/components/admin/BroadcastHistoryTab';
 import { usePagination } from '@/hooks/usePagination';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -134,6 +136,7 @@ const AdminDashboard = () => {
     { id: 'customers', label: 'Customers', icon: Users },
     { id: 'email', label: 'Email Logs', icon: Mail },
     { id: 'whatsapp', label: 'WhatsApp Logs', icon: MessageCircle },
+    { id: 'broadcasts', label: 'Broadcast History', icon: History },
     { id: 'dbsnapshot', label: 'DB Snapshot', icon: Database },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
@@ -1049,6 +1052,8 @@ const AdminDashboard = () => {
                 </div>
               </motion.div>
             )}
+
+            {activeTab === 'broadcasts' && <BroadcastHistoryTab />}
 
             {activeTab === 'email' && (
               <motion.div

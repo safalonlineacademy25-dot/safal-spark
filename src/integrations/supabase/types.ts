@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      broadcast_logs: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          errors: Json | null
+          failed_count: number
+          id: string
+          product_description: string | null
+          product_name: string
+          recipients_count: number
+          sent_count: number
+          template_name: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          created_by?: string | null
+          errors?: Json | null
+          failed_count?: number
+          id?: string
+          product_description?: string | null
+          product_name: string
+          recipients_count?: number
+          sent_count?: number
+          template_name: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          errors?: Json | null
+          failed_count?: number
+          id?: string
+          product_description?: string | null
+          product_name?: string
+          recipients_count?: number
+          sent_count?: number
+          template_name?: string
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           created_at: string | null

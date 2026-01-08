@@ -196,6 +196,23 @@ serve(async (req: Request): Promise<Response> => {
 
     console.log(`📢 Broadcast complete: ${results.sent} sent, ${results.failed} failed`);
 
+    // Log the broadcast to database
+    try {
+      await supabase.from('broadcast_logs').insert({
+        category,
+        product_name: productName,
+        product_description: productDescription || null,
+        template_name: templateName,
+        recipients_count: recipients.length,
+        sent_count: results.sent,
+        failed_count: results.failed,
+        errors: results.errors.slice(0, 20),
+      });
+      console.log("✅ Broadcast logged to database");
+    } catch (logError: any) {
+      console.error("Failed to log broadcast:", logError.message);
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
