@@ -34,9 +34,10 @@ interface Product {
 
 interface WhatsAppBroadcastDialogProps {
   trigger?: React.ReactNode;
+  onBroadcastSent?: () => void;
 }
 
-export default function WhatsAppBroadcastDialog({ trigger }: WhatsAppBroadcastDialogProps) {
+export default function WhatsAppBroadcastDialog({ trigger, onBroadcastSent }: WhatsAppBroadcastDialogProps) {
   const [open, setOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
@@ -218,6 +219,7 @@ export default function WhatsAppBroadcastDialog({ trigger }: WhatsAppBroadcastDi
 
       setOpen(false);
       resetForm();
+      onBroadcastSent?.();
     } catch (error: any) {
       console.error('Broadcast error:', error);
       toast.error('Broadcast failed', {
