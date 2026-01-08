@@ -66,7 +66,9 @@ const Header = () => {
   };
 
   const isActive = (path: string) => {
-    if (path.startsWith('/#')) return false;
+    if (path.startsWith('/#')) {
+      return location.pathname === '/' && window.location.hash === path.replace('/', '');
+    }
     return location.pathname === path;
   };
 
