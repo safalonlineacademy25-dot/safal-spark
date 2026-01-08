@@ -23,6 +23,7 @@ export type Database = {
           failed_count: number
           id: string
           product_description: string | null
+          product_link: string | null
           product_name: string
           recipients_count: number
           sent_count: number
@@ -36,6 +37,7 @@ export type Database = {
           failed_count?: number
           id?: string
           product_description?: string | null
+          product_link?: string | null
           product_name: string
           recipients_count?: number
           sent_count?: number
@@ -49,6 +51,7 @@ export type Database = {
           failed_count?: number
           id?: string
           product_description?: string | null
+          product_link?: string | null
           product_name?: string
           recipients_count?: number
           sent_count?: number
