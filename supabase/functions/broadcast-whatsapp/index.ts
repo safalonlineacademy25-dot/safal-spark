@@ -34,6 +34,8 @@ interface BroadcastRequest {
   productName: string;
   productDescription?: string;
   templateName: string;
+  productId?: string;
+  productLink?: string;
 }
 
 function formatPhoneNumber(phone: string): string {
@@ -54,12 +56,13 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { category, productName, productDescription, templateName }: BroadcastRequest = await req.json();
+    const { category, productName, productDescription, templateName, productId, productLink }: BroadcastRequest = await req.json();
 
     console.log("📢 Starting WhatsApp broadcast");
     console.log("Category:", category);
     console.log("Product:", productName);
     console.log("Template:", templateName);
+    console.log("Product Link:", productLink || "Not provided");
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const settings = await getSettings(supabase);
@@ -136,7 +139,15 @@ serve(async (req: Request): Promise<Response> => {
     for (const recipient of recipients) {
       try {
         // Template: new_product_alert
-        // Variables: {{1}} = customer_name, {{2}} = product_name, {{3}} = category, {{4}} = description
+        // Variables: {{1}} = customer_name, {{2}} = product_name, {{3}} = category, {{4}} = description, {{5}} = product_link
+        const templateParameters = [
+          { type: "text", text: recipient.name },
+          { type: "text", text: productName },
+          { type: "text", text: category },
+          { type: "text", text: productDescription || "Check it out now!" },
+          { type: "text", text: productLink || "Visit our website" }
+        ];
+
         const templateMessage = {
           messaging_product: "whatsapp",
           recipient_type: "individual",
@@ -148,12 +159,7 @@ serve(async (req: Request): Promise<Response> => {
             components: [
               {
                 type: "body",
-                parameters: [
-                  { type: "text", text: recipient.name },
-                  { type: "text", text: productName },
-                  { type: "text", text: category },
-                  { type: "text", text: productDescription || "Check it out now!" }
-                ]
+                parameters: templateParameters
               }
             ]
           }
