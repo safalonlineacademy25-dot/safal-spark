@@ -30,7 +30,11 @@ interface PromotionLog {
   promotion_message: string | null;
 }
 
-export default function PromotionsTab() {
+interface PromotionsTabProps {
+  isSuperAdmin?: boolean;
+}
+
+export default function PromotionsTab({ isSuperAdmin = false }: PromotionsTabProps) {
   const [logs, setLogs] = useState<PromotionLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -97,7 +101,9 @@ export default function PromotionsTab() {
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <PromotionBroadcastDialog onBroadcastSent={() => fetchLogs(true)} />
+          {isSuperAdmin && (
+            <PromotionBroadcastDialog onBroadcastSent={() => fetchLogs(true)} />
+          )}
         </div>
       </div>
 

@@ -20,7 +20,11 @@ interface BroadcastLog {
   created_at: string;
 }
 
-export default function BroadcastHistoryTab() {
+interface BroadcastHistoryTabProps {
+  isSuperAdmin?: boolean;
+}
+
+export default function BroadcastHistoryTab({ isSuperAdmin = false }: BroadcastHistoryTabProps) {
   const [logs, setLogs] = useState<BroadcastLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -127,7 +131,9 @@ export default function BroadcastHistoryTab() {
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <WhatsAppBroadcastDialog onBroadcastSent={() => fetchLogs(true)} />
+          {isSuperAdmin && (
+            <WhatsAppBroadcastDialog onBroadcastSent={() => fetchLogs(true)} />
+          )}
         </div>
       </div>
 

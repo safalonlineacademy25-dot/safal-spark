@@ -1072,7 +1072,7 @@ const AdminDashboard = () => {
               </motion.div>
             )}
 
-            {activeTab === 'broadcasts' && <BroadcastHistoryTab />}
+            {activeTab === 'broadcasts' && <BroadcastHistoryTab isSuperAdmin={isSuperAdmin} />}
 
             {activeTab === 'email' && (
               <motion.div
@@ -1180,7 +1180,7 @@ const AdminDashboard = () => {
               <DBSnapshotTab isActive={activeTab === 'dbsnapshot'} />
             )}
 
-            {activeTab === 'promotions' && <PromotionsTab />}
+            {activeTab === 'promotions' && <PromotionsTab isSuperAdmin={isSuperAdmin} />}
 
             {activeTab === 'settings' && <SettingsTab />}
           </div>
