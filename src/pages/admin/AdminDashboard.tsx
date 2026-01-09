@@ -42,6 +42,7 @@ import SettingsTab from '@/components/admin/SettingsTab';
 import PaginationControls from '@/components/admin/PaginationControls';
 import BroadcastHistoryTab from '@/components/admin/BroadcastHistoryTab';
 import PromotionsTab from '@/components/admin/PromotionsTab';
+import OrdersChart from '@/components/admin/OrdersChart';
 import { usePagination } from '@/hooks/usePagination';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -628,6 +629,16 @@ const AdminDashboard = () => {
                 transition={{ duration: 0.4, ease: "easeOut" }}
                 className="space-y-6"
               >
+                {/* Graphical Overview */}
+                {ordersLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : orders && orders.length > 0 ? (
+                  <OrdersChart orders={orders} />
+                ) : null}
+
+                {/* Orders Table */}
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-foreground">All Orders</h2>
                   <div className="text-sm text-muted-foreground">
