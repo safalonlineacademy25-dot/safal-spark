@@ -83,6 +83,8 @@ const SettingsTab = () => {
   const [addingAdmin, setAddingAdmin] = useState(false);
   const [removingAdminId, setRemovingAdminId] = useState<string | null>(null);
   const [adminToRemove, setAdminToRemove] = useState<AdminUser | null>(null);
+  const [signupEnabled, setSignupEnabled] = useState(true);
+  const [savingSignup, setSavingSignup] = useState(false);
 
   // Payment Settings State
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>({
@@ -171,6 +173,9 @@ const SettingsTab = () => {
           whatsappPhoneNumberId: settingsMap['whatsapp_phone_number_id'] || '',
           whatsappTemplateName: settingsMap['whatsapp_template_name'] || '',
         });
+
+        // Load signup setting
+        setSignupEnabled(settingsMap['admin_signup_enabled'] !== 'false');
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
@@ -447,7 +452,41 @@ const SettingsTab = () => {
                 <strong>Super Admin:</strong> Full access - add/modify/delete products, manage users, change settings.
                 <br />
                 <strong>Admin:</strong> View only - can view all tabs but cannot delete or modify anything.
+                <br />
+                <strong>Note:</strong> Users must sign up first at /admin before you can assign them a role.
               </p>
+              
+              {/* Signup Toggle */}
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 mt-3">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Allow Admin Sign Up</p>
+                    <p className="text-xs text-muted-foreground">
+                      When enabled, new users can create accounts at /admin
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {savingSignup && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                  <Switch
+                    checked={signupEnabled}
+                    onCheckedChange={async (checked) => {
+                      setSavingSignup(true);
+                      try {
+                        await upsertSetting('admin_signup_enabled', checked.toString());
+                        setSignupEnabled(checked);
+                        toast.success(checked ? 'Sign up enabled' : 'Sign up disabled');
+                      } catch (error: any) {
+                        toast.error('Failed to update setting');
+                      } finally {
+                        setSavingSignup(false);
+                      }
+                    }}
+                    disabled={savingSignup}
+                  />
+                </div>
+              </div>
             </div>
           ) : (
             <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 text-sm">
