@@ -18,34 +18,36 @@ export const useAuth = () => {
   });
 
   useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const isAdmin = await checkAdminRole(session.user.id);
-        setAuthState({
-          user: session.user,
-          session,
-          isAdmin,
-          isLoading: false,
-        });
-      } else {
-        setAuthState({
-          user: null,
-          session: null,
-          isAdmin: false,
-          isLoading: false,
-        });
+    let cancelled = false;
+
+    const checkAdminRoleWithTimeout = async (userId: string) => {
+      try {
+        return await Promise.race<boolean>([
+          checkAdminRole(userId),
+          new Promise<boolean>((resolve) =>
+            setTimeout(() => resolve(false), 8000)
+          ),
+        ]);
+      } catch (e) {
+        console.error('Error checking admin role:', e);
+        return false;
       }
     };
 
-    getInitialSession();
+    // Get initial session
+    const getInitialSession = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) throw error;
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+        const session = data.session;
+
+        if (cancelled) return;
+
         if (session?.user) {
-          const isAdmin = await checkAdminRole(session.user.id);
+          const isAdmin = await checkAdminRoleWithTimeout(session.user.id);
+          if (cancelled) return;
+
           setAuthState({
             user: session.user,
             session,
@@ -60,10 +62,62 @@ export const useAuth = () => {
             isLoading: false,
           });
         }
+      } catch (e) {
+        console.error('Auth init error:', e);
+        if (!cancelled) {
+          setAuthState({
+            user: null,
+            session: null,
+            isAdmin: false,
+            isLoading: false,
+          });
+        }
+      }
+    };
+
+    getInitialSession();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        try {
+          if (session?.user) {
+            const isAdmin = await checkAdminRoleWithTimeout(session.user.id);
+            if (cancelled) return;
+
+            setAuthState({
+              user: session.user,
+              session,
+              isAdmin,
+              isLoading: false,
+            });
+          } else {
+            if (cancelled) return;
+            setAuthState({
+              user: null,
+              session: null,
+              isAdmin: false,
+              isLoading: false,
+            });
+          }
+        } catch (e) {
+          console.error('Auth change error:', e);
+          if (!cancelled) {
+            setAuthState({
+              user: session?.user ?? null,
+              session: session ?? null,
+              isAdmin: false,
+              isLoading: false,
+            });
+          }
+        }
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
 
   return authState;
