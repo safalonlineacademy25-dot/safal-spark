@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
     }
 
     // Parse request body
-    const { email, role } = await req.json();
+    const { email, password, role } = await req.json();
 
     if (!email || !role) {
       return new Response(
@@ -41,12 +41,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create client with user's token to verify they're a super_admin
-    const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    // Create client with service role to verify the requesting user
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-    // Get the current user
+    // Get the current user from the auth header
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(
       authHeader.replace('Bearer ', '')
     );
@@ -75,7 +73,7 @@ Deno.serve(async (req) => {
     // Create admin client with service role key
     const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-    // Find user by email
+    // Check if user already exists
     const { data: usersData, error: listError } = await adminClient.auth.admin.listUsers();
 
     if (listError) {
@@ -83,12 +81,47 @@ Deno.serve(async (req) => {
       throw listError;
     }
 
-    const targetUser = usersData.users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+    let targetUser = usersData.users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+
+    // If user doesn't exist and password is provided, create them
+    if (!targetUser) {
+      if (!password) {
+        return new Response(
+          JSON.stringify({ error: 'Password is required when creating a new user' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (password.length < 6) {
+        return new Response(
+          JSON.stringify({ error: 'Password must be at least 6 characters' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Create the user
+      const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true, // Auto-confirm the email
+      });
+
+      if (createError) {
+        console.error('Error creating user:', createError);
+        return new Response(
+          JSON.stringify({ error: createError.message }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      targetUser = newUser.user;
+      console.log(`Created new user: ${email}`);
+    }
 
     if (!targetUser) {
       return new Response(
-        JSON.stringify({ error: 'User not found. They must sign up first before being assigned an admin role.' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Failed to create or find user' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
