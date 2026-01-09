@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { format, subDays, subWeeks, subMonths, startOfDay, startOfWeek, startOfMonth, isSameDay, isSameWeek, isSameMonth } from 'date-fns';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area, Legend, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
@@ -171,6 +171,27 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
     return { orderChange, revenueChange, totalOrders, totalRevenue };
   }, [chartData]);
 
+  // Category distribution for pie chart
+  const categoryPieData = useMemo(() => {
+    const categoryTotals: Record<string, number> = {};
+    
+    chartData.forEach(dataPoint => {
+      categories.forEach(cat => {
+        categoryTotals[cat] = (categoryTotals[cat] || 0) + (dataPoint[cat] || 0);
+      });
+    });
+
+    const total = Object.values(categoryTotals).reduce((sum, val) => sum + val, 0);
+    
+    return Object.entries(categoryTotals)
+      .filter(([_, value]) => value > 0)
+      .map(([name, value]) => ({
+        name,
+        value,
+        percentage: total > 0 ? ((value / total) * 100).toFixed(1) : '0',
+      }));
+  }, [chartData, categories]);
+
   return (
     <div className="space-y-6">
       {/* Filters Row */}
@@ -261,6 +282,59 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Category Pie Chart */}
+      {categoryPieData.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base font-medium">Category Distribution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col md:flex-row items-center gap-6">
+              <ChartContainer config={chartConfig} className="h-[250px] w-full md:w-1/2">
+                <PieChart>
+                  <Pie
+                    data={categoryPieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={90}
+                    paddingAngle={2}
+                    dataKey="value"
+                    nameKey="name"
+                    label={({ percentage }) => `${percentage}%`}
+                    labelLine={false}
+                  >
+                    {categoryPieData.map((entry) => (
+                      <Cell 
+                        key={entry.name} 
+                        fill={CATEGORY_COLORS[entry.name] || 'hsl(var(--primary))'} 
+                      />
+                    ))}
+                  </Pie>
+                  <ChartTooltip 
+                    content={<ChartTooltipContent formatter={(value, name) => `${value} orders (${categoryPieData.find(c => c.name === name)?.percentage}%)`} />} 
+                  />
+                </PieChart>
+              </ChartContainer>
+              <div className="flex flex-col gap-2 w-full md:w-1/2">
+                {categoryPieData.map((entry) => (
+                  <div key={entry.name} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: CATEGORY_COLORS[entry.name] || 'hsl(var(--primary))' }}
+                      />
+                      <span className="text-sm text-muted-foreground">{entry.name}</span>
+                    </div>
+                    <span className="text-sm font-medium text-foreground">{entry.value} ({entry.percentage}%)</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
