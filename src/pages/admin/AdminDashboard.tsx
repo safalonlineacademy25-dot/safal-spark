@@ -51,7 +51,7 @@ import { useQueryClient } from '@tanstack/react-query';
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, isAdmin, isLoading: authLoading } = useAuth();
+  const { user, isAdmin, isSuperAdmin, isLoading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   
   // Determine which data needs to be fetched based on active tab
@@ -549,7 +549,7 @@ const AdminDashboard = () => {
               >
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-foreground">All Products</h2>
-                  <AddProductDialog />
+                  {isSuperAdmin && <AddProductDialog />}
                 </div>
 
                 <div className="bg-card rounded-xl border border-border overflow-hidden">
@@ -598,8 +598,8 @@ const AdminDashboard = () => {
                                   <Button variant="ghost" size="icon" className="h-8 w-8">
                                     <Eye className="h-4 w-4" />
                                   </Button>
-                                  <EditProductDialog product={product} />
-                                  <DeleteProductDialog productId={product.id} productName={product.name} />
+                                  {isSuperAdmin && <EditProductDialog product={product} />}
+                                  {isSuperAdmin && <DeleteProductDialog productId={product.id} productName={product.name} />}
                                 </div>
                               </td>
                             </tr>

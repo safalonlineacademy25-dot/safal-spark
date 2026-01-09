@@ -2,10 +2,14 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 
+export type UserRole = 'super_admin' | 'admin' | 'user' | null;
+
 interface AuthState {
   user: User | null;
   session: Session | null;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
+  role: UserRole;
   isLoading: boolean;
 }
 
@@ -14,23 +18,25 @@ export const useAuth = () => {
     user: null,
     session: null,
     isAdmin: false,
+    isSuperAdmin: false,
+    role: null,
     isLoading: true,
   });
 
   useEffect(() => {
     let cancelled = false;
 
-    const checkAdminRoleWithTimeout = async (userId: string) => {
+    const checkRolesWithTimeout = async (userId: string) => {
       try {
-        return await Promise.race<boolean>([
-          checkAdminRole(userId),
-          new Promise<boolean>((resolve) =>
-            setTimeout(() => resolve(false), 8000)
+        return await Promise.race<{ isAdmin: boolean; isSuperAdmin: boolean; role: UserRole }>([
+          checkRoles(userId),
+          new Promise<{ isAdmin: boolean; isSuperAdmin: boolean; role: UserRole }>((resolve) =>
+            setTimeout(() => resolve({ isAdmin: false, isSuperAdmin: false, role: null }), 8000)
           ),
         ]);
       } catch (e) {
-        console.error('Error checking admin role:', e);
-        return false;
+        console.error('Error checking roles:', e);
+        return { isAdmin: false, isSuperAdmin: false, role: null };
       }
     };
 
@@ -45,13 +51,15 @@ export const useAuth = () => {
         if (cancelled) return;
 
         if (session?.user) {
-          const isAdmin = await checkAdminRoleWithTimeout(session.user.id);
+          const roleInfo = await checkRolesWithTimeout(session.user.id);
           if (cancelled) return;
 
           setAuthState({
             user: session.user,
             session,
-            isAdmin,
+            isAdmin: roleInfo.isAdmin,
+            isSuperAdmin: roleInfo.isSuperAdmin,
+            role: roleInfo.role,
             isLoading: false,
           });
         } else {
@@ -59,6 +67,8 @@ export const useAuth = () => {
             user: null,
             session: null,
             isAdmin: false,
+            isSuperAdmin: false,
+            role: null,
             isLoading: false,
           });
         }
@@ -69,6 +79,8 @@ export const useAuth = () => {
             user: null,
             session: null,
             isAdmin: false,
+            isSuperAdmin: false,
+            role: null,
             isLoading: false,
           });
         }
@@ -82,13 +94,15 @@ export const useAuth = () => {
       async (_event, session) => {
         try {
           if (session?.user) {
-            const isAdmin = await checkAdminRoleWithTimeout(session.user.id);
+            const roleInfo = await checkRolesWithTimeout(session.user.id);
             if (cancelled) return;
 
             setAuthState({
               user: session.user,
               session,
-              isAdmin,
+              isAdmin: roleInfo.isAdmin,
+              isSuperAdmin: roleInfo.isSuperAdmin,
+              role: roleInfo.role,
               isLoading: false,
             });
           } else {
@@ -97,6 +111,8 @@ export const useAuth = () => {
               user: null,
               session: null,
               isAdmin: false,
+              isSuperAdmin: false,
+              role: null,
               isLoading: false,
             });
           }
@@ -107,6 +123,8 @@ export const useAuth = () => {
               user: session?.user ?? null,
               session: session ?? null,
               isAdmin: false,
+              isSuperAdmin: false,
+              role: null,
               isLoading: false,
             });
           }
@@ -123,18 +141,36 @@ export const useAuth = () => {
   return authState;
 };
 
-const checkAdminRole = async (userId: string): Promise<boolean> => {
-  const { data, error } = await supabase.rpc('has_role', {
+const checkRoles = async (userId: string): Promise<{ isAdmin: boolean; isSuperAdmin: boolean; role: UserRole }> => {
+  // Check for super_admin first
+  const { data: isSuperAdmin, error: superError } = await supabase.rpc('is_super_admin', {
+    _user_id: userId,
+  });
+
+  if (superError) {
+    console.error('Error checking super_admin role:', superError);
+  }
+
+  if (isSuperAdmin) {
+    return { isAdmin: true, isSuperAdmin: true, role: 'super_admin' };
+  }
+
+  // Check for regular admin
+  const { data: isAdmin, error: adminError } = await supabase.rpc('has_role', {
     _user_id: userId,
     _role: 'admin',
   });
 
-  if (error) {
-    console.error('Error checking admin role:', error);
-    return false;
+  if (adminError) {
+    console.error('Error checking admin role:', adminError);
+    return { isAdmin: false, isSuperAdmin: false, role: null };
   }
 
-  return !!data;
+  if (isAdmin) {
+    return { isAdmin: true, isSuperAdmin: false, role: 'admin' };
+  }
+
+  return { isAdmin: false, isSuperAdmin: false, role: 'user' };
 };
 
 export const signIn = async (email: string, password: string) => {

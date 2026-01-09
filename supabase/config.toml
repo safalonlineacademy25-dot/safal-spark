@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.send-promotion]
 verify_jwt = false
+
+[functions.add-admin-user]
+verify_jwt = false
