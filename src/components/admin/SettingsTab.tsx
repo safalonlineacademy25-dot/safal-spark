@@ -15,6 +15,7 @@ import {
   Shield,
   ShieldCheck,
   Crown,
+  KeyRound,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,6 +41,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
@@ -86,6 +95,14 @@ const SettingsTab = () => {
   const [adminToRemove, setAdminToRemove] = useState<AdminUser | null>(null);
   const [signupEnabled, setSignupEnabled] = useState(true);
   const [savingSignup, setSavingSignup] = useState(false);
+  
+  // Password Reset State
+  const [resetPasswordDialog, setResetPasswordDialog] = useState(false);
+  const [adminToReset, setAdminToReset] = useState<AdminUser | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
 
   // Payment Settings State
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>({
@@ -282,6 +299,68 @@ const SettingsTab = () => {
     } finally {
       setRemovingAdminId(null);
       setAdminToRemove(null);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!adminToReset) return;
+
+    if (!isSuperAdmin) {
+      toast.error('Permission denied', {
+        description: 'Only Super Admins can reset passwords.',
+      });
+      setResetPasswordDialog(false);
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+
+    setResettingPassword(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
+
+      const { data, error } = await supabase.functions.invoke('reset-admin-password', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: {
+          userId: adminToReset.user_id,
+          newPassword,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      toast.success('Password reset successfully', {
+        description: `Password for ${adminToReset.email} has been updated.`,
+      });
+      setResetPasswordDialog(false);
+      setAdminToReset(null);
+      setNewPassword('');
+      setConfirmNewPassword('');
+    } catch (error: any) {
+      console.error('Error resetting password:', error);
+      toast.error('Failed to reset password', {
+        description: error.message,
+      });
+    } finally {
+      setResettingPassword(false);
     }
   };
 
@@ -549,19 +628,34 @@ const SettingsTab = () => {
                     </div>
                   </div>
                   {isSuperAdmin && admin.user_id !== user?.id && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setAdminToRemove(admin)}
-                      disabled={removingAdminId === admin.id}
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                    >
-                      {removingAdminId === admin.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setAdminToReset(admin);
+                          setResetPasswordDialog(true);
+                        }}
+                        className="text-muted-foreground hover:text-primary hover:bg-primary/10"
+                        title="Reset Password"
+                      >
+                        <KeyRound className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setAdminToRemove(admin)}
+                        disabled={removingAdminId === admin.id}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        title="Remove Admin"
+                      >
+                        {removingAdminId === admin.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   )}
                 </div>
               ))
@@ -876,6 +970,90 @@ const SettingsTab = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Password Reset Dialog */}
+      <Dialog open={resetPasswordDialog} onOpenChange={(open) => {
+        setResetPasswordDialog(open);
+        if (!open) {
+          setAdminToReset(null);
+          setNewPassword('');
+          setConfirmNewPassword('');
+          setShowNewPassword(false);
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset Password</DialogTitle>
+            <DialogDescription>
+              Set a new password for <strong>{adminToReset?.email}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-password">New Password</Label>
+              <div className="relative">
+                <Input
+                  id="new-password"
+                  type={showNewPassword ? 'text' : 'password'}
+                  placeholder="Min 6 characters"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                >
+                  {showNewPassword ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-new-password">Confirm New Password</Label>
+              <Input
+                id="confirm-new-password"
+                type={showNewPassword ? 'text' : 'password'}
+                placeholder="Confirm password"
+                value={confirmNewPassword}
+                onChange={(e) => setConfirmNewPassword(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setResetPasswordDialog(false);
+                setAdminToReset(null);
+                setNewPassword('');
+                setConfirmNewPassword('');
+              }}
+              disabled={resettingPassword}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleResetPassword}
+              disabled={resettingPassword || !newPassword || !confirmNewPassword}
+            >
+              {resettingPassword ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Resetting...
+                </>
+              ) : (
+                'Reset Password'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 };
