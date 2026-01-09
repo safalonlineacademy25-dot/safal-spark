@@ -13,6 +13,7 @@ Deno.serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const authHeader = req.headers.get('Authorization');
 
@@ -23,15 +24,16 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create client with user's token to verify they're an admin
-    const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
+    // Extract the token
+    const token = authHeader.replace('Bearer ', '');
+
+    // Create client with anon key to verify the user's JWT
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    // Get the current user
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
+    // Get the current user using the token
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
 
     if (userError || !user) {
       console.error('Auth error:', userError);
@@ -41,8 +43,11 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Create admin client with service role key to bypass RLS
+    const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+
     // Check if user has admin access (admin or super_admin)
-    const { data: hasAccess, error: accessError } = await supabaseClient.rpc('has_admin_access', {
+    const { data: hasAccess, error: accessError } = await adminClient.rpc('has_admin_access', {
       _user_id: user.id,
     });
 
@@ -53,9 +58,6 @@ Deno.serve(async (req) => {
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    // Create admin client with service role key to access auth.users
-    const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
 
     // Fetch admin user roles (both admin and super_admin)
     const { data: adminRoles, error: rolesError } = await adminClient
