@@ -304,6 +304,48 @@ export type Database = {
         }
         Relationships: []
       }
+      promotion_logs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          cta_link: string | null
+          errors: Json | null
+          failed_count: number
+          id: string
+          promotion_message: string | null
+          promotion_title: string
+          recipients_count: number
+          sent_count: number
+          template_name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          cta_link?: string | null
+          errors?: Json | null
+          failed_count?: number
+          id?: string
+          promotion_message?: string | null
+          promotion_title: string
+          recipients_count?: number
+          sent_count?: number
+          template_name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          cta_link?: string | null
+          errors?: Json | null
+          failed_count?: number
+          id?: string
+          promotion_message?: string | null
+          promotion_title?: string
+          recipients_count?: number
+          sent_count?: number
+          template_name?: string
+        }
+        Relationships: []
+      }
       rate_limits: {
         Row: {
           created_at: string
