@@ -1,15 +1,11 @@
 import { useState, useMemo } from 'react';
-import { format, subDays, subWeeks, subMonths, startOfDay, startOfWeek, startOfMonth, isSameDay, isSameWeek, isSameMonth, isWithinInterval, isAfter, startOfToday } from 'date-fns';
+import { format, subDays, subWeeks, subMonths, startOfDay, startOfWeek, startOfMonth, isSameDay, isSameWeek, isSameMonth } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area, Legend } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { TrendingUp, TrendingDown, ShoppingCart, IndianRupee, CalendarIcon, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { TrendingUp, TrendingDown, ShoppingCart, IndianRupee } from 'lucide-react';
 import type { OrderWithItems } from '@/hooks/useOrders';
-import type { DateRange } from 'react-day-picker';
 
 type TimeRange = 'daily' | 'weekly' | 'monthly';
 
@@ -58,30 +54,11 @@ const chartConfig = {
 
 export default function OrdersChart({ orders }: OrdersChartProps) {
   const [timeRange, setTimeRange] = useState<TimeRange>('daily');
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-
-  // Filter orders by date range only
-  const filteredOrders = useMemo(() => {
-    let result = orders;
-
-    if (dateRange?.from) {
-      result = result.filter(o => {
-        if (!o.created_at) return false;
-        const orderDate = new Date(o.created_at);
-        if (dateRange.to) {
-          return isWithinInterval(orderDate, { start: startOfDay(dateRange.from!), end: startOfDay(dateRange.to) });
-        }
-        return isAfter(orderDate, startOfDay(dateRange.from!)) || isSameDay(orderDate, dateRange.from!);
-      });
-    }
-
-    return result;
-  }, [orders, dateRange]);
 
   // Get unique categories from order items
   const categories = useMemo(() => {
     const cats = new Set<string>();
-    filteredOrders.forEach(order => {
+    orders.forEach(order => {
       order.order_items?.forEach(item => {
         if (item.products?.category) {
           cats.add(item.products.category);
@@ -89,21 +66,15 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
       });
     });
     return Array.from(cats).sort();
-  }, [filteredOrders]);
+  }, [orders]);
 
   const chartData = useMemo(() => {
     const now = new Date();
-    const endDate = dateRange?.to || now;
-    const startDate = dateRange?.from || (
-      timeRange === 'daily' ? subDays(now, 13) :
-      timeRange === 'weekly' ? subWeeks(now, 7) :
-      subMonths(now, 5)
-    );
 
     const data: Record<string, any>[] = [];
 
     const getOrdersForPeriod = (filterFn: (orderDate: Date) => boolean) => {
-      return filteredOrders.filter(o => o.created_at && filterFn(new Date(o.created_at)));
+      return orders.filter(o => o.created_at && filterFn(new Date(o.created_at)));
     };
 
     const getCategoryCount = (periodOrders: OrderWithItems[], category: string) => {
@@ -119,11 +90,8 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
     };
 
     if (timeRange === 'daily') {
-      const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-      const daysToShow = Math.min(daysDiff, 30);
-      
-      for (let i = daysToShow - 1; i >= 0; i--) {
-        const date = subDays(endDate, i);
+      for (let i = 13; i >= 0; i--) {
+        const date = subDays(now, i);
         const dayStart = startOfDay(date);
         const dayOrders = getOrdersForPeriod(d => isSameDay(d, dayStart));
         const paidOrders = dayOrders.filter(o => o.status === 'paid' || o.status === 'completed');
@@ -142,11 +110,8 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
         data.push(dataPoint);
       }
     } else if (timeRange === 'weekly') {
-      const weeksDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 7)) + 1;
-      const weeksToShow = Math.min(weeksDiff, 12);
-      
-      for (let i = weeksToShow - 1; i >= 0; i--) {
-        const date = subWeeks(endDate, i);
+      for (let i = 7; i >= 0; i--) {
+        const date = subWeeks(now, i);
         const weekStart = startOfWeek(date, { weekStartsOn: 1 });
         const weekOrders = getOrdersForPeriod(d => isSameWeek(d, weekStart, { weekStartsOn: 1 }));
         const paidOrders = weekOrders.filter(o => o.status === 'paid' || o.status === 'completed');
@@ -165,11 +130,8 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
         data.push(dataPoint);
       }
     } else {
-      const monthsDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 30)) + 1;
-      const monthsToShow = Math.min(monthsDiff, 12);
-      
-      for (let i = monthsToShow - 1; i >= 0; i--) {
-        const date = subMonths(endDate, i);
+      for (let i = 5; i >= 0; i--) {
+        const date = subMonths(now, i);
         const monthStart = startOfMonth(date);
         const monthOrders = getOrdersForPeriod(d => isSameMonth(d, monthStart));
         const paidOrders = monthOrders.filter(o => o.status === 'paid' || o.status === 'completed');
@@ -190,7 +152,7 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
     }
 
     return data;
-  }, [filteredOrders, timeRange, dateRange, categories]);
+  }, [orders, timeRange, categories]);
 
   const stats = useMemo(() => {
     const currentPeriod = chartData.slice(-1)[0];
@@ -209,12 +171,6 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
     return { orderChange, revenueChange, totalOrders, totalRevenue };
   }, [chartData]);
 
-  const clearFilters = () => {
-    setDateRange(undefined);
-  };
-
-  const hasFilters = !!dateRange?.from;
-
   return (
     <div className="space-y-6">
       {/* Filters Row */}
@@ -222,44 +178,6 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
         <h3 className="text-lg font-semibold text-foreground">Orders Overview</h3>
         
         <div className="flex-1" />
-
-        {/* Date Range Picker */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                "w-[280px] justify-start text-left font-normal",
-                !dateRange?.from && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {dateRange?.from ? (
-                dateRange.to ? (
-                  <>
-                    {format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}
-                  </>
-                ) : (
-                  format(dateRange.from, "LLL dd, y")
-                )
-              ) : (
-                <span>Pick a date range</span>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="end">
-            <Calendar
-              initialFocus
-              mode="range"
-              defaultMonth={dateRange?.from}
-              selected={dateRange}
-              onSelect={setDateRange}
-              numberOfMonths={2}
-              disabled={(date) => isAfter(date, startOfToday())}
-              className={cn("p-3 pointer-events-auto")}
-            />
-          </PopoverContent>
-        </Popover>
 
         {/* Time Range Toggle */}
         <div className="flex gap-1 bg-muted rounded-lg p-1">
@@ -275,14 +193,6 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
             </Button>
           ))}
         </div>
-
-        {/* Clear Filters */}
-        {hasFilters && (
-          <Button variant="ghost" size="sm" onClick={clearFilters}>
-            <X className="h-4 w-4 mr-1" />
-            Clear
-          </Button>
-        )}
       </div>
 
       {/* Stats Cards */}
