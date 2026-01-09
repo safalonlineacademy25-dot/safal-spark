@@ -12,6 +12,9 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
+  Shield,
+  ShieldCheck,
+  Crown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +22,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth, UserRole } from '@/hooks/useAuth';
 import {
   Card,
   CardContent,
@@ -36,11 +40,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 
 interface AdminUser {
   id: string;
   user_id: string;
   email: string;
+  role: 'admin' | 'super_admin';
   created_at: string;
 }
 
@@ -60,10 +73,13 @@ interface PaymentSettings {
 }
 
 const SettingsTab = () => {
+  const { isSuperAdmin, user } = useAuth();
+  
   // Admin Users State
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
   const [loadingAdmins, setLoadingAdmins] = useState(true);
   const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [newAdminRole, setNewAdminRole] = useState<'admin' | 'super_admin'>('admin');
   const [addingAdmin, setAddingAdmin] = useState(false);
   const [removingAdminId, setRemovingAdminId] = useState<string | null>(null);
   const [adminToRemove, setAdminToRemove] = useState<AdminUser | null>(null);
@@ -162,6 +178,13 @@ const SettingsTab = () => {
   };
 
   const handleAddAdmin = async () => {
+    if (!isSuperAdmin) {
+      toast.error('Permission denied', {
+        description: 'Only Super Admins can add new admin users.',
+      });
+      return;
+    }
+
     if (!newAdminEmail.trim()) {
       toast.error('Please enter an email address');
       return;
@@ -176,29 +199,32 @@ const SettingsTab = () => {
 
     setAddingAdmin(true);
     try {
-      // First, check if user exists by trying to find them
-      // Note: In production, you'd need an edge function for this
-      // For now, we'll create an invite flow
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
 
-      // Create an invite or show instructions
-      toast.info(
-        'Admin Invite Process',
-        {
-          description: `To add ${newAdminEmail} as admin: 1) Have them sign up first, 2) Get their user ID from auth.users, 3) Add role manually in user_roles table`,
-          duration: 10000,
-        }
-      );
+      const { data, error } = await supabase.functions.invoke('add-admin-user', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: {
+          email: newAdminEmail,
+          role: newAdminRole,
+        },
+      });
 
-      // For demonstration, we'll show a simulated success
-      // In production, you'd use an edge function with service role key
-      toast.success(
-        'Admin invite noted',
-        {
-          description: 'The user must sign up first, then you can assign admin role via database.',
-        }
-      );
+      if (error) throw error;
 
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      toast.success(data.message || 'Admin user added successfully');
       setNewAdminEmail('');
+      setNewAdminRole('admin');
+      fetchAdminUsers(); // Refresh the list
     } catch (error: any) {
       console.error('Error adding admin:', error);
       toast.error('Failed to add admin', {
@@ -211,6 +237,23 @@ const SettingsTab = () => {
 
   const handleRemoveAdmin = async () => {
     if (!adminToRemove) return;
+
+    if (!isSuperAdmin) {
+      toast.error('Permission denied', {
+        description: 'Only Super Admins can remove admin users.',
+      });
+      setAdminToRemove(null);
+      return;
+    }
+
+    // Prevent removing yourself
+    if (adminToRemove.user_id === user?.id) {
+      toast.error('Cannot remove yourself', {
+        description: 'You cannot remove your own admin access.',
+      });
+      setAdminToRemove(null);
+      return;
+    }
 
     setRemovingAdminId(adminToRemove.id);
     try {
@@ -243,6 +286,13 @@ const SettingsTab = () => {
   };
 
   const handleSavePaymentSettings = async () => {
+    if (!isSuperAdmin) {
+      toast.error('Permission denied', {
+        description: 'Only Super Admins can modify settings.',
+      });
+      return;
+    }
+
     setSavingPayment(true);
     try {
       await Promise.all([
@@ -263,6 +313,13 @@ const SettingsTab = () => {
   };
 
   const handleSaveDeliverySettings = async () => {
+    if (!isSuperAdmin) {
+      toast.error('Permission denied', {
+        description: 'Only Super Admins can modify settings.',
+      });
+      return;
+    }
+
     setSavingDelivery(true);
     try {
       await Promise.all([
@@ -285,12 +342,52 @@ const SettingsTab = () => {
     }
   };
 
+  const getRoleBadge = (role: string) => {
+    if (role === 'super_admin') {
+      return (
+        <Badge variant="default" className="bg-amber-500/20 text-amber-600 border-amber-500/30">
+          <Crown className="h-3 w-3 mr-1" />
+          Super Admin
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
+        <Shield className="h-3 w-3 mr-1" />
+        Admin
+      </Badge>
+    );
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="space-y-6"
     >
+      {/* Role Info Banner */}
+      <Card className={isSuperAdmin ? 'border-amber-500/30 bg-amber-500/5' : 'border-primary/30 bg-primary/5'}>
+        <CardContent className="pt-4">
+          <div className="flex items-center gap-3">
+            {isSuperAdmin ? (
+              <Crown className="h-5 w-5 text-amber-500" />
+            ) : (
+              <Shield className="h-5 w-5 text-primary" />
+            )}
+            <div>
+              <p className="font-medium text-foreground">
+                You are logged in as {isSuperAdmin ? 'Super Admin' : 'Admin'}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {isSuperAdmin 
+                  ? 'You have full access to add/modify/delete products and manage users.'
+                  : 'You can view all admin tabs but cannot delete items or modify settings.'}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* User Management Section */}
       <Card>
         <CardHeader>
@@ -305,26 +402,61 @@ const SettingsTab = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Add new admin */}
-          <div className="flex gap-3">
-            <div className="flex-1">
-              <Input
-                placeholder="Enter email address to add as admin"
-                type="email"
-                value={newAdminEmail}
-                onChange={(e) => setNewAdminEmail(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAddAdmin()}
-              />
+          {/* Add new admin - Only for Super Admins */}
+          {isSuperAdmin ? (
+            <div className="space-y-3">
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <Input
+                    placeholder="Enter email address to add as admin"
+                    type="email"
+                    value={newAdminEmail}
+                    onChange={(e) => setNewAdminEmail(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddAdmin()}
+                  />
+                </div>
+                <Select value={newAdminRole} onValueChange={(value: 'admin' | 'super_admin') => setNewAdminRole(value)}>
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-4 w-4" />
+                        Admin
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="super_admin">
+                      <div className="flex items-center gap-2">
+                        <Crown className="h-4 w-4" />
+                        Super Admin
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button onClick={handleAddAdmin} disabled={addingAdmin}>
+                  {addingAdmin ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Plus className="h-4 w-4" />
+                  )}
+                  <span className="ml-2">Add User</span>
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                <strong>Super Admin:</strong> Full access - add/modify/delete products, manage users, change settings.
+                <br />
+                <strong>Admin:</strong> View only - can view all tabs but cannot delete or modify anything.
+              </p>
             </div>
-            <Button onClick={handleAddAdmin} disabled={addingAdmin}>
-              {addingAdmin ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Plus className="h-4 w-4" />
-              )}
-              <span className="ml-2">Add Admin</span>
-            </Button>
-          </div>
+          ) : (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 text-sm">
+              <AlertCircle className="h-4 w-4 text-muted-foreground shrink-0" />
+              <p className="text-muted-foreground">
+                Only Super Admins can add or remove admin users.
+              </p>
+            </div>
+          )}
 
           {/* Admin list */}
           <div className="border border-border rounded-lg divide-y divide-border">
@@ -342,27 +474,39 @@ const SettingsTab = () => {
                   key={admin.id}
                   className="p-4 flex items-center justify-between hover:bg-muted/30"
                 >
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
-                      {admin.email}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Added {admin.created_at ? new Date(admin.created_at).toLocaleDateString() : 'N/A'}
-                    </p>
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-foreground">
+                          {admin.email}
+                        </p>
+                        {admin.user_id === user?.id && (
+                          <Badge variant="outline" className="text-xs">You</Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        {getRoleBadge(admin.role)}
+                        <span className="text-xs text-muted-foreground">
+                          Added {admin.created_at ? new Date(admin.created_at).toLocaleDateString() : 'N/A'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setAdminToRemove(admin)}
-                    disabled={removingAdminId === admin.id}
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                  >
-                    {removingAdminId === admin.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-4 w-4" />
-                    )}
-                  </Button>
+                  {isSuperAdmin && admin.user_id !== user?.id && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setAdminToRemove(admin)}
+                      disabled={removingAdminId === admin.id}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      {removingAdminId === admin.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                  )}
                 </div>
               ))
             )}
@@ -371,8 +515,7 @@ const SettingsTab = () => {
           <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50 text-sm">
             <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
             <p className="text-muted-foreground">
-              To add a new admin: The user must first sign up, then their role can be assigned.
-              Currently showing user IDs. In production, use an edge function to fetch user emails.
+              Users must sign up first before they can be assigned an admin role.
             </p>
           </div>
         </CardContent>
@@ -402,6 +545,7 @@ const SettingsTab = () => {
                 onChange={(e) =>
                   setPaymentSettings((prev) => ({ ...prev, razorpayKeyId: e.target.value }))
                 }
+                disabled={!isSuperAdmin}
               />
             </div>
             <div className="space-y-2">
@@ -415,6 +559,7 @@ const SettingsTab = () => {
                   onChange={(e) =>
                     setPaymentSettings((prev) => ({ ...prev, razorpayKeySecret: e.target.value }))
                   }
+                  disabled={!isSuperAdmin}
                 />
                 <Button
                   type="button"
@@ -445,6 +590,7 @@ const SettingsTab = () => {
               onCheckedChange={(checked) =>
                 setPaymentSettings((prev) => ({ ...prev, testMode: checked }))
               }
+              disabled={!isSuperAdmin}
             />
           </div>
 
@@ -455,13 +601,13 @@ const SettingsTab = () => {
             </p>
           </div>
 
-          <Button onClick={handleSavePaymentSettings} disabled={savingPayment}>
+          <Button onClick={handleSavePaymentSettings} disabled={savingPayment || !isSuperAdmin}>
             {savingPayment ? (
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
             ) : (
               <Save className="h-4 w-4 mr-2" />
             )}
-            Save Payment Settings
+            {isSuperAdmin ? 'Save Payment Settings' : 'View Only'}
           </Button>
         </CardContent>
       </Card>
@@ -498,13 +644,14 @@ const SettingsTab = () => {
                 onCheckedChange={(checked) =>
                   setDeliverySettings((prev) => ({ ...prev, emailEnabled: checked }))
                 }
+                disabled={!isSuperAdmin}
               />
             </div>
 
             <div className="flex items-center justify-between p-4 rounded-lg border border-border">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-500/10">
-                  <MessageCircle className="h-5 w-5 text-green-600" />
+                <div className="p-2 rounded-lg bg-secondary/10">
+                  <MessageCircle className="h-5 w-5 text-secondary" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-foreground">WhatsApp Delivery</p>
@@ -518,22 +665,24 @@ const SettingsTab = () => {
                 onCheckedChange={(checked) =>
                   setDeliverySettings((prev) => ({ ...prev, whatsappEnabled: checked }))
                 }
+                disabled={!isSuperAdmin}
               />
             </div>
           </div>
 
-          {/* Email API Key */}
-          <div className="space-y-2">
+          {/* Email Settings */}
+          <div className="space-y-2 pt-2">
             <Label htmlFor="resend-api-key">Resend API Key</Label>
             <div className="relative">
               <Input
                 id="resend-api-key"
                 type={showResendKey ? 'text' : 'password'}
-                placeholder="re_xxxxxxxxxxxxx"
+                placeholder="re_xxxxxxxxxxxx"
                 value={deliverySettings.resendApiKey}
                 onChange={(e) =>
                   setDeliverySettings((prev) => ({ ...prev, resendApiKey: e.target.value }))
                 }
+                disabled={!isSuperAdmin}
               />
               <Button
                 type="button"
@@ -552,51 +701,52 @@ const SettingsTab = () => {
             <p className="text-xs text-muted-foreground">
               Get your API key from{' '}
               <a href="https://resend.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                resend.com/api-keys
+                Resend Dashboard
               </a>
             </p>
           </div>
 
-          {/* WhatsApp API Keys */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="whatsapp-access-token">WhatsApp Access Token</Label>
-              <div className="relative">
-                <Input
-                  id="whatsapp-access-token"
-                  type={showWhatsappToken ? 'text' : 'password'}
-                  placeholder="••••••••••••••••••••"
-                  value={deliverySettings.whatsappAccessToken}
-                  onChange={(e) =>
-                    setDeliverySettings((prev) => ({ ...prev, whatsappAccessToken: e.target.value }))
-                  }
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
-                  onClick={() => setShowWhatsappToken(!showWhatsappToken)}
-                >
-                  {showWhatsappToken ? (
-                    <EyeOff className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <Eye className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </Button>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="whatsapp-phone-id">WhatsApp Phone Number ID</Label>
+          {/* WhatsApp Settings */}
+          <div className="space-y-2 pt-2">
+            <Label htmlFor="whatsapp-access-token">WhatsApp Access Token</Label>
+            <div className="relative">
               <Input
-                id="whatsapp-phone-id"
-                placeholder="123456789012345"
-                value={deliverySettings.whatsappPhoneNumberId}
+                id="whatsapp-access-token"
+                type={showWhatsappToken ? 'text' : 'password'}
+                placeholder="EAAxxxxxxx..."
+                value={deliverySettings.whatsappAccessToken}
                 onChange={(e) =>
-                  setDeliverySettings((prev) => ({ ...prev, whatsappPhoneNumberId: e.target.value }))
+                  setDeliverySettings((prev) => ({ ...prev, whatsappAccessToken: e.target.value }))
                 }
+                disabled={!isSuperAdmin}
               />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                onClick={() => setShowWhatsappToken(!showWhatsappToken)}
+              >
+                {showWhatsappToken ? (
+                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <Eye className="h-4 w-4 text-muted-foreground" />
+                )}
+              </Button>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="whatsapp-phone-number-id">WhatsApp Phone Number ID</Label>
+            <Input
+              id="whatsapp-phone-number-id"
+              placeholder="1234567890"
+              value={deliverySettings.whatsappPhoneNumberId}
+              onChange={(e) =>
+                setDeliverySettings((prev) => ({ ...prev, whatsappPhoneNumberId: e.target.value }))
+              }
+              disabled={!isSuperAdmin}
+            />
           </div>
 
           {/* WhatsApp Template Name */}
@@ -609,6 +759,7 @@ const SettingsTab = () => {
               onChange={(e) =>
                 setDeliverySettings((prev) => ({ ...prev, whatsappTemplateName: e.target.value }))
               }
+              disabled={!isSuperAdmin}
             />
             <p className="text-xs text-muted-foreground">
               The approved message template name from Meta Business Manager. Required for business-initiated messages.
@@ -637,13 +788,13 @@ const SettingsTab = () => {
             </p>
           </div>
 
-          <Button onClick={handleSaveDeliverySettings} disabled={savingDelivery}>
+          <Button onClick={handleSaveDeliverySettings} disabled={savingDelivery || !isSuperAdmin}>
             {savingDelivery ? (
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
             ) : (
               <Save className="h-4 w-4 mr-2" />
             )}
-            Save Delivery Settings
+            {isSuperAdmin ? 'Save Delivery Settings' : 'View Only'}
           </Button>
         </CardContent>
       </Card>
@@ -654,7 +805,8 @@ const SettingsTab = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Remove Admin Access</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove admin access for this user? They will no longer be able to access the admin dashboard.
+              Are you sure you want to remove admin access for <strong>{adminToRemove?.email}</strong>? 
+              They will no longer be able to access the admin dashboard.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

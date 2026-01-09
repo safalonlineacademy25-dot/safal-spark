@@ -41,14 +41,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Check if user is admin
-    const { data: isAdmin, error: roleError } = await supabaseClient.rpc('has_role', {
+    // Check if user has admin access (admin or super_admin)
+    const { data: hasAccess, error: accessError } = await supabaseClient.rpc('has_admin_access', {
       _user_id: user.id,
-      _role: 'admin',
     });
 
-    if (roleError || !isAdmin) {
-      console.error('Role check error:', roleError);
+    if (accessError || !hasAccess) {
+      console.error('Access check error:', accessError);
       return new Response(
         JSON.stringify({ error: 'Admin access required' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -58,11 +57,11 @@ Deno.serve(async (req) => {
     // Create admin client with service role key to access auth.users
     const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-    // Fetch admin user roles
+    // Fetch admin user roles (both admin and super_admin)
     const { data: adminRoles, error: rolesError } = await adminClient
       .from('user_roles')
-      .select('id, user_id, created_at')
-      .eq('role', 'admin');
+      .select('id, user_id, role, created_at')
+      .in('role', ['admin', 'super_admin']);
 
     if (rolesError) {
       console.error('Error fetching admin roles:', rolesError);
@@ -80,6 +79,7 @@ Deno.serve(async (req) => {
             id: role.id,
             user_id: role.user_id,
             email: role.user_id, // Fallback to user_id
+            role: role.role,
             created_at: role.created_at,
           };
         }
@@ -88,6 +88,7 @@ Deno.serve(async (req) => {
           id: role.id,
           user_id: role.user_id,
           email: userData.user?.email || role.user_id,
+          role: role.role,
           created_at: role.created_at,
         };
       })

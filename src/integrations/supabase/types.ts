@@ -438,6 +438,8 @@ export type Database = {
       }
       generate_order_number: { Args: never; Returns: string }
       get_public_setting: { Args: { setting_key: string }; Returns: string }
+      get_user_role: { Args: { _user_id: string }; Returns: string }
+      has_admin_access: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -445,6 +447,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user" | "super_admin"
