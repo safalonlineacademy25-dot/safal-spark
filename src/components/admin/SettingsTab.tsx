@@ -79,6 +79,7 @@ const SettingsTab = () => {
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
   const [loadingAdmins, setLoadingAdmins] = useState(true);
   const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [newAdminPassword, setNewAdminPassword] = useState('');
   const [newAdminRole, setNewAdminRole] = useState<'admin' | 'super_admin'>('admin');
   const [addingAdmin, setAddingAdmin] = useState(false);
   const [removingAdminId, setRemovingAdminId] = useState<string | null>(null);
@@ -216,6 +217,7 @@ const SettingsTab = () => {
         },
         body: {
           email: newAdminEmail,
+          password: newAdminPassword || undefined,
           role: newAdminRole,
         },
       });
@@ -228,6 +230,7 @@ const SettingsTab = () => {
 
       toast.success(data.message || 'Admin user added successfully');
       setNewAdminEmail('');
+      setNewAdminPassword('');
       setNewAdminRole('admin');
       fetchAdminUsers(); // Refresh the list
     } catch (error: any) {
@@ -410,50 +413,64 @@ const SettingsTab = () => {
           {/* Add new admin - Only for Super Admins */}
           {isSuperAdmin ? (
             <div className="space-y-3">
-              <div className="flex gap-3">
-                <div className="flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div className="md:col-span-1">
+                  <Label className="text-xs text-muted-foreground mb-1 block">Email</Label>
                   <Input
-                    placeholder="Enter email address to add as admin"
+                    placeholder="admin@example.com"
                     type="email"
                     value={newAdminEmail}
                     onChange={(e) => setNewAdminEmail(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleAddAdmin()}
                   />
                 </div>
-                <Select value={newAdminRole} onValueChange={(value: 'admin' | 'super_admin') => setNewAdminRole(value)}>
-                  <SelectTrigger className="w-[150px]">
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">
-                      <div className="flex items-center gap-2">
-                        <Shield className="h-4 w-4" />
-                        Admin
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="super_admin">
-                      <div className="flex items-center gap-2">
-                        <Crown className="h-4 w-4" />
-                        Super Admin
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button onClick={handleAddAdmin} disabled={addingAdmin}>
-                  {addingAdmin ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Plus className="h-4 w-4" />
-                  )}
-                  <span className="ml-2">Add User</span>
-                </Button>
+                <div className="md:col-span-1">
+                  <Label className="text-xs text-muted-foreground mb-1 block">Password</Label>
+                  <Input
+                    placeholder="Min 6 characters"
+                    type="password"
+                    value={newAdminPassword}
+                    onChange={(e) => setNewAdminPassword(e.target.value)}
+                  />
+                </div>
+                <div className="md:col-span-1">
+                  <Label className="text-xs text-muted-foreground mb-1 block">Role</Label>
+                  <Select value={newAdminRole} onValueChange={(value: 'admin' | 'super_admin') => setNewAdminRole(value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">
+                        <div className="flex items-center gap-2">
+                          <Shield className="h-4 w-4" />
+                          Admin
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="super_admin">
+                        <div className="flex items-center gap-2">
+                          <Crown className="h-4 w-4" />
+                          Super Admin
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="md:col-span-1 flex items-end">
+                  <Button onClick={handleAddAdmin} disabled={addingAdmin} className="w-full">
+                    {addingAdmin ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Plus className="h-4 w-4" />
+                    )}
+                    <span className="ml-2">Add User</span>
+                  </Button>
+                </div>
               </div>
               <p className="text-xs text-muted-foreground">
                 <strong>Super Admin:</strong> Full access - add/modify/delete products, manage users, change settings.
                 <br />
                 <strong>Admin:</strong> View only - can view all tabs but cannot delete or modify anything.
                 <br />
-                <strong>Note:</strong> Users must sign up first at /admin before you can assign them a role.
+                <strong>Tip:</strong> Enter email + password to create a new user, or just email to assign role to existing user.
               </p>
               
               {/* Signup Toggle */}
