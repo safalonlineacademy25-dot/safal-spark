@@ -1,11 +1,16 @@
 import { useState, useMemo } from 'react';
-import { format, subDays, subWeeks, subMonths, startOfDay, startOfWeek, startOfMonth, isSameDay, isSameWeek, isSameMonth } from 'date-fns';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, AreaChart, Area } from 'recharts';
+import { format, subDays, subWeeks, subMonths, startOfDay, startOfWeek, startOfMonth, isSameDay, isSameWeek, isSameMonth, isWithinInterval, isAfter, isBefore, startOfToday } from 'date-fns';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area, LabelList } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { TrendingUp, TrendingDown, ShoppingCart, IndianRupee } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { TrendingUp, TrendingDown, ShoppingCart, IndianRupee, CalendarIcon, Filter, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import type { Order } from '@/hooks/useOrders';
+import type { DateRange } from 'react-day-picker';
 
 type TimeRange = 'daily' | 'weekly' | 'monthly';
 
@@ -24,19 +29,61 @@ const chartConfig = {
   },
 };
 
+const CATEGORIES = [
+  { value: 'all', label: 'All Categories' },
+  { value: 'notes', label: 'Notes' },
+  { value: 'mock-papers', label: 'Mock Papers' },
+  { value: 'pune-university', label: 'Pune University' },
+  { value: 'engineering', label: 'Engineering' },
+  { value: 'iit', label: 'IIT' },
+  { value: 'others', label: 'Others' },
+];
+
 export default function OrdersChart({ orders }: OrdersChartProps) {
   const [timeRange, setTimeRange] = useState<TimeRange>('daily');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [category, setCategory] = useState<string>('all');
+
+  // Filter orders by date range and category
+  const filteredOrders = useMemo(() => {
+    let result = orders;
+
+    // Filter by date range
+    if (dateRange?.from) {
+      result = result.filter(o => {
+        if (!o.created_at) return false;
+        const orderDate = new Date(o.created_at);
+        if (dateRange.to) {
+          return isWithinInterval(orderDate, { start: startOfDay(dateRange.from!), end: startOfDay(dateRange.to) });
+        }
+        return isAfter(orderDate, startOfDay(dateRange.from!)) || isSameDay(orderDate, dateRange.from!);
+      });
+    }
+
+    return result;
+  }, [orders, dateRange]);
 
   const chartData = useMemo(() => {
     const now = new Date();
     let data: { label: string; orders: number; revenue: number; date: Date }[] = [];
 
+    // Determine date range for chart based on filter or default
+    const endDate = dateRange?.to || now;
+    const startDate = dateRange?.from || (
+      timeRange === 'daily' ? subDays(now, 13) :
+      timeRange === 'weekly' ? subWeeks(now, 7) :
+      subMonths(now, 5)
+    );
+
     if (timeRange === 'daily') {
-      // Last 14 days
-      for (let i = 13; i >= 0; i--) {
-        const date = subDays(now, i);
+      // Calculate days between start and end
+      const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      const daysToShow = Math.min(daysDiff, 30); // Max 30 days
+      
+      for (let i = daysToShow - 1; i >= 0; i--) {
+        const date = subDays(endDate, i);
         const dayStart = startOfDay(date);
-        const dayOrders = orders.filter(o => 
+        const dayOrders = filteredOrders.filter(o => 
           o.created_at && isSameDay(new Date(o.created_at), dayStart)
         );
         const paidOrders = dayOrders.filter(o => o.status === 'paid' || o.status === 'completed');
@@ -49,28 +96,32 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
         });
       }
     } else if (timeRange === 'weekly') {
-      // Last 8 weeks
-      for (let i = 7; i >= 0; i--) {
-        const date = subWeeks(now, i);
+      const weeksDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 7)) + 1;
+      const weeksToShow = Math.min(weeksDiff, 12); // Max 12 weeks
+      
+      for (let i = weeksToShow - 1; i >= 0; i--) {
+        const date = subWeeks(endDate, i);
         const weekStart = startOfWeek(date, { weekStartsOn: 1 });
-        const weekOrders = orders.filter(o => 
+        const weekOrders = filteredOrders.filter(o => 
           o.created_at && isSameWeek(new Date(o.created_at), weekStart, { weekStartsOn: 1 })
         );
         const paidOrders = weekOrders.filter(o => o.status === 'paid' || o.status === 'completed');
         
         data.push({
-          label: `Week ${format(weekStart, 'MMM d')}`,
+          label: `${format(weekStart, 'MMM d')}`,
           orders: weekOrders.length,
           revenue: paidOrders.reduce((sum, o) => sum + Number(o.total_amount), 0),
           date: weekStart,
         });
       }
     } else {
-      // Last 6 months
-      for (let i = 5; i >= 0; i--) {
-        const date = subMonths(now, i);
+      const monthsDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 30)) + 1;
+      const monthsToShow = Math.min(monthsDiff, 12); // Max 12 months
+      
+      for (let i = monthsToShow - 1; i >= 0; i--) {
+        const date = subMonths(endDate, i);
         const monthStart = startOfMonth(date);
-        const monthOrders = orders.filter(o => 
+        const monthOrders = filteredOrders.filter(o => 
           o.created_at && isSameMonth(new Date(o.created_at), monthStart)
         );
         const paidOrders = monthOrders.filter(o => o.status === 'paid' || o.status === 'completed');
@@ -85,7 +136,7 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
     }
 
     return data;
-  }, [orders, timeRange]);
+  }, [filteredOrders, timeRange, dateRange]);
 
   const stats = useMemo(() => {
     const currentPeriod = chartData.slice(-1)[0];
@@ -104,11 +155,75 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
     return { orderChange, revenueChange, totalOrders, totalRevenue };
   }, [chartData]);
 
+  const clearFilters = () => {
+    setDateRange(undefined);
+    setCategory('all');
+  };
+
+  const hasFilters = dateRange?.from || category !== 'all';
+
   return (
     <div className="space-y-6">
-      {/* Time Range Toggle */}
-      <div className="flex items-center justify-between">
+      {/* Filters Row */}
+      <div className="flex flex-wrap items-center gap-4">
         <h3 className="text-lg font-semibold text-foreground">Orders Overview</h3>
+        
+        <div className="flex-1" />
+
+        {/* Category Filter */}
+        <Select value={category} onValueChange={setCategory}>
+          <SelectTrigger className="w-[180px]">
+            <Filter className="h-4 w-4 mr-2" />
+            <SelectValue placeholder="Category" />
+          </SelectTrigger>
+          <SelectContent>
+            {CATEGORIES.map((cat) => (
+              <SelectItem key={cat.value} value={cat.value}>
+                {cat.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Date Range Picker */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(
+                "w-[280px] justify-start text-left font-normal",
+                !dateRange?.from && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {dateRange?.from ? (
+                dateRange.to ? (
+                  <>
+                    {format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}
+                  </>
+                ) : (
+                  format(dateRange.from, "LLL dd, y")
+                )
+              ) : (
+                <span>Pick a date range</span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="end">
+            <Calendar
+              initialFocus
+              mode="range"
+              defaultMonth={dateRange?.from}
+              selected={dateRange}
+              onSelect={setDateRange}
+              numberOfMonths={2}
+              disabled={(date) => isAfter(date, startOfToday())}
+              className={cn("p-3 pointer-events-auto")}
+            />
+          </PopoverContent>
+        </Popover>
+
+        {/* Time Range Toggle */}
         <div className="flex gap-1 bg-muted rounded-lg p-1">
           {(['daily', 'weekly', 'monthly'] as TimeRange[]).map((range) => (
             <Button
@@ -122,6 +237,14 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
             </Button>
           ))}
         </div>
+
+        {/* Clear Filters */}
+        {hasFilters && (
+          <Button variant="ghost" size="sm" onClick={clearFilters}>
+            <X className="h-4 w-4 mr-1" />
+            Clear
+          </Button>
+        )}
       </div>
 
       {/* Stats Cards */}
@@ -195,8 +318,9 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Orders Bar Chart */}
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base font-medium">Orders Trend</CardTitle>
+            <span className="text-sm font-semibold text-primary">Total: {stats.totalOrders}</span>
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-[300px] w-full">
@@ -217,7 +341,14 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
                   fill="hsl(var(--primary))" 
                   radius={[4, 4, 0, 0]}
                   name="Orders"
-                />
+                >
+                  <LabelList 
+                    dataKey="orders" 
+                    position="top" 
+                    className="fill-foreground text-xs font-medium"
+                    formatter={(value: number) => value > 0 ? value : ''}
+                  />
+                </Bar>
               </BarChart>
             </ChartContainer>
           </CardContent>
@@ -225,8 +356,9 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
 
         {/* Revenue Area Chart */}
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base font-medium">Revenue Trend</CardTitle>
+            <span className="text-sm font-semibold text-secondary">Total: ₹{stats.totalRevenue.toLocaleString()}</span>
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-[300px] w-full">
@@ -240,7 +372,7 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
                 <YAxis 
                   tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
                   axisLine={{ stroke: 'hsl(var(--border))' }}
-                  tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
+                  tickFormatter={(value) => value >= 1000 ? `₹${(value / 1000).toFixed(0)}k` : `₹${value}`}
                 />
                 <ChartTooltip 
                   content={<ChartTooltipContent formatter={(value) => `₹${Number(value).toLocaleString()}`} />} 
