@@ -31,6 +31,7 @@ export default function PromotionBroadcastDialog({ onBroadcastSent }: PromotionB
   const [promotionTitle, setPromotionTitle] = useState('');
   const [promotionMessage, setPromotionMessage] = useState('');
   const [ctaLink, setCtaLink] = useState('');
+  const [templateName, setTemplateName] = useState('promotional_message');
 
   // Fetch recipient count when dialog opens
   useEffect(() => {
@@ -62,6 +63,7 @@ export default function PromotionBroadcastDialog({ onBroadcastSent }: PromotionB
     setPromotionTitle('');
     setPromotionMessage('');
     setCtaLink('');
+    setTemplateName('promotional_message');
   };
 
   const handleSend = async () => {
@@ -72,6 +74,11 @@ export default function PromotionBroadcastDialog({ onBroadcastSent }: PromotionB
 
     if (!promotionMessage.trim()) {
       toast.error('Please enter a promotion message');
+      return;
+    }
+
+    if (!templateName.trim()) {
+      toast.error('Please enter a template name');
       return;
     }
 
@@ -87,7 +94,7 @@ export default function PromotionBroadcastDialog({ onBroadcastSent }: PromotionB
           promotionTitle: promotionTitle.trim(),
           promotionMessage: promotionMessage.trim(),
           ctaLink: ctaLink.trim() || null,
-          templateName: 'promotional_message',
+          templateName: templateName.trim(),
         },
       });
 
@@ -194,13 +201,24 @@ export default function PromotionBroadcastDialog({ onBroadcastSent }: PromotionB
             </p>
           </div>
 
+          {/* Template Name */}
+          <div className="space-y-2">
+            <Label htmlFor="templateName">Template Name *</Label>
+            <Input
+              id="templateName"
+              placeholder="e.g., promotional_message"
+              value={templateName}
+              onChange={(e) => setTemplateName(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              The exact name of your approved Meta WhatsApp template
+            </p>
+          </div>
+
           {/* Template Info */}
           <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
             <p className="text-xs text-muted-foreground">
-              <strong>Template:</strong> promotional_message
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Make sure this template is approved in your Meta Business account before sending.
+              Make sure the template <strong>{templateName || 'your template'}</strong> is approved in your Meta Business account before sending.
             </p>
           </div>
         </div>
