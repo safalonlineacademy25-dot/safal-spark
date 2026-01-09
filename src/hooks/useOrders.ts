@@ -5,23 +5,33 @@ import type { Tables } from '@/integrations/supabase/types';
 export type Order = Tables<'orders'>;
 export type OrderItem = Tables<'order_items'>;
 
+export interface OrderItemWithProduct extends OrderItem {
+  products: { category: string } | null;
+}
+
 export interface OrderWithItems extends Order {
-  order_items: OrderItem[];
+  order_items: OrderItemWithProduct[];
 }
 
 interface UseOrdersOptions {
   enabled?: boolean;
 }
 
-// Query function for orders - extracted for reuse in prefetching
-const fetchOrders = async () => {
+// Query function for orders with items and product categories - for dashboard charts
+const fetchOrdersWithItems = async () => {
   const { data, error } = await supabase
     .from('orders')
-    .select('*')
+    .select(`
+      *,
+      order_items (
+        *,
+        products (category)
+      )
+    `)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data as Order[];
+  return data as OrderWithItems[];
 };
 
 export const useOrders = (options: UseOrdersOptions = {}) => {
@@ -29,7 +39,7 @@ export const useOrders = (options: UseOrdersOptions = {}) => {
   
   return useQuery({
     queryKey: ['orders'],
-    queryFn: fetchOrders,
+    queryFn: fetchOrdersWithItems,
     enabled,
     staleTime: 1000 * 60 * 2, // 2 minutes stale time
   });
@@ -39,7 +49,7 @@ export const useOrders = (options: UseOrdersOptions = {}) => {
 export const prefetchOrders = (queryClient: QueryClient) => {
   queryClient.prefetchQuery({
     queryKey: ['orders'],
-    queryFn: fetchOrders,
+    queryFn: fetchOrdersWithItems,
     staleTime: 1000 * 60 * 2,
   });
 };
@@ -61,7 +71,7 @@ export const useOrderWithItems = (orderId: string | null) => {
 
       const { data: orderItems, error: itemsError } = await supabase
         .from('order_items')
-        .select('*')
+        .select('*, products (category)')
         .eq('order_id', orderId);
 
       if (itemsError) throw itemsError;

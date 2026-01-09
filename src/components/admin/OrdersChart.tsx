@@ -1,22 +1,29 @@
 import { useState, useMemo } from 'react';
-import { format, subDays, subWeeks, subMonths, startOfDay, startOfWeek, startOfMonth, isSameDay, isSameWeek, isSameMonth, isWithinInterval, isAfter, isBefore, startOfToday } from 'date-fns';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area, LabelList } from 'recharts';
+import { format, subDays, subWeeks, subMonths, startOfDay, startOfWeek, startOfMonth, isSameDay, isSameWeek, isSameMonth, isWithinInterval, isAfter, startOfToday } from 'date-fns';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area, Legend } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TrendingUp, TrendingDown, ShoppingCart, IndianRupee, CalendarIcon, Filter, X } from 'lucide-react';
+import { TrendingUp, TrendingDown, ShoppingCart, IndianRupee, CalendarIcon, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Order } from '@/hooks/useOrders';
+import type { OrderWithItems } from '@/hooks/useOrders';
 import type { DateRange } from 'react-day-picker';
 
 type TimeRange = 'daily' | 'weekly' | 'monthly';
 
 interface OrdersChartProps {
-  orders: Order[];
+  orders: OrderWithItems[];
 }
+
+const CATEGORY_COLORS: Record<string, string> = {
+  'Pune University Notes': 'hsl(262, 83%, 58%)',
+  'Engineering Notes': 'hsl(199, 89%, 48%)',
+  'IIT Notes': 'hsl(142, 71%, 45%)',
+  'Competitive Exam Notes': 'hsl(38, 92%, 50%)',
+  'Others': 'hsl(346, 77%, 50%)',
+};
 
 const chartConfig = {
   orders: {
@@ -27,28 +34,36 @@ const chartConfig = {
     label: "Revenue",
     color: "hsl(var(--secondary))",
   },
+  'Pune University Notes': {
+    label: "Pune University",
+    color: CATEGORY_COLORS['Pune University Notes'],
+  },
+  'Engineering Notes': {
+    label: "Engineering",
+    color: CATEGORY_COLORS['Engineering Notes'],
+  },
+  'IIT Notes': {
+    label: "IIT",
+    color: CATEGORY_COLORS['IIT Notes'],
+  },
+  'Competitive Exam Notes': {
+    label: "Competitive Exam",
+    color: CATEGORY_COLORS['Competitive Exam Notes'],
+  },
+  'Others': {
+    label: "Others",
+    color: CATEGORY_COLORS['Others'],
+  },
 };
-
-const CATEGORIES = [
-  { value: 'all', label: 'All Categories' },
-  { value: 'notes', label: 'Notes' },
-  { value: 'mock-papers', label: 'Mock Papers' },
-  { value: 'pune-university', label: 'Pune University' },
-  { value: 'engineering', label: 'Engineering' },
-  { value: 'iit', label: 'IIT' },
-  { value: 'others', label: 'Others' },
-];
 
 export default function OrdersChart({ orders }: OrdersChartProps) {
   const [timeRange, setTimeRange] = useState<TimeRange>('daily');
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-  const [category, setCategory] = useState<string>('all');
 
-  // Filter orders by date range and category
+  // Filter orders by date range only
   const filteredOrders = useMemo(() => {
     let result = orders;
 
-    // Filter by date range
     if (dateRange?.from) {
       result = result.filter(o => {
         if (!o.created_at) return false;
@@ -63,11 +78,21 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
     return result;
   }, [orders, dateRange]);
 
+  // Get unique categories from order items
+  const categories = useMemo(() => {
+    const cats = new Set<string>();
+    filteredOrders.forEach(order => {
+      order.order_items?.forEach(item => {
+        if (item.products?.category) {
+          cats.add(item.products.category);
+        }
+      });
+    });
+    return Array.from(cats).sort();
+  }, [filteredOrders]);
+
   const chartData = useMemo(() => {
     const now = new Date();
-    let data: { label: string; orders: number; revenue: number; date: Date }[] = [];
-
-    // Determine date range for chart based on filter or default
     const endDate = dateRange?.to || now;
     const startDate = dateRange?.from || (
       timeRange === 'daily' ? subDays(now, 13) :
@@ -75,68 +100,97 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
       subMonths(now, 5)
     );
 
+    const data: Record<string, any>[] = [];
+
+    const getOrdersForPeriod = (filterFn: (orderDate: Date) => boolean) => {
+      return filteredOrders.filter(o => o.created_at && filterFn(new Date(o.created_at)));
+    };
+
+    const getCategoryCount = (periodOrders: OrderWithItems[], category: string) => {
+      let count = 0;
+      periodOrders.forEach(order => {
+        order.order_items?.forEach(item => {
+          if (item.products?.category === category) {
+            count++;
+          }
+        });
+      });
+      return count;
+    };
+
     if (timeRange === 'daily') {
-      // Calculate days between start and end
       const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-      const daysToShow = Math.min(daysDiff, 30); // Max 30 days
+      const daysToShow = Math.min(daysDiff, 30);
       
       for (let i = daysToShow - 1; i >= 0; i--) {
         const date = subDays(endDate, i);
         const dayStart = startOfDay(date);
-        const dayOrders = filteredOrders.filter(o => 
-          o.created_at && isSameDay(new Date(o.created_at), dayStart)
-        );
+        const dayOrders = getOrdersForPeriod(d => isSameDay(d, dayStart));
         const paidOrders = dayOrders.filter(o => o.status === 'paid' || o.status === 'completed');
         
-        data.push({
+        const dataPoint: Record<string, any> = {
           label: format(date, 'MMM d'),
           orders: dayOrders.length,
           revenue: paidOrders.reduce((sum, o) => sum + Number(o.total_amount), 0),
           date,
+        };
+
+        categories.forEach(cat => {
+          dataPoint[cat] = getCategoryCount(dayOrders, cat);
         });
+
+        data.push(dataPoint);
       }
     } else if (timeRange === 'weekly') {
       const weeksDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 7)) + 1;
-      const weeksToShow = Math.min(weeksDiff, 12); // Max 12 weeks
+      const weeksToShow = Math.min(weeksDiff, 12);
       
       for (let i = weeksToShow - 1; i >= 0; i--) {
         const date = subWeeks(endDate, i);
         const weekStart = startOfWeek(date, { weekStartsOn: 1 });
-        const weekOrders = filteredOrders.filter(o => 
-          o.created_at && isSameWeek(new Date(o.created_at), weekStart, { weekStartsOn: 1 })
-        );
+        const weekOrders = getOrdersForPeriod(d => isSameWeek(d, weekStart, { weekStartsOn: 1 }));
         const paidOrders = weekOrders.filter(o => o.status === 'paid' || o.status === 'completed');
         
-        data.push({
-          label: `${format(weekStart, 'MMM d')}`,
+        const dataPoint: Record<string, any> = {
+          label: format(weekStart, 'MMM d'),
           orders: weekOrders.length,
           revenue: paidOrders.reduce((sum, o) => sum + Number(o.total_amount), 0),
           date: weekStart,
+        };
+
+        categories.forEach(cat => {
+          dataPoint[cat] = getCategoryCount(weekOrders, cat);
         });
+
+        data.push(dataPoint);
       }
     } else {
       const monthsDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 30)) + 1;
-      const monthsToShow = Math.min(monthsDiff, 12); // Max 12 months
+      const monthsToShow = Math.min(monthsDiff, 12);
       
       for (let i = monthsToShow - 1; i >= 0; i--) {
         const date = subMonths(endDate, i);
         const monthStart = startOfMonth(date);
-        const monthOrders = filteredOrders.filter(o => 
-          o.created_at && isSameMonth(new Date(o.created_at), monthStart)
-        );
+        const monthOrders = getOrdersForPeriod(d => isSameMonth(d, monthStart));
         const paidOrders = monthOrders.filter(o => o.status === 'paid' || o.status === 'completed');
         
-        data.push({
+        const dataPoint: Record<string, any> = {
           label: format(date, 'MMM yyyy'),
           orders: monthOrders.length,
           revenue: paidOrders.reduce((sum, o) => sum + Number(o.total_amount), 0),
           date: monthStart,
+        };
+
+        categories.forEach(cat => {
+          dataPoint[cat] = getCategoryCount(monthOrders, cat);
         });
+
+        data.push(dataPoint);
       }
     }
 
     return data;
-  }, [filteredOrders, timeRange, dateRange]);
+  }, [filteredOrders, timeRange, dateRange, categories]);
 
   const stats = useMemo(() => {
     const currentPeriod = chartData.slice(-1)[0];
@@ -157,10 +211,9 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
 
   const clearFilters = () => {
     setDateRange(undefined);
-    setCategory('all');
   };
 
-  const hasFilters = dateRange?.from || category !== 'all';
+  const hasFilters = !!dateRange?.from;
 
   return (
     <div className="space-y-6">
@@ -169,21 +222,6 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
         <h3 className="text-lg font-semibold text-foreground">Orders Overview</h3>
         
         <div className="flex-1" />
-
-        {/* Category Filter */}
-        <Select value={category} onValueChange={setCategory}>
-          <SelectTrigger className="w-[180px]">
-            <Filter className="h-4 w-4 mr-2" />
-            <SelectValue placeholder="Category" />
-          </SelectTrigger>
-          <SelectContent>
-            {CATEGORIES.map((cat) => (
-              <SelectItem key={cat.value} value={cat.value}>
-                {cat.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
 
         {/* Date Range Picker */}
         <Popover>
@@ -316,10 +354,10 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Orders Bar Chart */}
+        {/* Category-wise Orders Stacked Bar Chart */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base font-medium">Orders Trend</CardTitle>
+            <CardTitle className="text-base font-medium">Orders by Category</CardTitle>
             <span className="text-sm font-semibold text-primary">Total: {stats.totalOrders}</span>
           </CardHeader>
           <CardContent>
@@ -336,19 +374,17 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
                   axisLine={{ stroke: 'hsl(var(--border))' }}
                 />
                 <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar 
-                  dataKey="orders" 
-                  fill="hsl(var(--primary))" 
-                  radius={[4, 4, 0, 0]}
-                  name="Orders"
-                >
-                  <LabelList 
-                    dataKey="orders" 
-                    position="top" 
-                    className="fill-foreground text-xs font-medium"
-                    formatter={(value: number) => value > 0 ? value : ''}
+                <Legend />
+                {categories.map((category) => (
+                  <Bar 
+                    key={category}
+                    dataKey={category} 
+                    stackId="orders"
+                    fill={CATEGORY_COLORS[category] || 'hsl(var(--primary))'}
+                    radius={categories.indexOf(category) === categories.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+                    name={category}
                   />
-                </Bar>
+                ))}
               </BarChart>
             </ChartContainer>
           </CardContent>
