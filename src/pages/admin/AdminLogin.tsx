@@ -6,6 +6,7 @@ import { BookOpen, Lock, Mail, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth, signIn, signUp } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('');
@@ -13,8 +14,29 @@ const AdminLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [signupEnabled, setSignupEnabled] = useState(true);
+  const [loadingSettings, setLoadingSettings] = useState(true);
   const navigate = useNavigate();
   const { user, isAdmin, isLoading: authLoading } = useAuth();
+
+  // Load signup setting
+  useEffect(() => {
+    const loadSignupSetting = async () => {
+      try {
+        const { data, error } = await supabase.rpc('get_public_setting', {
+          setting_key: 'admin_signup_enabled'
+        });
+        if (!error && data !== null) {
+          setSignupEnabled(data === 'true');
+        }
+      } catch (err) {
+        console.error('Error loading signup setting:', err);
+      } finally {
+        setLoadingSettings(false);
+      }
+    };
+    loadSignupSetting();
+  }, []);
 
   useEffect(() => {
     if (!authLoading && user && isAdmin) {
@@ -49,7 +71,7 @@ const AdminLogin = () => {
     }
   };
 
-  if (authLoading) {
+  if (authLoading || loadingSettings) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -141,25 +163,37 @@ const AdminLogin = () => {
               </Button>
             </form>
 
-            {/* Toggle Sign In / Sign Up */}
-            <div className="mt-6 text-center">
-              <button
-                type="button"
-                onClick={() => setIsSignUp(!isSignUp)}
-                className="text-sm text-primary hover:underline"
-              >
-                {isSignUp 
-                  ? 'Already have an account? Sign In' 
-                  : "Don't have an account? Sign Up"}
-              </button>
-            </div>
+            {/* Toggle Sign In / Sign Up - Only show if signup is enabled */}
+            {signupEnabled && (
+              <div className="mt-6 text-center">
+                <button
+                  type="button"
+                  onClick={() => setIsSignUp(!isSignUp)}
+                  className="text-sm text-primary hover:underline"
+                >
+                  {isSignUp 
+                    ? 'Already have an account? Sign In' 
+                    : "Don't have an account? Sign Up"}
+                </button>
+              </div>
+            )}
 
             {/* Info */}
             <div className="mt-4 p-4 rounded-lg bg-muted/50">
               <p className="text-xs text-muted-foreground text-center">
-                <strong>Note:</strong> {isSignUp 
-                  ? 'After signing up, an admin must add your account to the admin role before you can access the dashboard.'
-                  : 'You must have admin role in the user_roles table to access the dashboard.'}
+                {isSignUp ? (
+                  <>
+                    <strong>Note:</strong> After signing up, an admin must add your account to the admin role before you can access the dashboard.
+                  </>
+                ) : signupEnabled ? (
+                  <>
+                    <strong>Note:</strong> You must have admin role in the user_roles table to access the dashboard.
+                  </>
+                ) : (
+                  <>
+                    <strong>Note:</strong> Sign up is currently disabled. Contact an administrator for access.
+                  </>
+                )}
               </p>
             </div>
           </div>
