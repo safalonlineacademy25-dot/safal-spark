@@ -14,11 +14,11 @@ interface OrdersChartProps {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  'Pune University Notes': 'hsl(262, 83%, 58%)',
-  'Engineering Notes': 'hsl(199, 89%, 48%)',
-  'IIT Notes': 'hsl(142, 71%, 45%)',
-  'Competitive Exam Notes': 'hsl(38, 92%, 50%)',
-  'Others': 'hsl(346, 77%, 50%)',
+  'Pune University Notes': 'hsl(280, 80%, 55%)',    // Vibrant Purple
+  'Engineering Notes': 'hsl(190, 95%, 42%)',        // Cyan/Teal
+  'IIT Notes': 'hsl(145, 70%, 42%)',                // Emerald Green
+  'Competitive Exam Notes': 'hsl(35, 95%, 55%)',    // Bright Orange
+  'Others': 'hsl(350, 85%, 55%)',                   // Coral Red
 };
 
 const chartConfig = {
