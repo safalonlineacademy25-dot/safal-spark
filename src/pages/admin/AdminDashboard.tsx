@@ -331,7 +331,27 @@ const AdminDashboard = () => {
     );
   }
 
-  if (!user || !isAdmin) return null;
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30">
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          Redirecting to login…
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30">
+        <div className="text-center space-y-2">
+          <p className="text-lg font-semibold text-foreground">Access denied</p>
+          <p className="text-sm text-muted-foreground">Your account does not have admin permissions.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
