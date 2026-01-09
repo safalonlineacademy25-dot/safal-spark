@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Megaphone, Loader2, CheckCircle, XCircle, Users, RefreshCw, Plus, Sparkles } from 'lucide-react';
+import { Megaphone, Loader2, CheckCircle, XCircle, Users, RefreshCw, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import PaginationControls from './PaginationControls';
@@ -42,13 +42,14 @@ export default function PromotionsTab() {
     else setLoading(true);
 
     try {
+      // Use raw query since types may not be updated yet
       const { data, error } = await supabase
-        .from('promotion_logs')
+        .from('promotion_logs' as any)
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setLogs(data || []);
+      setLogs((data as unknown as PromotionLog[]) || []);
     } catch (err) {
       console.error('Error fetching promotion logs:', err);
     } finally {
@@ -217,9 +218,12 @@ export default function PromotionsTab() {
         <PaginationControls
           currentPage={pagination.currentPage}
           totalPages={pagination.totalPages}
-          onPageChange={pagination.goToPage}
-          totalItems={logs.length}
-          itemsPerPage={15}
+          startIndex={pagination.startIndex}
+          endIndex={pagination.endIndex}
+          totalItems={pagination.totalItems}
+          onPrevPage={pagination.prevPage}
+          onNextPage={pagination.nextPage}
+          onGoToPage={pagination.goToPage}
         />
       )}
     </div>
