@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
+import { useQuery } from '@tanstack/react-query';
 import { Megaphone, Loader2, CheckCircle, XCircle, Users, RefreshCw, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,6 +7,7 @@ import PaginationControls from './PaginationControls';
 import { usePagination } from '@/hooks/usePagination';
 import { motion } from 'framer-motion';
 import PromotionBroadcastDialog from './PromotionBroadcastDialog';
+import ErrorOverlay from '@/components/ui/ErrorOverlay';
 
 import {
   Table,
@@ -35,36 +36,31 @@ interface PromotionsTabProps {
 }
 
 export default function PromotionsTab({ isSuperAdmin = false }: PromotionsTabProps) {
-  const [logs, setLogs] = useState<PromotionLog[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  
-  const pagination = usePagination({ data: logs, itemsPerPage: 15 });
-
-  const fetchLogs = async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
-
-    try {
-      // Use raw query since types may not be updated yet
+  const {
+    data: logs = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isFetching,
+  } = useQuery({
+    queryKey: ['promotion_logs'],
+    queryFn: async () => {
+      console.debug('[PromotionsTab] fetching promotion_logs');
       const { data, error } = await supabase
         .from('promotion_logs' as any)
         .select('*')
         .order('created_at', { ascending: false });
-
       if (error) throw error;
-      setLogs((data as unknown as PromotionLog[]) || []);
-    } catch (err) {
-      console.error('Error fetching promotion logs:', err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchLogs();
-  }, []);
+      return (data as unknown as PromotionLog[]) || [];
+    },
+    staleTime: 1000 * 60 * 5,
+    cacheTime: 1000 * 60 * 15,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
+  
+  const pagination = usePagination({ data: logs, itemsPerPage: 15 });
 
   // Calculate stats
   const totalBroadcasts = logs.length;
@@ -74,7 +70,7 @@ export default function PromotionsTab({ isSuperAdmin = false }: PromotionsTabPro
     ? ((totalSent / (totalSent + totalFailed)) * 100).toFixed(1) 
     : '0';
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -82,9 +78,22 @@ export default function PromotionsTab({ isSuperAdmin = false }: PromotionsTabPro
     );
   }
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
+  if (isError) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-sm text-destructive mb-4">{(error as any)?.message || 'Failed to fetch logs'}</div>
+        <Button variant="outline" onClick={() => refetch()}>
+          <RefreshCw className="h-4 w-4 mr-2" /> Retry
+        </Button>
+      </div>
+    );
+  }
+
+  try {
+    console.debug('[PromotionsTab] render', { logsLength: logs.length, isLoading, isError });
+    return (
+      <div className="space-y-6">
+        {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary" />
@@ -94,15 +103,15 @@ export default function PromotionsTab({ isSuperAdmin = false }: PromotionsTabPro
           <Button
             variant="outline"
             size="sm"
-            onClick={() => fetchLogs(true)}
-            disabled={refreshing}
+            onClick={() => refetch()}
+            disabled={isFetching}
             className="gap-2"
           >
-            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
           {isSuperAdmin && (
-            <PromotionBroadcastDialog onBroadcastSent={() => fetchLogs(true)} />
+            <PromotionBroadcastDialog onBroadcastSent={() => refetch()} />
           )}
         </div>
       </div>
@@ -233,5 +242,19 @@ export default function PromotionsTab({ isSuperAdmin = false }: PromotionsTabPro
         />
       )}
     </div>
-  );
+    );
+  } catch (err) {
+    console.error('[PromotionsTab] render error', err);
+    const errMsg = err instanceof Error ? err.message : String(err);
+    const errStack = err instanceof Error ? err.stack : undefined;
+    return (
+      <ErrorOverlay
+        title="Promotions render error"
+        message={errMsg}
+        stack={errStack || null}
+        onRetry={() => refetch()}
+        onClose={() => {}}
+      />
+    );
+  }
 }

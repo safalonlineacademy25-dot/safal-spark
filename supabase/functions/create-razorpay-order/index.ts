@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Allowed origins for CORS
 const ALLOWED_ORIGINS = [
-  'https://lovable.dev',
+  'https://safalonlinesolutions.com',
   'https://hujuqkhbdptsdnbnkslo.supabase.co',
   'http://localhost:5173',
   'http://localhost:8080',
@@ -201,12 +201,20 @@ serve(async (req) => {
       .select()
       .single();
 
+    // Log detailed result for debugging
+    console.log("Order insert result:", { order, orderError });
+
     if (orderError) {
       console.error("Error creating order:", orderError);
       throw orderError;
     }
 
-    console.log("Order created:", order.id);
+    if (!order || !order.id) {
+      console.error("Order insert returned no id:", order);
+      throw new Error("Order insert failed to return an id");
+    }
+
+    console.log("Order created (id):", order.id);
 
     // Create order items
     const orderItems = items.map((item: any) => ({
@@ -217,33 +225,40 @@ serve(async (req) => {
       quantity: 1,
     }));
 
-    const { error: itemsError } = await supabase
+    const { data: itemsInserted, error: itemsError } = await supabase
       .from('order_items')
-      .insert(orderItems);
+      .insert(orderItems)
+      .select();
+
+    console.log("Order items insert result:", { itemsInserted, itemsError });
 
     if (itemsError) {
       console.error("Error creating order items:", itemsError);
       throw itemsError;
     }
 
-    console.log("Order items created successfully");
+    console.log("Order items created successfully, count:", itemsInserted?.length || 0);
+
+    const responsePayload = {
+      success: true,
+      order_id: order.id,
+      order_number: orderNumber,
+      razorpay_order_id: razorpayOrderId,
+      amount: amountInPaise,
+      currency: 'INR',
+      key_id: RAZORPAY_KEY_ID,
+      is_test_mode: isTestMode,
+    };
+
+    console.log("Responding to client with:", responsePayload);
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        order_id: order.id,
-        order_number: orderNumber,
-        razorpay_order_id: razorpayOrderId,
-        amount: amountInPaise,
-        currency: 'INR',
-        key_id: RAZORPAY_KEY_ID,
-        is_test_mode: isTestMode,
-      }),
+      JSON.stringify(responsePayload),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    console.error("Error in create-razorpay-order:", error);
+    console.error("Error in create-razorpay-order:", error, error instanceof Error ? error.stack : null);
     // Return 200 so the client can reliably read the JSON body and show a friendly message
     return new Response(
       JSON.stringify({ success: false, error: errorMessage }),

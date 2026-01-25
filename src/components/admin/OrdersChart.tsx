@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { format, subDays, subWeeks, subMonths, startOfDay, startOfWeek, startOfMonth, isSameDay, isSameWeek, isSameMonth } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area, Legend, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { Button } from '@/components/ui/button';
@@ -14,11 +14,16 @@ interface OrdersChartProps {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  'Pune University Notes': 'hsl(280, 80%, 55%)',    // Vibrant Purple
-  'Engineering Notes': 'hsl(190, 95%, 42%)',        // Cyan/Teal
-  'IIT Notes': 'hsl(145, 70%, 42%)',                // Emerald Green
+  // Ensure both canonical and short category keys map to clear, distinguishable colors
+  'pune-university': 'hsl(190, 95%, 42%)', // Cyan for pune-university
+  'Pune University Notes': 'hsl(190, 95%, 42%)',
+  'engineering': 'hsl(220, 70%, 50%)',      // Blue for engineering
+  'Engineering Notes': 'hsl(220, 70%, 50%)',
+  'iit': 'hsl(145, 70%, 42%)',              // Emerald Green
+  'IIT Notes': 'hsl(145, 70%, 42%)',
   'Competitive Exam Notes': 'hsl(35, 95%, 55%)',    // Bright Orange
-  'Others': 'hsl(350, 85%, 55%)',                   // Coral Red
+  'others': 'hsl(135, 50%, 65%)',           // Light green for others
+  'Others': 'hsl(135, 50%, 65%)',
 };
 
 const chartConfig = {
@@ -192,6 +197,25 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
       }));
   }, [chartData, categories]);
 
+  // Totals per category for current range (useful for debugging/verification)
+  const categoryTotals = useMemo(() => {
+    const totals: Record<string, number> = {};
+    chartData.forEach(dp => {
+      categories.forEach(cat => {
+        totals[cat] = (totals[cat] || 0) + (dp[cat] || 0);
+      });
+    });
+    return totals;
+  }, [chartData, categories]);
+
+  // Sum of all items across categories for the current range
+  const totalItems = useMemo(() => Object.values(categoryTotals).reduce((s, v) => s + v, 0), [categoryTotals]);
+
+  // Debug: log chartData when timeRange changes to help verify counts
+  useEffect(() => {
+    console.debug('OrdersChart debug', { timeRange, chartData, categoryTotals, totalItems });
+  }, [timeRange, chartData, categoryTotals, totalItems]);
+
   return (
     <div className="space-y-6">
       {/* Filters Row */}
@@ -201,7 +225,7 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
         <div className="flex-1" />
 
         {/* Time Range Toggle */}
-        <div className="flex gap-1 bg-muted rounded-lg p-1">
+        <div className="flex gap-1 bg-muted rounded-lg p-1 items-center">
           {(['daily', 'weekly', 'monthly'] as TimeRange[]).map((range) => (
             <Button
               key={range}
@@ -213,6 +237,12 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
               {range}
             </Button>
           ))}
+
+          <span className="ml-4 text-sm text-muted-foreground">
+            {timeRange === 'daily' && 'Showing: Last 14 days'}
+            {timeRange === 'weekly' && 'Showing: Last 8 weeks'}
+            {timeRange === 'monthly' && 'Showing: Last 6 months'}
+          </span>
         </div>
       </div>
 
@@ -294,6 +324,7 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
               <ChartContainer config={chartConfig} className="h-[250px] w-full md:w-1/2">
                 <PieChart>
                   <Pie
+                    key={timeRange}
                     data={categoryPieData}
                     cx="50%"
                     cy="50%"
@@ -302,7 +333,7 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
                     paddingAngle={2}
                     dataKey="value"
                     nameKey="name"
-                    label={({ percentage }) => `${percentage}%`}
+                    label={({ percent }) => `${(percent * 100).toFixed(1)}%`}
                     labelLine={false}
                   >
                     {categoryPieData.map((entry) => (
@@ -330,6 +361,20 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
                     <span className="text-sm font-medium text-foreground">{entry.value} ({entry.percentage}%)</span>
                   </div>
                 ))}
+
+                {/* Small verification list showing raw totals for this time range */}
+                <div className="mt-4 pt-4 border-t border-border space-y-2">
+                  <div className="text-xs text-muted-foreground">Category totals (current range):</div>
+                  {Object.entries(categoryTotals).map(([name, val]) => (
+                    <div key={name} className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: CATEGORY_COLORS[name] || 'hsl(var(--primary))' }} />
+                        <span className="text-sm text-muted-foreground">{name}</span>
+                      </div>
+                      <div className="text-sm font-medium text-foreground">{val}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </CardContent>
@@ -342,8 +387,12 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base font-medium">Orders by Category</CardTitle>
-            <span className="text-sm font-semibold text-primary">Total: {stats.totalOrders}</span>
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-semibold text-primary">Orders: {stats.totalOrders}</span>
+              <span className="text-sm text-muted-foreground">Items: {totalItems}</span>
+            </div>
           </CardHeader>
+          <div className="px-6 -mt-3 mb-3 text-xs text-muted-foreground">Note: "Orders" counts unique orders; "Items" sums product items across orders in the selected range.</div>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-[300px] w-full">
               <BarChart data={chartData}>

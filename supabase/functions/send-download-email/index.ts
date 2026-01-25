@@ -6,7 +6,7 @@ const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 // Allowed origins for CORS
 const ALLOWED_ORIGINS = [
-  'https://lovable.dev',
+  'https://safalonlinesolutions.com',
   'https://hujuqkhbdptsdnbnkslo.supabase.co',
   'http://localhost:5173',
   'http://localhost:8080',
@@ -141,7 +141,7 @@ serve(async (req: Request): Promise<Response> => {
             </div>
             
             <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 24px 0 0 0;">
-              © ${new Date().getFullYear()} SOA Resources. All rights reserved.
+              © ${new Date().getFullYear()} Safal Online Academy Document. All rights reserved.
             </p>
           </div>
         </body>
@@ -182,8 +182,8 @@ serve(async (req: Request): Promise<Response> => {
 
     // Send actual email via Resend
     // Use custom sender from settings, fallback to Resend's test sender
-    const senderEmail = settings['sender_email'] || "onboarding@resend.dev";
-    const senderName = settings['sender_name'] || "SOA Resources";
+    const senderEmail = settings['sender_email'] || "support@safalonlinesolutions.com";
+    const senderName = settings['sender_name'] || "Safal Online Academy";
     
     console.log("Sending email from:", `${senderName} <${senderEmail}>`);
     

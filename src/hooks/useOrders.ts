@@ -19,6 +19,7 @@ interface UseOrdersOptions {
 
 // Query function for orders with items and product categories - for dashboard charts
 const fetchOrdersWithItems = async () => {
+  console.debug('[useOrders] fetchOrdersWithItems start');
   const { data, error } = await supabase
     .from('orders')
     .select(`
@@ -30,7 +31,11 @@ const fetchOrdersWithItems = async () => {
     `)
     .order('created_at', { ascending: false });
 
-  if (error) throw error;
+  if (error) {
+    console.error('[useOrders] RLS/permission error:', error);
+    throw error;
+  }
+  console.debug('[useOrders] fetchOrdersWithItems success', { count: data?.length });
   return data as OrderWithItems[];
 };
 

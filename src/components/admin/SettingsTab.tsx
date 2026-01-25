@@ -152,7 +152,15 @@ const SettingsTab = () => {
       setAdminUsers(data.adminUsers || []);
     } catch (error: any) {
       console.error('Error fetching admin users:', error);
-      toast.error('Failed to load admin users');
+
+      // Show a more specific message for permission errors
+      if (error?.message?.includes('Admin access') || error?.status === 403) {
+        toast.error('You do not have permission to view admin users');
+      } else if (error?.message === 'Not authenticated') {
+        toast.error('Session expired. Please sign in again.');
+      } else {
+        toast.error('Failed to load admin users');
+      }
     } finally {
       setLoadingAdmins(false);
     }

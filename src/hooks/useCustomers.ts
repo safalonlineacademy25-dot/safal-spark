@@ -10,12 +10,17 @@ interface UseCustomersOptions {
 
 // Query function for customers - extracted for reuse in prefetching
 const fetchCustomers = async () => {
+  console.debug('[useCustomers] fetchCustomers start');
   const { data, error } = await supabase
     .from('customers')
     .select('*')
     .order('created_at', { ascending: false });
 
-  if (error) throw error;
+  if (error) {
+    console.error('[useCustomers] RLS/permission error:', error);
+    throw error;
+  }
+  console.debug('[useCustomers] fetchCustomers success', { count: data?.length });
   return data as Customer[];
 };
 

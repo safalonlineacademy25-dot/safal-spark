@@ -39,9 +39,9 @@ const PrivacyPolicy = () => {
                 <h2 className="text-xl font-semibold text-foreground">2. Business Information</h2>
                 <p>
                   <strong>Safal Online Academy</strong><br />
-                  Registered Address: Pune, Maharashtra, India<br />
+                  Registered Address: Mumbai, India<br />
                   Email: safalonlineacademy@gmail.com<br />
-                  Phone: +91 98765 43210<br />
+                  Phone: +91 7620045446<br />
                   Website: https://safalonline.in
                 </p>
               </section>
@@ -166,9 +166,9 @@ const PrivacyPolicy = () => {
                 </p>
                 <div className="bg-muted/50 p-4 rounded-lg border border-border">
                   <p className="font-semibold text-foreground mb-2">Safal Online Academy</p>
-                  <p>Address: Pune, Maharashtra, India</p>
+                  <p>Address: Mumbai, India</p>
                   <p>Email: safalonlineacademy@gmail.com</p>
-                  <p>Phone: +91 98765 43210</p>
+                  <p>Phone: +91 7620045446</p>
                   <p>Website: https://safalonline.in</p>
                   <p className="mt-2 text-sm">We will respond to your inquiry within 48 hours.</p>
                 </div>

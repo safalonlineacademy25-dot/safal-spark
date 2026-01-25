@@ -161,9 +161,9 @@ const RefundPolicy = () => {
                 </p>
                 <div className="bg-muted/50 p-4 rounded-lg border border-border">
                   <p className="font-semibold text-foreground mb-2">Safal Online Academy</p>
-                  <p>Address: Pune, Maharashtra, India</p>
+                  <p>Address: Mumbai, India</p>
                   <p>Email: safalonlineacademy@gmail.com</p>
-                  <p>Phone: +91 98765 43210</p>
+                  <p>Phone: +91 7620045446</p>
                   <p>Website: https://safalonline.in</p>
                   <p className="mt-2 text-sm">Support Hours: Monday to Saturday, 10:00 AM - 6:00 PM IST</p>
                 </div>

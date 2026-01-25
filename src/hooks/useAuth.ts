@@ -11,7 +11,9 @@ interface AuthState {
   isSuperAdmin: boolean;
   role: UserRole;
   isLoading: boolean;
-}
+  // True when role verification RPCs have finished (success or failure)
+  isRoleCheckComplete: boolean;
+} 
 
 export const useAuth = () => {
   const [authState, setAuthState] = useState<AuthState>({
@@ -21,24 +23,40 @@ export const useAuth = () => {
     isSuperAdmin: false,
     role: null,
     isLoading: true,
+    isRoleCheckComplete: false,
   });
 
   useEffect(() => {
     let cancelled = false;
 
     const checkRolesWithTimeout = async (userId: string) => {
-      try {
-        return await Promise.race<{ isAdmin: boolean; isSuperAdmin: boolean; role: UserRole }>([
-          checkRoles(userId),
-          new Promise<{ isAdmin: boolean; isSuperAdmin: boolean; role: UserRole }>((resolve) =>
-            setTimeout(() => resolve({ isAdmin: false, isSuperAdmin: false, role: null }), 8000)
-          ),
-        ]);
-      } catch (e) {
-        console.error('Error checking roles:', e);
-        return { isAdmin: false, isSuperAdmin: false, role: null };
+    try {
+      // Race a role check against a short timeout to avoid long waits on slow RPCs.
+      // If the timeout fires, retry once without a timeout to avoid false negatives
+      // (which can cause the app to sign the user out).
+      const result = await Promise.race<any>([
+        checkRoles(userId),
+        new Promise<{ timeout: true }>((resolve) =>
+          setTimeout(() => resolve({ timeout: true }), 8000)
+        ),
+      ]);
+
+      if ((result as any).timeout) {
+        console.warn('Role check timed out, retrying once without timeout for user', userId);
+        try {
+          return await checkRoles(userId);
+        } catch (e) {
+          console.error('Role re-check failed:', e);
+          return { isAdmin: false, isSuperAdmin: false, role: null };
+        }
       }
-    };
+
+      return result as { isAdmin: boolean; isSuperAdmin: boolean; role: UserRole };
+    } catch (e) {
+      console.error('Error checking roles:', e);
+      return { isAdmin: false, isSuperAdmin: false, role: null };
+    }
+  };
 
     // Get initial session
     const getInitialSession = async () => {
@@ -50,9 +68,14 @@ export const useAuth = () => {
 
         if (cancelled) return;
 
+        // Debug: log initial session info
+        console.debug('[useAuth] getInitialSession', { time: new Date().toISOString(), userId: session?.user?.id });
+
         if (session?.user) {
           const roleInfo = await checkRolesWithTimeout(session.user.id);
           if (cancelled) return;
+
+          console.debug('[useAuth] roleInfo (initial)', { userId: session.user.id, roleInfo });
 
           setAuthState({
             user: session.user,
@@ -61,6 +84,7 @@ export const useAuth = () => {
             isSuperAdmin: roleInfo.isSuperAdmin,
             role: roleInfo.role,
             isLoading: false,
+            isRoleCheckComplete: true,
           });
         } else {
           setAuthState({
@@ -70,6 +94,7 @@ export const useAuth = () => {
             isSuperAdmin: false,
             role: null,
             isLoading: false,
+            isRoleCheckComplete: true,
           });
         }
       } catch (e) {
@@ -82,20 +107,26 @@ export const useAuth = () => {
             isSuperAdmin: false,
             role: null,
             isLoading: false,
+            isRoleCheckComplete: true,
           });
         }
       }
-    };
+    }; 
 
     getInitialSession();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
         try {
+          // Debug: log auth change events
+          console.debug('[useAuth] onAuthStateChange', { time: new Date().toISOString(), event, userId: session?.user?.id });
+
           if (session?.user) {
             const roleInfo = await checkRolesWithTimeout(session.user.id);
             if (cancelled) return;
+
+            console.debug('[useAuth] roleInfo (onAuthStateChange)', { userId: session.user.id, roleInfo });
 
             setAuthState({
               user: session.user,
@@ -104,6 +135,7 @@ export const useAuth = () => {
               isSuperAdmin: roleInfo.isSuperAdmin,
               role: roleInfo.role,
               isLoading: false,
+              isRoleCheckComplete: true,
             });
           } else {
             if (cancelled) return;
@@ -114,6 +146,7 @@ export const useAuth = () => {
               isSuperAdmin: false,
               role: null,
               isLoading: false,
+              isRoleCheckComplete: true,
             });
           }
         } catch (e) {
@@ -126,6 +159,7 @@ export const useAuth = () => {
               isSuperAdmin: false,
               role: null,
               isLoading: false,
+              isRoleCheckComplete: true,
             });
           }
         }

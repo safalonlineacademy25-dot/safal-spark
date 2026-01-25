@@ -17,7 +17,8 @@ interface OrderDetailsDialogProps {
 
 const OrderDetailsDialog = ({ order }: OrderDetailsDialogProps) => {
   const [open, setOpen] = useState(false);
-  const { data: orderWithItems, isLoading } = useOrderWithItems(open ? order.id : null);
+  const { data: orderWithItems, isLoading, error } = useOrderWithItems(open ? order.id : null);
+  const display = orderWithItems ?? ({ ...order, order_items: (order as any).order_items ?? [] } as OrderWithItems);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -65,15 +66,19 @@ const OrderDetailsDialog = ({ order }: OrderDetailsDialogProps) => {
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
+        ) : error ? (
+          <div className="text-center py-8 text-destructive">
+            Error loading order: {error?.message || 'Unknown error'}
+          </div>
         ) : orderWithItems ? (
           <div className="space-y-6">
             {/* Status Badges */}
             <div className="flex flex-wrap gap-2">
-              <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium capitalize ${getStatusColor(orderWithItems.status)}`}>
-                Payment: {orderWithItems.status}
+              <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium capitalize ${getStatusColor(display.status)}`}>
+                Payment: {display.status}
               </span>
-              <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium capitalize ${getDeliveryStatusColor(orderWithItems.delivery_status)}`}>
-                Delivery: {orderWithItems.delivery_status || 'pending'}
+              <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium capitalize ${getDeliveryStatusColor(display.delivery_status)}`}>
+                Delivery: {display.delivery_status || 'pending'}
               </span>
             </div>
 
@@ -84,23 +89,23 @@ const OrderDetailsDialog = ({ order }: OrderDetailsDialogProps) => {
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground">Name:</span>
-                  <span className="text-foreground">{orderWithItems.customer_name || 'N/A'}</span>
+                  <span className="text-foreground">{display.customer_name || 'N/A'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground">Email:</span>
-                  <span className="text-foreground">{orderWithItems.customer_email}</span>
+                  <span className="text-foreground">{display.customer_email}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Phone className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground">Phone:</span>
-                  <span className="text-foreground">{orderWithItems.customer_phone}</span>
+                  <span className="text-foreground">{display.customer_phone}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground">Date:</span>
                   <span className="text-foreground">
-                    {orderWithItems.created_at ? format(new Date(orderWithItems.created_at), 'PPp') : 'N/A'}
+                    {display.created_at ? format(new Date(display.created_at), 'PPp') : 'N/A'}
                   </span>
                 </div>
               </div>
@@ -115,11 +120,11 @@ const OrderDetailsDialog = ({ order }: OrderDetailsDialogProps) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                 <div>
                   <span className="text-muted-foreground">Razorpay Order ID:</span>
-                  <p className="text-foreground font-mono text-xs mt-1">{orderWithItems.razorpay_order_id || 'N/A'}</p>
+                  <p className="text-foreground font-mono text-xs mt-1">{display.razorpay_order_id || 'N/A'}</p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Razorpay Payment ID:</span>
-                  <p className="text-foreground font-mono text-xs mt-1">{orderWithItems.razorpay_payment_id || 'N/A'}</p>
+                  <p className="text-foreground font-mono text-xs mt-1">{display.razorpay_payment_id || 'N/A'}</p>
                 </div>
               </div>
             </div>
@@ -138,7 +143,7 @@ const OrderDetailsDialog = ({ order }: OrderDetailsDialogProps) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {orderWithItems.order_items.map((item) => (
+                    {display.order_items.map((item) => (
                       <tr key={item.id} className="border-t border-border">
                         <td className="p-3 text-sm text-foreground">{item.product_name}</td>
                         <td className="p-3 text-sm text-center text-muted-foreground">{item.quantity || 1}</td>
@@ -155,7 +160,7 @@ const OrderDetailsDialog = ({ order }: OrderDetailsDialogProps) => {
                         Total Amount:
                       </td>
                       <td className="p-3 text-sm font-bold text-right price-text">
-                        ₹{orderWithItems.total_amount}
+                        ₹{display.total_amount}
                       </td>
                     </tr>
                   </tfoot>
@@ -173,7 +178,7 @@ const OrderDetailsDialog = ({ order }: OrderDetailsDialogProps) => {
                 {/* Opt-in Status */}
                 <div className="flex items-center gap-2">
                   <span className="text-muted-foreground">Opt-in:</span>
-                  {orderWithItems.whatsapp_optin ? (
+                  {display.whatsapp_optin ? (
                     <span className="inline-flex items-center gap-1 text-secondary">
                       <CheckCircle2 className="h-4 w-4" />
                       Yes
@@ -187,16 +192,16 @@ const OrderDetailsDialog = ({ order }: OrderDetailsDialogProps) => {
                 </div>
 
                 {/* Delivery Status (only show if opted in) */}
-                {orderWithItems.whatsapp_optin && (
+                {display.whatsapp_optin && (
                   <>
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground">Status:</span>
-                      {orderWithItems.delivery_status === 'sent' ? (
+                      {display.delivery_status === 'sent' ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary/10 text-secondary text-xs font-medium">
                           <CheckCircle2 className="h-3 w-3" />
                           Sent
                         </span>
-                      ) : orderWithItems.delivery_status === 'failed' ? (
+                      ) : display.delivery_status === 'failed' ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/10 text-destructive text-xs font-medium">
                           <XCircle className="h-3 w-3" />
                           Failed
@@ -210,10 +215,10 @@ const OrderDetailsDialog = ({ order }: OrderDetailsDialogProps) => {
                     </div>
 
                     {/* Delivery Attempts */}
-                    {(orderWithItems.delivery_attempts ?? 0) > 0 && (
+                    {(display.delivery_attempts ?? 0) > 0 && (
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <span>Attempts:</span>
-                        <span className="font-medium text-foreground">{orderWithItems.delivery_attempts}</span>
+                        <span className="font-medium text-foreground">{display.delivery_attempts}</span>
                       </div>
                     )}
                   </>

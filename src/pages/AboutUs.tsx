@@ -74,7 +74,7 @@ const AboutUs = () => {
                   <MapPin className="h-5 w-5 text-primary mt-0.5 shrink-0" />
                   <div>
                     <p className="font-medium text-foreground">Registered Address</p>
-                    <p className="text-sm text-muted-foreground">Pune, Maharashtra, India</p>
+                    <p className="text-sm text-muted-foreground">Mumbai, India</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
@@ -88,7 +88,7 @@ const AboutUs = () => {
                   <Phone className="h-5 w-5 text-primary mt-0.5 shrink-0" />
                   <div>
                     <p className="font-medium text-foreground">Phone</p>
-                    <p className="text-sm text-muted-foreground">+91 98765 43210</p>
+                    <p className="text-sm text-muted-foreground">+91 7620045446</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
@@ -278,7 +278,7 @@ const AboutUs = () => {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Call Us</p>
-                      <p className="font-medium text-foreground">+91 98765 43210</p>
+                        <p className="font-medium text-foreground">+91 7620045446</p>
                     </div>
                   </div>
                 </div>
@@ -289,7 +289,7 @@ const AboutUs = () => {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Location</p>
-                      <p className="font-medium text-foreground">Pune, Maharashtra, India</p>
+                      <p className="font-medium text-foreground">Mumbai, India</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">

@@ -28,6 +28,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useAuth, signOut } from '@/hooks/useAuth';
 import { useProducts, prefetchProducts } from '@/hooks/useProducts';
 import { useOrders, prefetchOrders } from '@/hooks/useOrders';
@@ -42,6 +43,7 @@ import SettingsTab from '@/components/admin/SettingsTab';
 import PaginationControls from '@/components/admin/PaginationControls';
 import BroadcastHistoryTab from '@/components/admin/BroadcastHistoryTab';
 import PromotionsTab from '@/components/admin/PromotionsTab';
+import ErrorBoundary from '@/components/ui/ErrorBoundary';
 import OrdersChart from '@/components/admin/OrdersChart';
 import { usePagination } from '@/hooks/usePagination';
 import { toast } from 'sonner';
@@ -51,8 +53,24 @@ import { useQueryClient } from '@tanstack/react-query';
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, isAdmin, isSuperAdmin, isLoading: authLoading } = useAuth();
+  const { user, isAdmin, isSuperAdmin, role, isLoading: authLoading, isRoleCheckComplete } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
+
+  // Derive a display name from the user's metadata or email (fallback to id) and a human-friendly role label
+  const formatName = (raw?: string) => {
+    if (!raw) return '';
+    // Replace dots/underscores with spaces and trim
+    const cleaned = String(raw).replace(/[._]+/g, ' ').trim();
+    return cleaned
+      .split(' ')
+      .filter(Boolean)
+      .map((s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase())
+      .join(' ');
+  };
+
+  const userNameRaw = user?.user_metadata?.full_name || user?.user_metadata?.name || (user?.email ? user.email.split('@')[0] : null) || user?.id || '';
+  const userName = formatName(userNameRaw);
+  const roleLabel = role === 'super_admin' ? 'Super Admin' : role === 'admin' ? 'Admin' : role === 'user' ? 'User' : ''; 
   
   // Determine which data needs to be fetched based on active tab
   const needsProducts = activeTab === 'dashboard' || activeTab === 'products';
@@ -61,10 +79,18 @@ const AdminDashboard = () => {
   
   // Only fetch data when the relevant tab is active - improves initial load performance
   const { data: products, isLoading: productsLoading } = useProducts({ enabled: needsProducts });
-  const { data: orders, isLoading: ordersLoading, refetch: refetchOrders } = useOrders({ enabled: needsOrders });
+  const { data: orders, isLoading: ordersLoading, refetch: refetchOrders, isError: ordersError, error: ordersErrorObj } = useOrders({ enabled: needsOrders });
   const { data: customers, isLoading: customersLoading } = useCustomers({ enabled: needsCustomers });
   const [resendingEmail, setResendingEmail] = useState<string | null>(null);
   const [resendingWhatsApp, setResendingWhatsApp] = useState<string | null>(null);
+
+  // Quick order search removed (admin search controls were removed to simplify the UI)
+
+
+
+
+
+
 
   // Prefetch data on tab hover for instant tab switching
   const handleTabHover = useCallback((tabId: string) => {
@@ -111,18 +137,29 @@ const AdminDashboard = () => {
   const emailPagination = usePagination({ data: emailLogs, itemsPerPage: 15 });
 
   useEffect(() => {
-    if (!authLoading) {
+    // Debug: log the auth state whenever this effect runs to track unexpected transitions
+    console.debug('[AdminDashboard] authEffect', { time: new Date().toISOString(), userId: user?.id, email: user?.email, authLoading, isRoleCheckComplete, isAdmin, isSuperAdmin, role });
+
+    // Only enforce redirects after the auth state and role checks are complete.
+    // This avoids a brief window where no user is present and causes an unnecessary redirect loop.
+    if (!authLoading && isRoleCheckComplete) {
       if (!user) {
+        console.warn('[AdminDashboard] redirecting to /admin because user is null');
         navigate('/admin');
       } else if (!isAdmin) {
+        console.warn('[AdminDashboard] user is not admin', { userId: user?.id, email: user?.email, role });
         toast.error('Access denied', {
-          description: 'You do not have admin permissions.',
+          description: `Your user (${user?.email}) does not have admin role. Please contact a Super Admin to grant access.`,
         });
+        // sign out and send back to the admin login
         signOut();
         navigate('/admin');
       }
+    } else if (!authLoading && !isRoleCheckComplete && user) {
+      // If a user exists but role verification is still in progress, log it for debugging
+      console.warn('[AdminDashboard] Awaiting role verification for user', { userId: user?.id, email: user?.email });
     }
-  }, [user, isAdmin, authLoading, navigate]);
+  }, [user, isAdmin, authLoading, isRoleCheckComplete, navigate]);
 
   const handleLogout = async () => {
     await signOut();
@@ -348,8 +385,30 @@ const AdminDashboard = () => {
       <div className="min-h-screen flex items-center justify-center bg-muted/30">
         <div className="text-center space-y-2">
           <p className="text-lg font-semibold text-foreground">Access denied</p>
-          <p className="text-sm text-muted-foreground">Your account does not have admin permissions.</p>
+          <p className="text-sm text-muted-foreground">Your account ({user?.email}) does not have admin permissions.</p>
+          <p className="text-xs text-muted-foreground mt-2">Please contact a Super Admin to grant admin role access.</p>
         </div>
+      </div>
+    );
+  }
+
+  // Check if data fetch errors are permission-related
+  const ordersPermissionDenied = ordersError && ordersErrorObj?.message?.includes('permission');
+
+  if (ordersPermissionDenied) {
+    return (
+      <div className="min-h-screen bg-background p-6">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Data Access Error</AlertTitle>
+          <AlertDescription>
+            Unable to fetch orders and dashboard data. This may indicate a permission issue with your admin role.
+            <br />
+            Error: {String(ordersErrorObj?.message || 'Unknown error')}
+            <br />
+            Please contact a Super Admin or try signing out and back in.
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
@@ -398,6 +457,8 @@ const AdminDashboard = () => {
           <div className="p-4 border-t border-border space-y-1">
             <Link
               to="/"
+              onMouseEnter={() => prefetchProducts(queryClient)}
+              onClick={() => prefetchProducts(queryClient)}
               className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             >
               <Home className="h-5 w-5" />
@@ -421,7 +482,14 @@ const AdminDashboard = () => {
               <div>
                 <h1 className="text-2xl font-bold text-foreground capitalize">{activeTab}</h1>
                 <p className="text-sm text-muted-foreground">
-                  Welcome back! Here's what's happening today.
+                  Welcome back !!
+                  {userName ? (
+                    <span className="ml-2 font-medium text-foreground">{userName}</span>
+                  ) : null}
+                  {roleLabel ? (
+                    <span className="ml-2 text-muted-foreground">• {roleLabel}</span>
+                  ) : null}
+                  {' '}— Here's what's happening today.
                 </p>
               </div>
             </div>
@@ -645,6 +713,37 @@ const AdminDashboard = () => {
                     {orders?.length || 0} total orders
                   </div>
                 </div>
+
+                {ordersError && (
+                  <div className="mt-4">
+                    <Alert variant="destructive" className="flex items-start justify-between">
+                      <div className="flex items-start gap-3">
+                        <div className="pt-1">
+                          <AlertTriangle className="h-5 w-5 text-destructive" />
+                        </div>
+                        <div>
+                          <AlertTitle>Error loading orders</AlertTitle>
+                          <AlertDescription>
+                            {(ordersErrorObj as any)?.message || 'Failed to fetch orders.'}
+                          </AlertDescription>
+                        </div>
+                      </div>
+                      <div className="shrink-0">
+                        <Button variant="outline" size="sm" onClick={() => refetchOrders()}>
+                          <RefreshCw className="h-4 w-4 mr-2" /> Retry
+                        </Button>
+                      </div>
+                    </Alert>
+                  </div>
+                )}
+
+
+
+
+
+
+
+
 
                 <div className="bg-card rounded-xl border border-border overflow-hidden">
                   {ordersLoading ? (
@@ -1072,7 +1171,11 @@ const AdminDashboard = () => {
               </motion.div>
             )}
 
-            {activeTab === 'broadcasts' && <BroadcastHistoryTab isSuperAdmin={isSuperAdmin} />}
+            {activeTab === 'broadcasts' && (
+              <ErrorBoundary>
+                <BroadcastHistoryTab isSuperAdmin={isSuperAdmin} />
+              </ErrorBoundary>
+            )}
 
             {activeTab === 'email' && (
               <motion.div
@@ -1180,7 +1283,11 @@ const AdminDashboard = () => {
               <DBSnapshotTab isActive={activeTab === 'dbsnapshot'} />
             )}
 
-            {activeTab === 'promotions' && <PromotionsTab isSuperAdmin={isSuperAdmin} />}
+            {activeTab === 'promotions' && (
+              <ErrorBoundary>
+                <PromotionsTab isSuperAdmin={isSuperAdmin} />
+              </ErrorBoundary>
+            )}
 
             {activeTab === 'settings' && <SettingsTab />}
           </div>

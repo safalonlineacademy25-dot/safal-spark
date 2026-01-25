@@ -39,9 +39,9 @@ const TermsOfService = () => {
                 <h2 className="text-xl font-semibold text-foreground">2. Business Information</h2>
                 <div className="bg-muted/50 p-4 rounded-lg border border-border">
                   <p className="font-semibold text-foreground mb-2">Safal Online Academy</p>
-                  <p>Registered Address: Pune, Maharashtra, India</p>
+                  <p>Registered Address: Mumbai, India</p>
                   <p>Email: safalonlineacademy@gmail.com</p>
-                  <p>Phone: +91 98765 43210</p>
+                  <p>Phone: +91 7620045446</p>
                   <p>Website: https://safalonline.in</p>
                 </div>
               </section>
@@ -173,7 +173,7 @@ const TermsOfService = () => {
               <section className="space-y-4">
                 <h2 className="text-xl font-semibold text-foreground">14. Governing Law and Jurisdiction</h2>
                 <p>
-                  These Terms and Conditions are governed by and construed in accordance with the laws of India. Any disputes arising from or relating to these Terms shall be subject to the exclusive jurisdiction of the courts in Pune, Maharashtra, India.
+                  These Terms and Conditions are governed by and construed in accordance with the laws of India. Any disputes arising from or relating to these Terms shall be subject to the exclusive jurisdiction of the courts in Mumbai, India.
                 </p>
               </section>
 
@@ -191,9 +191,9 @@ const TermsOfService = () => {
                 </p>
                 <div className="bg-muted/50 p-4 rounded-lg border border-border">
                   <p className="font-semibold text-foreground mb-2">Safal Online Academy</p>
-                  <p>Address: Pune, Maharashtra, India</p>
+                  <p>Address: Mumbai, India</p>
                   <p>Email: safalonlineacademy@gmail.com</p>
-                  <p>Phone: +91 98765 43210</p>
+                  <p>Phone: +91 7620045446</p>
                   <p>Website: https://safalonline.in</p>
                   <p className="mt-2 text-sm">Support Hours: Monday to Saturday, 10:00 AM - 6:00 PM IST</p>
                 </div>

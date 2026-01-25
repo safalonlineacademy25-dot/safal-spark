@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Allowed origins for CORS
 const ALLOWED_ORIGINS = [
-  'https://lovable.dev',
+  'https://safalonlinesolutions.com',
   'https://hujuqkhbdptsdnbnkslo.supabase.co',
   'http://localhost:5173',
   'http://localhost:8080',

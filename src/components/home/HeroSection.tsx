@@ -26,7 +26,7 @@ const HeroSection = () => {
             <motion.div variants={staggerItem} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-foreground/10 backdrop-blur-sm border border-primary-foreground/20 mb-6">
               <span className="flex h-2 w-2 rounded-full bg-secondary animate-pulse" />
               <span className="text-sm font-medium text-primary-foreground">
-                Trusted by 10,000+ Students
+                Trusted by 1000+ Students
               </span>
             </motion.div>
 
