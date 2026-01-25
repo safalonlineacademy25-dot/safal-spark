@@ -89,7 +89,19 @@ export default function PromotionBroadcastDialog({ onBroadcastSent }: PromotionB
 
     setSending(true);
     try {
+      // Get the current session for auth
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        toast.error('You must be logged in to send promotions');
+        setSending(false);
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('send-promotion', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: {
           promotionTitle: promotionTitle.trim(),
           promotionMessage: promotionMessage.trim(),
