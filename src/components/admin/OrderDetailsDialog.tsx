@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { useOrderWithItems, Order } from '@/hooks/useOrders';
+import { useOrderWithItems, Order, OrderWithItems } from '@/hooks/useOrders';
 import { format } from 'date-fns';
 
 interface OrderDetailsDialogProps {

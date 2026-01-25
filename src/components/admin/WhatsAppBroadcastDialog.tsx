@@ -187,10 +187,22 @@ export default function WhatsAppBroadcastDialog({ trigger, onBroadcastSent }: Wh
 
     setSending(true);
     try {
+      // Get the current session for auth
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        toast.error('You must be logged in to send broadcasts');
+        setSending(false);
+        return;
+      }
+
       // Generate the product link (same format as QR codes)
       const productLink = `${window.location.origin}/cart?add=${selectedProductId}`;
       
       const { data, error } = await supabase.functions.invoke('broadcast-whatsapp', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: {
           category,
           productName: productName.trim(),

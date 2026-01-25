@@ -28,13 +28,13 @@ interface BroadcastHistoryTabProps {
 export default function BroadcastHistoryTab({ isSuperAdmin = false }: BroadcastHistoryTabProps) {
   // Use react-query to cache broadcast logs and control refetch behavior
   const {
-    data: logs = [],
+    data: logs = [] as BroadcastLog[],
     isLoading,
     isError,
     error,
     refetch,
     isFetching,
-  } = useQuery({
+  } = useQuery<BroadcastLog[]>({
     queryKey: ['broadcast_logs'],
     queryFn: async () => {
       console.debug('[BroadcastHistoryTab] fetching broadcast_logs');
@@ -43,18 +43,18 @@ export default function BroadcastHistoryTab({ isSuperAdmin = false }: BroadcastH
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return (data || []).map((log: any) => ({ ...log, errors: Array.isArray(log.errors) ? log.errors : [] }));
+      return (data || []).map((log: any) => ({ ...log, errors: Array.isArray(log.errors) ? log.errors : [] })) as BroadcastLog[];
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
-    cacheTime: 1000 * 60 * 15, // 15 minutes
+    gcTime: 1000 * 60 * 15, // 15 minutes (renamed from cacheTime in v5)
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });
 
   const pagination = usePagination({ data: logs, itemsPerPage: 15 });
 
-  const totalSent = logs.reduce((sum, log) => sum + log.sent_count, 0);
-  const totalFailed = logs.reduce((sum, log) => sum + log.failed_count, 0);
+  const totalSent = logs.reduce((sum: number, log: BroadcastLog) => sum + log.sent_count, 0);
+  const totalFailed = logs.reduce((sum: number, log: BroadcastLog) => sum + log.failed_count, 0);
 
   if (isLoading) {
     return (

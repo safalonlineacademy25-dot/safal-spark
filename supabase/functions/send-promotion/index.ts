@@ -3,11 +3,27 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// Allowed origins for CORS
+const ALLOWED_ORIGINS = [
+  'https://safalonlinesolutions.com',
+  'https://hujuqkhbdptsdnbnkslo.supabase.co',
+  'http://localhost:5173',
+  'http://localhost:8080',
+];
+
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const allowedOrigin = origin && ALLOWED_ORIGINS.some(allowed => 
+    origin === allowed || origin.endsWith('.lovable.app') || origin.endsWith('.lovableproject.com')
+  ) ? origin : ALLOWED_ORIGINS[0];
+  
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Credentials': 'true',
+  };
+}
 
 // Helper function to get settings from database
 async function getSettings(supabase: any): Promise<Record<string, string>> {
@@ -48,12 +64,58 @@ function formatPhoneNumber(phone: string): string {
 }
 
 serve(async (req: Request): Promise<Response> => {
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // === AUTHENTICATION CHECK ===
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error("send-promotion: No authorization header");
+      return new Response(
+        JSON.stringify({ success: false, error: 'Authorization required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Use anon key client to verify the user's JWT
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: { user }, error: userError } = await authClient.auth.getUser();
+
+    if (userError || !user) {
+      console.error("send-promotion: Invalid user token", userError?.message);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Use service role client for admin check and data operations
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Check if user has admin access
+    const { data: hasAccess, error: accessError } = await supabase.rpc('has_admin_access', {
+      _user_id: user.id,
+    });
+
+    if (accessError || !hasAccess) {
+      console.error("send-promotion: User lacks admin access", accessError?.message);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Admin access required' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`send-promotion: Authorized admin user ${user.id}`);
+
     const { promotionTitle, promotionMessage, ctaLink, templateName }: PromotionRequest = await req.json();
 
     console.log("🎉 Starting promotional broadcast");
@@ -62,7 +124,6 @@ serve(async (req: Request): Promise<Response> => {
     console.log("CTA Link:", ctaLink || "Not provided");
     console.log("Template:", templateName);
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const settings = await getSettings(supabase);
     
     const whatsappToken = settings['whatsapp_access_token'] || Deno.env.get("WHATSAPP_ACCESS_TOKEN");
@@ -201,6 +262,7 @@ serve(async (req: Request): Promise<Response> => {
         sent_count: results.sent,
         failed_count: results.failed,
         errors: results.errors.slice(0, 20),
+        created_by: user.id,
       });
       console.log("✅ Promotion logged to database");
     } catch (logError: any) {
@@ -222,7 +284,7 @@ serve(async (req: Request): Promise<Response> => {
   } catch (error: any) {
     console.error("Promotion error:", error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ success: false, error: "An error occurred while processing the promotion" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

@@ -37,13 +37,13 @@ interface PromotionsTabProps {
 
 export default function PromotionsTab({ isSuperAdmin = false }: PromotionsTabProps) {
   const {
-    data: logs = [],
+    data: logs = [] as PromotionLog[],
     isLoading,
     isError,
     error,
     refetch,
     isFetching,
-  } = useQuery({
+  } = useQuery<PromotionLog[]>({
     queryKey: ['promotion_logs'],
     queryFn: async () => {
       console.debug('[PromotionsTab] fetching promotion_logs');
@@ -55,7 +55,7 @@ export default function PromotionsTab({ isSuperAdmin = false }: PromotionsTabPro
       return (data as unknown as PromotionLog[]) || [];
     },
     staleTime: 1000 * 60 * 5,
-    cacheTime: 1000 * 60 * 15,
+    gcTime: 1000 * 60 * 15, // renamed from cacheTime in v5
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });
@@ -64,8 +64,8 @@ export default function PromotionsTab({ isSuperAdmin = false }: PromotionsTabPro
 
   // Calculate stats
   const totalBroadcasts = logs.length;
-  const totalSent = logs.reduce((sum, log) => sum + log.sent_count, 0);
-  const totalFailed = logs.reduce((sum, log) => sum + log.failed_count, 0);
+  const totalSent = logs.reduce((sum: number, log: PromotionLog) => sum + log.sent_count, 0);
+  const totalFailed = logs.reduce((sum: number, log: PromotionLog) => sum + log.failed_count, 0);
   const successRate = totalSent + totalFailed > 0 
     ? ((totalSent / (totalSent + totalFailed)) * 100).toFixed(1) 
     : '0';
