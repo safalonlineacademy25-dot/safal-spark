@@ -117,51 +117,61 @@ export const useAuth = () => {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        try {
-          // Debug: log auth change events
-          console.debug('[useAuth] onAuthStateChange', { time: new Date().toISOString(), event, userId: session?.user?.id });
+      (event, session) => {
+        // Debug: log auth change events
+        console.debug('[useAuth] onAuthStateChange', { time: new Date().toISOString(), event, userId: session?.user?.id });
 
-          if (session?.user) {
-            const roleInfo = await checkRolesWithTimeout(session.user.id);
+        // Handle sign-out events synchronously to avoid race conditions
+        // when multiple tabs are open
+        if (event === 'SIGNED_OUT' || !session?.user) {
+          if (cancelled) return;
+          setAuthState({
+            user: null,
+            session: null,
+            isAdmin: false,
+            isSuperAdmin: false,
+            role: null,
+            isLoading: false,
+            isRoleCheckComplete: true,
+          });
+          return;
+        }
+
+        // For sign-in events, defer role checks to avoid deadlocks
+        // Using setTimeout(0) prevents blocking the auth state change callback
+        if (session?.user) {
+          setTimeout(async () => {
             if (cancelled) return;
+            try {
+              const roleInfo = await checkRolesWithTimeout(session.user.id);
+              if (cancelled) return;
 
-            console.debug('[useAuth] roleInfo (onAuthStateChange)', { userId: session.user.id, roleInfo });
+              console.debug('[useAuth] roleInfo (onAuthStateChange)', { userId: session.user.id, roleInfo });
 
-            setAuthState({
-              user: session.user,
-              session,
-              isAdmin: roleInfo.isAdmin,
-              isSuperAdmin: roleInfo.isSuperAdmin,
-              role: roleInfo.role,
-              isLoading: false,
-              isRoleCheckComplete: true,
-            });
-          } else {
-            if (cancelled) return;
-            setAuthState({
-              user: null,
-              session: null,
-              isAdmin: false,
-              isSuperAdmin: false,
-              role: null,
-              isLoading: false,
-              isRoleCheckComplete: true,
-            });
-          }
-        } catch (e) {
-          console.error('Auth change error:', e);
-          if (!cancelled) {
-            setAuthState({
-              user: session?.user ?? null,
-              session: session ?? null,
-              isAdmin: false,
-              isSuperAdmin: false,
-              role: null,
-              isLoading: false,
-              isRoleCheckComplete: true,
-            });
-          }
+              setAuthState({
+                user: session.user,
+                session,
+                isAdmin: roleInfo.isAdmin,
+                isSuperAdmin: roleInfo.isSuperAdmin,
+                role: roleInfo.role,
+                isLoading: false,
+                isRoleCheckComplete: true,
+              });
+            } catch (e) {
+              console.error('Auth change error:', e);
+              if (!cancelled) {
+                setAuthState({
+                  user: session.user,
+                  session,
+                  isAdmin: false,
+                  isSuperAdmin: false,
+                  role: null,
+                  isLoading: false,
+                  isRoleCheckComplete: true,
+                });
+              }
+            }
+          }, 0);
         }
       }
     );
