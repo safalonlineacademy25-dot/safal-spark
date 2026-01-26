@@ -1,4 +1,5 @@
-import { useQuery, QueryClient } from '@tanstack/react-query';
+import { useQuery, QueryClient, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -41,6 +42,33 @@ const fetchOrdersWithItems = async () => {
 
 export const useOrders = (options: UseOrdersOptions = {}) => {
   const { enabled = true } = options;
+  const queryClient = useQueryClient();
+  
+  // Set up real-time subscription for orders table
+  useEffect(() => {
+    if (!enabled) return;
+
+    const channel = supabase
+      .channel('orders-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'orders',
+        },
+        (payload) => {
+          console.debug('[useOrders] Realtime event:', payload.eventType);
+          // Invalidate and refetch orders when any change occurs
+          queryClient.invalidateQueries({ queryKey: ['orders'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [enabled, queryClient]);
   
   return useQuery({
     queryKey: ['orders'],
