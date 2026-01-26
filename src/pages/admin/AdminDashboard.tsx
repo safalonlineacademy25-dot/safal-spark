@@ -162,8 +162,15 @@ const AdminDashboard = () => {
   }, [user, isAdmin, authLoading, isRoleCheckComplete, navigate]);
 
   const handleLogout = async () => {
-    await signOut();
-    navigate('/admin');
+    try {
+      // Navigate first to avoid any state updates during signout
+      navigate('/admin');
+      await signOut();
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Force navigate even on error
+      navigate('/admin');
+    }
   };
 
   const sidebarItems = [
