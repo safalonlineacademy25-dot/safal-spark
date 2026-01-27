@@ -1,11 +1,8 @@
 import { Link } from 'react-router-dom';
 import { BookOpen, Mail, Phone, MapPin } from 'lucide-react';
-
 const Footer = () => {
   const currentYear = new Date().getFullYear();
-
-  return (
-    <footer className="bg-foreground text-background">
+  return <footer className="bg-foreground text-background">
       <div className="container-custom section-padding">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
           {/* Brand */}
@@ -27,21 +24,23 @@ const Footer = () => {
           <div>
             <h4 className="font-semibold mb-4">Legal</h4>
             <ul className="space-y-2">
-              {[
-                { label: 'Privacy Policy', href: '/privacy' },
-                { label: 'Terms of Service', href: '/terms' },
-                { label: 'Refund Policy', href: '/refund' },
-                { label: 'Disclaimer', href: '/disclaimer' },
-              ].map((link) => (
-                <li key={link.href}>
-                  <Link
-                    to={link.href}
-                    className="text-background/70 hover:text-primary transition-colors text-sm"
-                  >
+              {[{
+              label: 'Privacy Policy',
+              href: '/privacy'
+            }, {
+              label: 'Terms of Service',
+              href: '/terms'
+            }, {
+              label: 'Refund Policy',
+              href: '/refund'
+            }, {
+              label: 'Disclaimer',
+              href: '/disclaimer'
+            }].map(link => <li key={link.href}>
+                  <Link to={link.href} className="text-background/70 hover:text-primary transition-colors text-sm">
                     {link.label}
                   </Link>
-                </li>
-              ))}
+                </li>)}
             </ul>
           </div>
 
@@ -53,14 +52,8 @@ const Footer = () => {
                 <Mail className="h-4 w-4 text-primary" />
                 support@safalonlinesolutions.com
               </li>
-              <li className="flex items-center gap-3 text-sm text-background/70">
-                <Phone className="h-4 w-4 text-primary" />
-                +91 76200 45446
-              </li>
-              <li className="flex items-start gap-3 text-sm text-background/70">
-                <MapPin className="h-4 w-4 text-primary mt-0.5" />
-                Mumbai, India
-              </li>
+              
+              
             </ul>
           </div>
         </div>
@@ -78,8 +71,6 @@ const Footer = () => {
           </div>
         </div>
       </div>
-    </footer>
-  );
+    </footer>;
 };
-
 export default Footer;
