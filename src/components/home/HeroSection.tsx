@@ -3,6 +3,10 @@ import { Link } from 'react-router-dom';
 import { Download, FileText, Shield, IndianRupee } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { staggerContainer, staggerItem } from '@/hooks/useScrollAnimation';
+import studentStudy1 from '@/assets/student-study-1.jpg';
+import studentStudy2 from '@/assets/student-study-2.jpg';
+import studentStudy3 from '@/assets/student-study-3.jpg';
+
 const HeroSection = () => {
   const trustPoints = [{
     icon: Download,
@@ -14,6 +18,9 @@ const HeroSection = () => {
     icon: IndianRupee,
     text: 'Student-Friendly Pricing'
   }];
+
+  const studentImages = [studentStudy1, studentStudy2, studentStudy3];
+
   return <section className="relative overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 hero-gradient opacity-95" />
@@ -59,10 +66,25 @@ const HeroSection = () => {
               </span>
             </motion.h1>
 
-            {/* Subheadline */}
-            <motion.p variants={staggerItem} className="text-lg md:text-xl text-primary-foreground/80 mb-8 max-w-2xl mx-auto">
-              High-quality notes and mock question papers designed specifically for Indian college students preparing for SSC, Banking, Railways & more.
-            </motion.p>
+            {/* Student Images Gallery */}
+            <motion.div variants={staggerItem} className="flex justify-center gap-4 mb-8">
+              {studentImages.map((img, index) => (
+                <motion.div
+                  key={index}
+                  className="w-24 h-24 md:w-32 md:h-32 rounded-xl overflow-hidden border-2 border-primary-foreground/20 shadow-lg"
+                  initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ delay: 0.5 + index * 0.15, duration: 0.4 }}
+                  whileHover={{ scale: 1.05, y: -5 }}
+                >
+                  <img
+                    src={img}
+                    alt={`Student studying ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </motion.div>
+              ))}
+            </motion.div>
 
             {/* CTA Buttons */}
             <motion.div variants={staggerItem} className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
