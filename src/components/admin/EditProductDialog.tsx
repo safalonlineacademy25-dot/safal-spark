@@ -38,13 +38,23 @@ const EditProductDialog = ({ product, children }: EditProductDialogProps) => {
   const productFileInputRef = useRef<HTMLInputElement>(null);
 
   const updateProduct = useUpdateProduct();
-  const { uploadImage, isUploading: isImageUploading } = useImageUpload();
+  const { uploadImage, isUploading: isImageUploading, cancelUpload: cancelImageUpload } = useImageUpload();
   const { 
     uploadFile, 
-    cancelUpload, 
+    cancelUpload: cancelFileUpload, 
     isUploading: isFileUploading, 
     progress: fileProgress 
   } = useProductFileUpload();
+
+  // Cancel uploads when dialog closes
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      // Cancel any ongoing uploads when closing
+      cancelImageUpload();
+      cancelFileUpload();
+    }
+    setOpen(newOpen);
+  };
 
   useEffect(() => {
     if (open && product) {
@@ -119,7 +129,7 @@ const EditProductDialog = ({ product, children }: EditProductDialogProps) => {
     if (productFileInputRef.current) {
       productFileInputRef.current.value = '';
     }
-    cancelUpload();
+    cancelFileUpload();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -149,7 +159,7 @@ const EditProductDialog = ({ product, children }: EditProductDialogProps) => {
   const displayFileName = selectedFile?.name || existingFileName;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {children || (
           <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -332,7 +342,7 @@ const EditProductDialog = ({ product, children }: EditProductDialogProps) => {
               fileSize={selectedFile?.size || 0}
               isUploading={isFileUploading}
               progress={fileProgress}
-              onCancel={cancelUpload}
+              onCancel={cancelFileUpload}
               onRemove={removeProductFile}
               onSelect={() => productFileInputRef.current?.click()}
               disabled={isFileUploading}
