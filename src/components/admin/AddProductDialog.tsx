@@ -37,13 +37,25 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
   const productFileInputRef = useRef<HTMLInputElement>(null);
 
   const addProduct = useAddProduct();
-  const { uploadImage, isUploading: isImageUploading } = useImageUpload();
+  const { uploadImage, isUploading: isImageUploading, cancelUpload: cancelImageUpload } = useImageUpload();
   const { 
     uploadFile, 
-    cancelUpload, 
+    cancelUpload: cancelFileUpload, 
     isUploading: isFileUploading, 
     progress: fileProgress 
   } = useProductFileUpload();
+
+  // Cancel uploads and cleanup when dialog closes
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      cancelImageUpload();
+      cancelFileUpload();
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    }
+    setOpen(newOpen);
+  };
 
   // Defer upload - only show local preview instantly
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,7 +94,7 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
     if (productFileInputRef.current) {
       productFileInputRef.current.value = '';
     }
-    cancelUpload();
+    cancelFileUpload();
   };
 
 
@@ -175,7 +187,7 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {children || (
           <Button>
@@ -359,7 +371,7 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
               fileSize={selectedFile?.size || 0}
               isUploading={isFileUploading}
               progress={fileProgress}
-              onCancel={cancelUpload}
+              onCancel={cancelFileUpload}
               onRemove={removeProductFile}
               onSelect={() => productFileInputRef.current?.click()}
               disabled={isFileUploading}
