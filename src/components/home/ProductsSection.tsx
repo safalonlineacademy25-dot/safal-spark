@@ -85,7 +85,7 @@ const ProductsSection = () => {
   };
 
   return (
-    <section id="products" className="section-padding bg-muted/30">
+    <section id="products" className="section-padding bg-gradient-to-b from-primary/5 via-secondary/5 to-background">
       <div className="container-custom">
         {/* Header */}
         <motion.div
