@@ -238,33 +238,77 @@ const Header = () => {
           <div className="flex items-center gap-3">
             <Link to="/cart" className="relative">
               <motion.div
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                whileHover={{ 
+                  scale: 1.2,
+                  rotateY: 15,
+                  rotateX: -10,
+                  z: 50
+                }}
+                whileTap={{ scale: 0.9 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 15 }}
                 className="relative"
+                style={{ perspective: 1000, transformStyle: 'preserve-3d' }}
               >
-                <Button variant="ghost" size="icon" className="relative group">
-                  <ShoppingCart className="h-5 w-5 transition-transform group-hover:scale-110" />
+                <motion.div
+                  className="relative p-3 rounded-xl bg-gradient-to-br from-primary/20 via-secondary/15 to-primary/10 shadow-lg group cursor-pointer"
+                  whileHover={{
+                    boxShadow: '0 15px 35px -5px hsl(var(--primary) / 0.4), 0 10px 20px -5px hsl(var(--secondary) / 0.3)',
+                  }}
+                  style={{ transformStyle: 'preserve-3d' }}
+                >
+                  {/* 3D glow effect behind icon */}
                   <motion.div
-                    className="absolute inset-0 bg-primary/10 rounded-md"
-                    initial={{ scale: 0, opacity: 0 }}
-                    whileHover={{ scale: 1, opacity: 1 }}
-                    transition={{ duration: 0.2 }}
+                    className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary/30 to-secondary/20 blur-md"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    whileHover={{ opacity: 1, scale: 1.1 }}
+                    transition={{ duration: 0.3 }}
+                    style={{ transform: 'translateZ(-10px)' }}
                   />
-                </Button>
+                  
+                  {/* Icon with 3D transform */}
+                  <motion.div
+                    initial={{ rotateY: 0 }}
+                    whileHover={{ 
+                      rotateY: [0, -10, 10, 0],
+                      scale: 1.15
+                    }}
+                    transition={{ duration: 0.5 }}
+                    style={{ transformStyle: 'preserve-3d' }}
+                  >
+                    <ShoppingCart className="h-6 w-6 text-primary drop-shadow-md relative z-10" />
+                  </motion.div>
+                  
+                  {/* Shine effect */}
+                  <motion.div
+                    className="absolute inset-0 rounded-xl bg-gradient-to-tr from-transparent via-white/20 to-transparent"
+                    initial={{ x: '-100%', opacity: 0 }}
+                    whileHover={{ x: '100%', opacity: 1 }}
+                    transition={{ duration: 0.6, ease: 'easeInOut' }}
+                  />
+                </motion.div>
+                
+                {/* Cart count badge with 3D effect */}
                 {itemCount > 0 && (
                   <motion.span
                     key={itemCount}
-                    initial={{ scale: 0 }}
+                    initial={{ scale: 0, y: 10 }}
                     animate={{ 
-                      scale: [0, 1.3, 0.9, 1.1, 1],
-                      rotate: [0, 10, -10, 5, 0]
+                      scale: [0, 1.4, 0.9, 1.15, 1],
+                      rotate: [0, 15, -15, 8, 0],
+                      y: 0
+                    }}
+                    whileHover={{
+                      scale: 1.2,
+                      y: -3
                     }}
                     transition={{ 
                       duration: 0.5,
                       ease: "easeOut"
                     }}
-                    className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground shadow-md border-2 border-background"
+                    className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-secondary to-secondary/80 text-xs font-bold text-secondary-foreground shadow-lg border-2 border-background"
+                    style={{
+                      boxShadow: '0 4px 12px hsl(var(--secondary) / 0.5), inset 0 1px 0 rgba(255,255,255,0.3)'
+                    }}
                   >
                     {itemCount}
                   </motion.span>
