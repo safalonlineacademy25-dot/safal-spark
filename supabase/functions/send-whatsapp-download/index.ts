@@ -166,7 +166,7 @@ serve(async (req: Request): Promise<Response> => {
       template: {
         name: templateName,
         language: {
-          code: "en"
+          code: "en_US"
         },
         components: [
           {
