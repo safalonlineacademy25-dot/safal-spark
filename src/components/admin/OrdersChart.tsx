@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { format, subDays, subWeeks, subMonths, startOfDay, startOfWeek, startOfMonth, isSameDay, isSameWeek, isSameMonth } from 'date-fns';
+import { format, subDays, subWeeks, subMonths, startOfDay, startOfWeek, startOfMonth, endOfDay, endOfWeek, endOfMonth, isWithinInterval } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area, Legend, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -75,11 +75,15 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
 
   const chartData = useMemo(() => {
     const now = new Date();
-
     const data: Record<string, any>[] = [];
 
-    const getOrdersForPeriod = (filterFn: (orderDate: Date) => boolean) => {
-      return orders.filter(o => o.created_at && filterFn(new Date(o.created_at)));
+    // Helper to get orders within a specific date interval
+    const getOrdersInInterval = (start: Date, end: Date) => {
+      return orders.filter(o => {
+        if (!o.created_at) return false;
+        const orderDate = new Date(o.created_at);
+        return isWithinInterval(orderDate, { start, end });
+      });
     };
 
     const getCategoryCount = (periodOrders: OrderWithItems[], category: string) => {
@@ -95,17 +99,19 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
     };
 
     if (timeRange === 'daily') {
+      // Last 14 days
       for (let i = 13; i >= 0; i--) {
         const date = subDays(now, i);
         const dayStart = startOfDay(date);
-        const dayOrders = getOrdersForPeriod(d => isSameDay(d, dayStart));
+        const dayEnd = endOfDay(date);
+        const dayOrders = getOrdersInInterval(dayStart, dayEnd);
         const paidOrders = dayOrders.filter(o => o.status === 'paid' || o.status === 'completed');
         
         const dataPoint: Record<string, any> = {
           label: format(date, 'MMM d'),
           orders: dayOrders.length,
           revenue: paidOrders.reduce((sum, o) => sum + Number(o.total_amount), 0),
-          date,
+          date: dayStart,
         };
 
         categories.forEach(cat => {
@@ -115,10 +121,12 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
         data.push(dataPoint);
       }
     } else if (timeRange === 'weekly') {
+      // Last 8 weeks
       for (let i = 7; i >= 0; i--) {
         const date = subWeeks(now, i);
         const weekStart = startOfWeek(date, { weekStartsOn: 1 });
-        const weekOrders = getOrdersForPeriod(d => isSameWeek(d, weekStart, { weekStartsOn: 1 }));
+        const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
+        const weekOrders = getOrdersInInterval(weekStart, weekEnd);
         const paidOrders = weekOrders.filter(o => o.status === 'paid' || o.status === 'completed');
         
         const dataPoint: Record<string, any> = {
@@ -135,10 +143,12 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
         data.push(dataPoint);
       }
     } else {
+      // Last 6 months
       for (let i = 5; i >= 0; i--) {
         const date = subMonths(now, i);
         const monthStart = startOfMonth(date);
-        const monthOrders = getOrdersForPeriod(d => isSameMonth(d, monthStart));
+        const monthEnd = endOfMonth(date);
+        const monthOrders = getOrdersInInterval(monthStart, monthEnd);
         const paidOrders = monthOrders.filter(o => o.status === 'paid' || o.status === 'completed');
         
         const dataPoint: Record<string, any> = {
