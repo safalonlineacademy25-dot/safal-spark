@@ -576,7 +576,7 @@ const Cart = () => {
                       <Checkbox
                         id="whatsapp"
                         checked={whatsappOptIn}
-                        onCheckedChange={(checked) => setWhatsappOptIn(checked as boolean)}
+                        disabled
                       />
                       <label htmlFor="whatsapp" className="text-sm text-muted-foreground cursor-pointer">
                         I agree to receive my download link on WhatsApp
