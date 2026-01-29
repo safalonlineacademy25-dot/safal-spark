@@ -250,7 +250,7 @@ const Header = () => {
                 style={{ perspective: 1000, transformStyle: 'preserve-3d' }}
               >
                 <motion.div
-                  className="relative p-3 rounded-xl bg-gradient-to-br from-primary/20 via-secondary/15 to-primary/10 shadow-lg group cursor-pointer"
+                  className="relative p-4 rounded-xl bg-gradient-to-br from-primary/20 via-secondary/15 to-primary/10 shadow-lg group cursor-pointer"
                   whileHover={{
                     boxShadow: '0 15px 35px -5px hsl(var(--primary) / 0.4), 0 10px 20px -5px hsl(var(--secondary) / 0.3)',
                   }}
@@ -275,7 +275,7 @@ const Header = () => {
                     transition={{ duration: 0.5 }}
                     style={{ transformStyle: 'preserve-3d' }}
                   >
-                    <ShoppingCart className="h-6 w-6 text-primary drop-shadow-md relative z-10" />
+                    <ShoppingCart className="h-7 w-7 text-primary drop-shadow-md relative z-10" />
                   </motion.div>
                   
                   {/* Shine effect */}
@@ -305,7 +305,7 @@ const Header = () => {
                       duration: 0.5,
                       ease: "easeOut"
                     }}
-                    className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-secondary to-secondary/80 text-xs font-bold text-secondary-foreground shadow-lg border-2 border-background"
+                    className="absolute -top-2 -right-2 flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-secondary to-secondary/80 text-sm font-bold text-secondary-foreground shadow-lg border-2 border-background"
                     style={{
                       boxShadow: '0 4px 12px hsl(var(--secondary) / 0.5), inset 0 1px 0 rgba(255,255,255,0.3)'
                     }}
@@ -322,7 +322,7 @@ const Header = () => {
                 whileTap={{ scale: 0.98 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 17 }}
               >
-                <Button variant="outline" size="sm" className="relative overflow-hidden group">
+                <Button variant="outline" size="lg" className="relative overflow-hidden group text-base font-semibold px-6">
                   <span className="relative z-10">Admin</span>
                   <motion.div
                     className="absolute inset-0 bg-primary/5"
