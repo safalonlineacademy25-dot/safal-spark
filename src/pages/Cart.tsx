@@ -578,8 +578,8 @@ const Cart = () => {
                         checked={whatsappOptIn}
                         disabled
                       />
-                      <label htmlFor="whatsapp" className="text-sm text-muted-foreground cursor-pointer">
-                        I agree to receive my download link on WhatsApp
+                      <label htmlFor="whatsapp" className="text-sm text-muted-foreground">
+                        Order delivery notification will send on WhatsApp
                       </label>
                     </div>
                   )}
