@@ -250,7 +250,7 @@ const Header = () => {
                 style={{ perspective: 1000, transformStyle: 'preserve-3d' }}
               >
                 <motion.div
-                  className="relative p-4 rounded-xl bg-gradient-to-br from-primary/20 via-secondary/15 to-primary/10 shadow-lg group cursor-pointer"
+                  className="relative p-4 rounded-xl bg-background border border-border shadow-lg group cursor-pointer"
                   whileHover={{
                     boxShadow: '0 15px 35px -5px hsl(var(--primary) / 0.4), 0 10px 20px -5px hsl(var(--secondary) / 0.3)',
                   }}
