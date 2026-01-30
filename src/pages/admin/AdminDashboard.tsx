@@ -26,6 +26,7 @@ import {
   Home,
   History,
   Sparkles,
+  Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -43,6 +44,7 @@ import SettingsTab from '@/components/admin/SettingsTab';
 import PaginationControls from '@/components/admin/PaginationControls';
 import BroadcastHistoryTab from '@/components/admin/BroadcastHistoryTab';
 import PromotionsTab from '@/components/admin/PromotionsTab';
+import DataPurgingTab from '@/components/admin/DataPurgingTab';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
 import OrdersChart from '@/components/admin/OrdersChart';
 import { usePagination } from '@/hooks/usePagination';
@@ -184,6 +186,7 @@ const AdminDashboard = () => {
     { id: 'broadcasts', label: 'Broadcast History', icon: History },
     { id: 'promotions', label: 'Promotions', icon: Sparkles },
     { id: 'dbsnapshot', label: 'DB Snapshot', icon: Database },
+    ...(isSuperAdmin ? [{ id: 'datapurging', label: 'Data Purging', icon: Trash2 }] : []),
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
@@ -1288,6 +1291,12 @@ const AdminDashboard = () => {
             {activeTab === 'promotions' && (
               <ErrorBoundary>
                 <PromotionsTab isSuperAdmin={isSuperAdmin} />
+              </ErrorBoundary>
+            )}
+
+            {activeTab === 'datapurging' && isSuperAdmin && (
+              <ErrorBoundary>
+                <DataPurgingTab />
               </ErrorBoundary>
             )}
 
