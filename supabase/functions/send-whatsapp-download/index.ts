@@ -258,62 +258,137 @@ serve(async (req: Request): Promise<Response> => {
 
     console.log("Sending template message:", JSON.stringify(templateMessage, null, 2));
 
-    // Send WhatsApp template message via Meta Cloud API
-    const response = await fetch(
-      `https://graph.facebook.com/v18.0/${whatsappPhoneId}/messages`,
-      {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${whatsappToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(templateMessage),
-      }
-    );
+    // Send WhatsApp template message via Meta Cloud API with retry logic
+    let whatsappSuccess = false;
+    let whatsappError: string | null = null;
+    let messageId: string | null = null;
+    let retryCount = 0;
+    const maxRetries = 2;
 
-    const result = await response.json();
-    console.log("WhatsApp API response:", JSON.stringify(result, null, 2));
+    while (retryCount <= maxRetries && !whatsappSuccess) {
+      try {
+        console.log(`WhatsApp send attempt ${retryCount + 1}/${maxRetries + 1}`);
+        
+        const response = await fetch(
+          `https://graph.facebook.com/v18.0/${whatsappPhoneId}/messages`,
+          {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${whatsappToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(templateMessage),
+          }
+        );
 
-    if (!response.ok) {
-      const errorMsg = result.error?.message || "Failed to send WhatsApp message";
-      const errorCode = result.error?.code;
-      
-      // Provide helpful error messages for common issues
-      if (errorCode === 132000) {
-        console.error("Template not found or not approved. Please check template name in Meta Business Manager.");
-      } else if (errorCode === 131047) {
-        console.error("Template parameters mismatch. Check that parameters match your approved template structure.");
+        const result = await response.json();
+        console.log("WhatsApp API response:", JSON.stringify(result, null, 2));
+
+        if (response.ok && result.messages?.[0]?.id) {
+          whatsappSuccess = true;
+          messageId = result.messages[0].id;
+          console.log("✅ WhatsApp template message sent successfully");
+        } else {
+          const errorCode = result.error?.code;
+          const errorMessage = result.error?.message || "Unknown error";
+          
+          // Handle specific error codes
+          if (errorCode === 133010) {
+            // Account not registered on WhatsApp - don't retry
+            whatsappError = "Recipient phone number is not registered on WhatsApp";
+            console.warn(`⚠️ ${whatsappError}. Skipping WhatsApp delivery.`);
+            break;
+          } else if (errorCode === 132000) {
+            // Template not found - don't retry
+            whatsappError = "WhatsApp template not found or not approved";
+            console.error(`❌ ${whatsappError}. Please check template name in Meta Business Manager.`);
+            break;
+          } else if (errorCode === 131047) {
+            // Parameter mismatch - don't retry
+            whatsappError = "Template parameters mismatch";
+            console.error(`❌ ${whatsappError}. Check that parameters match your approved template structure.`);
+            break;
+          } else if (errorCode === 131031 || errorCode === 131053) {
+            // Rate limited or temporarily unavailable - retry
+            whatsappError = `WhatsApp API temporarily unavailable (${errorCode})`;
+            console.warn(`⚠️ ${whatsappError}. Will retry...`);
+            retryCount++;
+            if (retryCount <= maxRetries) {
+              await new Promise(resolve => setTimeout(resolve, 2000 * retryCount));
+            }
+          } else {
+            // Other errors
+            whatsappError = `${errorMessage} (code: ${errorCode})`;
+            console.error(`❌ WhatsApp error: ${whatsappError}`);
+            retryCount++;
+            if (retryCount <= maxRetries) {
+              await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+            }
+          }
+        }
+      } catch (fetchError: any) {
+        whatsappError = `Network error: ${fetchError.message}`;
+        console.error(`❌ WhatsApp fetch error: ${whatsappError}`);
+        retryCount++;
+        if (retryCount <= maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        }
       }
-      
-      throw new Error(`${errorMsg} (code: ${errorCode})`);
     }
 
-    // Update order delivery status
+    // Update order delivery status based on WhatsApp result
+    const deliveryStatus = whatsappSuccess ? "sent" : "failed";
+    const deliveryAttempts = retryCount + 1;
+
     await supabase
       .from("orders")
       .update({ 
-        delivery_status: "sent",
-        delivery_attempts: 1 
+        delivery_status: deliveryStatus,
+        delivery_attempts: deliveryAttempts
       })
       .eq("id", order.id);
 
-    console.log("✅ WhatsApp template message sent successfully");
-
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        messageId: result.messages?.[0]?.id,
-        template: templateName,
-        orderId: order.id,
-        orderNumber: order.order_number
-      }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    // Always return success for the overall flow (email was already sent)
+    // WhatsApp is a secondary notification channel
+    if (whatsappSuccess) {
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          messageId,
+          template: templateName,
+          orderId: order.id,
+          orderNumber: order.order_number,
+          whatsappDelivered: true
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    } else {
+      // WhatsApp failed but we don't fail the overall request
+      // Email delivery is the primary channel
+      console.warn(`⚠️ WhatsApp delivery failed after ${deliveryAttempts} attempts: ${whatsappError}`);
+      console.log("📧 Customer should have received email with download link.");
+      
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          orderId: order.id,
+          orderNumber: order.order_number,
+          whatsappDelivered: false,
+          whatsappError: whatsappError,
+          fallbackMessage: "Email delivery is the primary channel. Customer can download from email."
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
   } catch (error: any) {
-    console.error("Error sending WhatsApp download:", error);
+    console.error("❌ Critical error in send-whatsapp-download:", error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ 
+        success: false, 
+        error: error.message,
+        suggestion: "Please check order status and retry if needed."
+      }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
