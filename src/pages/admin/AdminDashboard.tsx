@@ -341,14 +341,9 @@ const AdminDashboard = () => {
       const order = orders?.find(o => o.id === orderId);
       if (!order) throw new Error('Order not found');
 
-      const products = await getOrCreateDownloadTokens(orderId);
-
       const { data, error } = await supabase.functions.invoke('send-whatsapp-download', {
         body: {
-          orderId,
-          customerPhone: order.customer_phone,
-          customerName: order.customer_name,
-          products,
+          email: order.customer_email,
         },
       });
 

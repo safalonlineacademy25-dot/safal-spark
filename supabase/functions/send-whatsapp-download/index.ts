@@ -45,13 +45,7 @@ async function getSettings(supabase: any): Promise<Record<string, string>> {
 }
 
 interface WhatsAppDownloadRequest {
-  orderId: string;
-  customerPhone: string;
-  customerName?: string;
-  products: Array<{
-    name: string;
-    downloadToken: string;
-  }>;
+  email: string;
 }
 
 function formatPhoneNumber(phone: string): string {
@@ -81,14 +75,52 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { orderId, customerPhone, customerName, products }: WhatsAppDownloadRequest = await req.json();
+    const { email }: WhatsAppDownloadRequest = await req.json();
 
-    console.log("Sending WhatsApp download to:", customerPhone);
-    console.log("Order ID:", orderId);
-    console.log("Products:", products);
+    if (!email) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Email is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-    // Create Supabase client and get settings
+    console.log("Looking up order for email:", email);
+
+    // Create Supabase client
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // Find the most recent paid order for this email
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .select(`
+        id,
+        order_number,
+        customer_phone,
+        customer_name,
+        customer_email,
+        status,
+        order_items (
+          product_id,
+          product_name
+        )
+      `)
+      .eq('customer_email', email)
+      .in('status', ['paid', 'completed'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (orderError || !order) {
+      console.error("Order lookup error:", orderError);
+      return new Response(
+        JSON.stringify({ success: false, error: "No paid order found for this email" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("Found order:", order.order_number);
+    console.log("Customer phone:", order.customer_phone);
+
     const settings = await getSettings(supabase);
     
     // Get WhatsApp credentials from database, fallback to env, then to test values
@@ -101,8 +133,50 @@ serve(async (req: Request): Promise<Response> => {
     console.log("WhatsApp enabled:", whatsappEnabled, "Phone ID:", whatsappPhoneId.substring(0, 5) + "...");
     console.log("Using template:", templateName);
 
-    const formattedPhone = formatPhoneNumber(customerPhone);
+    const formattedPhone = formatPhoneNumber(order.customer_phone);
     console.log("Formatted phone:", formattedPhone);
+
+    // Get or create download tokens for each product
+    const products: Array<{ name: string; downloadToken: string }> = [];
+    
+    for (const item of order.order_items || []) {
+      if (!item.product_id) continue;
+      
+      // Check for existing valid token
+      const { data: existingToken } = await supabase
+        .from('download_tokens')
+        .select('token')
+        .eq('order_id', order.id)
+        .eq('product_id', item.product_id)
+        .gt('expires_at', new Date().toISOString())
+        .limit(1)
+        .single();
+
+      let token: string;
+      
+      if (existingToken) {
+        token = existingToken.token;
+      } else {
+        // Create new token
+        token = crypto.randomUUID();
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
+        
+        await supabase.from('download_tokens').insert({
+          order_id: order.id,
+          product_id: item.product_id,
+          token,
+          expires_at: expiresAt.toISOString(),
+        });
+      }
+      
+      products.push({
+        name: item.product_name,
+        downloadToken: token,
+      });
+    }
+
+    console.log("Products with tokens:", products);
 
     // Generate download links
     const baseUrl = "https://hujuqkhbdptsdnbnkslo.supabase.co/functions/v1/download-file";
@@ -137,7 +211,7 @@ serve(async (req: Request): Promise<Response> => {
     if (whatsappToken.includes("dummy") || whatsappToken.includes("test")) {
       console.log("⚠️ Using dummy token - WhatsApp not actually sent");
       console.log("Template would be sent to:", formattedPhone);
-      console.log("Template parameters:", { customerName, productsDisplay, orderId, primaryDownloadUrl });
+      console.log("Template parameters:", { customerName: order.customer_name, productsDisplay, orderId: order.order_number, primaryDownloadUrl });
       
       return new Response(
         JSON.stringify({ 
@@ -146,7 +220,7 @@ serve(async (req: Request): Promise<Response> => {
           preview: {
             to: formattedPhone,
             template: templateName,
-            parameters: { customerName, productsDisplay, orderId, primaryDownloadUrl },
+            parameters: { customerName: order.customer_name, productsDisplay, orderId: order.order_number, primaryDownloadUrl },
             downloadLinks
           }
         }),
@@ -174,7 +248,7 @@ serve(async (req: Request): Promise<Response> => {
             parameters: [
               {
                 type: "text",
-                text: customerName || "Customer"
+                text: order.customer_name || "Customer"
               },
               {
                 type: "text",
@@ -182,7 +256,7 @@ serve(async (req: Request): Promise<Response> => {
               },
               {
                 type: "text",
-                text: orderId
+                text: order.order_number
               }
             ]
           },
@@ -240,7 +314,7 @@ serve(async (req: Request): Promise<Response> => {
         delivery_status: "sent",
         delivery_attempts: 1 
       })
-      .eq("id", orderId);
+      .eq("id", order.id);
 
     console.log("✅ WhatsApp template message sent successfully");
 
@@ -248,7 +322,9 @@ serve(async (req: Request): Promise<Response> => {
       JSON.stringify({ 
         success: true, 
         messageId: result.messages?.[0]?.id,
-        template: templateName 
+        template: templateName,
+        orderId: order.id,
+        orderNumber: order.order_number
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
