@@ -204,15 +204,7 @@ serve(async (req: Request): Promise<Response> => {
     
     for (const recipient of recipients) {
       try {
-        // Template: promotional_message
-        // Variables: {{1}} = customer_name, {{2}} = promotion_title, {{3}} = promotion_message, {{4}} = cta_link
-        const templateParameters = [
-          { type: "text", text: recipient.name },
-          { type: "text", text: promotionTitle },
-          { type: "text", text: promotionMessage.trim() },
-          { type: "text", text: ctaLink }
-        ];
-
+        // Template expects only one parameter: {{1}} = message (from UI text box)
         const templateMessage = {
           messaging_product: "whatsapp",
           recipient_type: "individual",
@@ -224,7 +216,9 @@ serve(async (req: Request): Promise<Response> => {
             components: [
               {
                 type: "body",
-                parameters: templateParameters
+                parameters: [
+                  { type: "text", text: promotionMessage.trim() }
+                ]
               }
             ]
           }
