@@ -45,11 +45,13 @@ async function getSettings(supabase: any): Promise<Record<string, string>> {
   return settings;
 }
 
+// Hardcoded defaults for promotion
+const DEFAULT_PROMOTION_TITLE = "Special Offer from Safal Resources";
+const DEFAULT_CTA_LINK = "https://safalonlinesolutions.com";
+const DEFAULT_TEMPLATE_NAME = "promotional_message";
+
 interface PromotionRequest {
-  promotionTitle: string;
   promotionMessage: string;
-  ctaLink?: string | null;
-  templateName: string;
 }
 
 function formatPhoneNumber(phone: string): string {
@@ -116,12 +118,24 @@ serve(async (req: Request): Promise<Response> => {
 
     console.log(`send-promotion: Authorized admin user ${user.id}`);
 
-    const { promotionTitle, promotionMessage, ctaLink, templateName }: PromotionRequest = await req.json();
+    const { promotionMessage }: PromotionRequest = await req.json();
+
+    if (!promotionMessage || !promotionMessage.trim()) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Promotion message is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Use hardcoded defaults
+    const promotionTitle = DEFAULT_PROMOTION_TITLE;
+    const ctaLink = DEFAULT_CTA_LINK;
+    const templateName = DEFAULT_TEMPLATE_NAME;
 
     console.log("🎉 Starting promotional broadcast");
     console.log("Title:", promotionTitle);
     console.log("Message:", promotionMessage);
-    console.log("CTA Link:", ctaLink || "Not provided");
+    console.log("CTA Link:", ctaLink);
     console.log("Template:", templateName);
 
     const settings = await getSettings(supabase);
@@ -193,8 +207,8 @@ serve(async (req: Request): Promise<Response> => {
         const templateParameters = [
           { type: "text", text: recipient.name },
           { type: "text", text: promotionTitle },
-          { type: "text", text: promotionMessage },
-          { type: "text", text: ctaLink || "Visit our website" }
+          { type: "text", text: promotionMessage.trim() },
+          { type: "text", text: ctaLink }
         ];
 
         const templateMessage = {
@@ -255,8 +269,8 @@ serve(async (req: Request): Promise<Response> => {
     try {
       await supabase.from('promotion_logs').insert({
         promotion_title: promotionTitle,
-        promotion_message: promotionMessage,
-        cta_link: ctaLink || null,
+        promotion_message: promotionMessage.trim(),
+        cta_link: ctaLink,
         template_name: templateName,
         recipients_count: recipients.length,
         sent_count: results.sent,
