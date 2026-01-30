@@ -230,8 +230,8 @@ serve(async (req: Request): Promise<Response> => {
 
     // Build template message body for Meta WhatsApp Cloud API
     // Template: soa_live_normaldeliverymsg
-    // Variables: {{1}} = email
-    // Button: {{1}} = download_token
+    // Message: "Dear customer, we have send the document to your email id-{{1}}. Please download from your mail."
+    // Variables: {{1}} = customer email
     const templateMessage = {
       messaging_product: "whatsapp",
       recipient_type: "individual",
@@ -249,17 +249,6 @@ serve(async (req: Request): Promise<Response> => {
               {
                 type: "text",
                 text: email
-              }
-            ]
-          },
-          {
-            type: "button",
-            sub_type: "url",
-            index: "0",
-            parameters: [
-              {
-                type: "text",
-                text: products[0]?.downloadToken || ""
               }
             ]
           }
