@@ -321,20 +321,9 @@ const AdminLogin = () => {
                   </div>
 
                   <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-sm font-medium text-foreground">
-                        Password
-                      </label>
-                      {authMode === 'login' && (
-                        <button
-                          type="button"
-                          onClick={() => setAuthMode('forgot')}
-                          className="text-xs text-primary hover:underline"
-                        >
-                          Forgot password?
-                        </button>
-                      )}
-                    </div>
+                    <label className="text-sm font-medium text-foreground mb-1.5 block">
+                      Password
+                    </label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                       <input
