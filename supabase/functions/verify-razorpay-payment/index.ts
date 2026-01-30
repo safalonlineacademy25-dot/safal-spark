@@ -137,10 +137,7 @@ async function sendDownloadEmail(
 
 // Helper function to send WhatsApp download
 async function sendWhatsAppDownload(
-  orderId: string,
-  customerPhone: string,
-  customerName: string | null,
-  products: Array<{ name: string; downloadToken: string }>,
+  customerEmail: string,
   whatsappOptin: boolean
 ): Promise<{ success: boolean; error?: string }> {
   // Only send if customer opted in
@@ -150,7 +147,7 @@ async function sendWhatsAppDownload(
   }
 
   try {
-    console.log("Sending WhatsApp download to:", customerPhone);
+    console.log("Sending WhatsApp download for email:", customerEmail);
     
     const response = await fetch(`${supabaseUrl}/functions/v1/send-whatsapp-download`, {
       method: 'POST',
@@ -159,10 +156,7 @@ async function sendWhatsAppDownload(
         'Authorization': `Bearer ${supabaseServiceKey}`,
       },
       body: JSON.stringify({
-        orderId,
-        customerPhone,
-        customerName,
-        products,
+        email: customerEmail,
       }),
     });
 
@@ -304,10 +298,7 @@ serve(async (req) => {
 
       // Send WhatsApp (only if opted in)
       const whatsappResult = await sendWhatsAppDownload(
-        order_id,
-        order.customer_phone,
-        order.customer_name,
-        productDownloads,
+        order.customer_email,
         order.whatsapp_optin || false
       );
       deliveryResults.whatsapp = whatsappResult;
