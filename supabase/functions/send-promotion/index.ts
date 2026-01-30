@@ -51,6 +51,7 @@ const DEFAULT_CTA_LINK = "https://safalonlinesolutions.com";
 const DEFAULT_TEMPLATE_NAME = "promotional_message";
 
 interface PromotionRequest {
+  templateName?: string;
   promotionMessage: string;
 }
 
@@ -118,7 +119,7 @@ serve(async (req: Request): Promise<Response> => {
 
     console.log(`send-promotion: Authorized admin user ${user.id}`);
 
-    const { promotionMessage }: PromotionRequest = await req.json();
+    const { templateName, promotionMessage }: PromotionRequest = await req.json();
 
     if (!promotionMessage || !promotionMessage.trim()) {
       return new Response(
@@ -127,16 +128,17 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // Use hardcoded defaults
+    // Use provided template name or fallback to default
+    const finalTemplateName = templateName?.trim() || DEFAULT_TEMPLATE_NAME;
+    // Use hardcoded defaults for other fields
     const promotionTitle = DEFAULT_PROMOTION_TITLE;
     const ctaLink = DEFAULT_CTA_LINK;
-    const templateName = DEFAULT_TEMPLATE_NAME;
 
     console.log("🎉 Starting promotional broadcast");
+    console.log("Template:", finalTemplateName);
     console.log("Title:", promotionTitle);
     console.log("Message:", promotionMessage);
     console.log("CTA Link:", ctaLink);
-    console.log("Template:", templateName);
 
     const settings = await getSettings(supabase);
     
@@ -217,7 +219,7 @@ serve(async (req: Request): Promise<Response> => {
           to: recipient.phone,
           type: "template",
           template: {
-            name: templateName,
+            name: finalTemplateName,
             language: { code: "en" },
             components: [
               {
@@ -271,7 +273,7 @@ serve(async (req: Request): Promise<Response> => {
         promotion_title: promotionTitle,
         promotion_message: promotionMessage.trim(),
         cta_link: ctaLink,
-        template_name: templateName,
+        template_name: finalTemplateName,
         recipients_count: recipients.length,
         sent_count: results.sent,
         failed_count: results.failed,

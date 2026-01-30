@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Loader2, Send, Sparkles, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -26,7 +27,8 @@ export default function PromotionBroadcastDialog({ onBroadcastSent }: PromotionB
   const [recipientCount, setRecipientCount] = useState<number | null>(null);
   const [loadingCount, setLoadingCount] = useState(false);
 
-  // Form state - only promotionMessage now
+  // Form state
+  const [templateName, setTemplateName] = useState('promotional_message');
   const [promotionMessage, setPromotionMessage] = useState('');
 
   // Fetch recipient count when dialog opens
@@ -56,10 +58,16 @@ export default function PromotionBroadcastDialog({ onBroadcastSent }: PromotionB
   };
 
   const resetForm = () => {
+    setTemplateName('promotional_message');
     setPromotionMessage('');
   };
 
   const handleSend = async () => {
+    if (!templateName.trim()) {
+      toast.error('Please enter a template name');
+      return;
+    }
+    
     if (!promotionMessage.trim()) {
       toast.error('Please enter a promotion message');
       return;
@@ -86,6 +94,7 @@ export default function PromotionBroadcastDialog({ onBroadcastSent }: PromotionB
           Authorization: `Bearer ${session.access_token}`,
         },
         body: {
+          templateName: templateName.trim(),
           promotionMessage: promotionMessage.trim(),
         },
       });
@@ -130,6 +139,20 @@ export default function PromotionBroadcastDialog({ onBroadcastSent }: PromotionB
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {/* Template Name */}
+          <div className="space-y-2">
+            <Label htmlFor="templateName">Template Name *</Label>
+            <Input
+              id="templateName"
+              placeholder="promotional_message"
+              value={templateName}
+              onChange={(e) => setTemplateName(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Meta-approved WhatsApp template name
+            </p>
+          </div>
+
           {/* Promotion Message */}
           <div className="space-y-2">
             <Label htmlFor="promotionMessage">Message *</Label>
@@ -141,7 +164,7 @@ export default function PromotionBroadcastDialog({ onBroadcastSent }: PromotionB
               rows={5}
             />
             <p className="text-xs text-muted-foreground">
-              Details about new products, features, or special offers
+              This value will be sent to the WhatsApp API as the message parameter
             </p>
           </div>
 
@@ -174,7 +197,7 @@ export default function PromotionBroadcastDialog({ onBroadcastSent }: PromotionB
           {/* Info Box */}
           <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
             <p className="font-medium text-foreground mb-1">Note:</p>
-            <p>This will send a promotional message using the default template to all opted-in customers.</p>
+            <p>This will send a promotional message using the specified template to all opted-in customers.</p>
           </div>
         </div>
 
@@ -184,7 +207,7 @@ export default function PromotionBroadcastDialog({ onBroadcastSent }: PromotionB
           </Button>
           <Button 
             onClick={handleSend} 
-            disabled={sending || recipientCount === 0 || loadingCount || !promotionMessage.trim()}
+            disabled={sending || recipientCount === 0 || loadingCount || !templateName.trim() || !promotionMessage.trim()}
             className="gap-2"
           >
             {sending ? (
