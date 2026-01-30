@@ -1,7 +1,7 @@
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
-import { Trash2, ShoppingBag, ArrowRight, Shield, MessageCircle, Mail, Loader2 } from 'lucide-react';
+import { Trash2, ShoppingBag, ArrowRight, Shield, MessageCircle, Mail, Loader2, AlertCircle } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
@@ -545,7 +545,10 @@ const Cart = () => {
                         }`}
                       />
                       {emailError && (
-                        <p className="text-xs text-destructive mt-1">{emailError}</p>
+                        <div className="flex items-center gap-1.5 mt-2 px-3 py-2 rounded-md bg-destructive/10 border border-destructive/30 animate-shake">
+                          <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0" />
+                          <p className="text-sm font-medium text-destructive">{emailError}</p>
+                        </div>
                       )}
                     </div>
                     <div>
@@ -568,7 +571,10 @@ const Cart = () => {
                         }`}
                       />
                       {phoneError && (
-                        <p className="text-xs text-destructive mt-1">{phoneError}</p>
+                        <div className="flex items-center gap-1.5 mt-2 px-3 py-2 rounded-md bg-destructive/10 border border-destructive/30 animate-shake">
+                          <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0" />
+                          <p className="text-sm font-medium text-destructive">{phoneError}</p>
+                        </div>
                       )}
                     </div>
                   </div>
