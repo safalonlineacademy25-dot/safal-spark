@@ -327,7 +327,12 @@ export default function OrdersChart({ orders }: OrdersChartProps) {
       {categoryPieData.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base font-medium">Category Distribution</CardTitle>
+            <CardTitle className="text-base font-medium">
+              Category Distribution 
+              <span className="text-sm font-normal text-muted-foreground ml-2">
+                ({timeRange === 'daily' ? 'Last 14 days' : timeRange === 'weekly' ? 'Last 8 weeks' : 'Last 6 months'})
+              </span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col md:flex-row items-center gap-6">
