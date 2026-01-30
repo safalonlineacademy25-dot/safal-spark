@@ -170,19 +170,27 @@ const Cart = () => {
   }, [searchParams, allProducts, items, addItem, setSearchParams, toast]);
 
   const validateForm = (): boolean => {
-    setEmailError('');
-    setPhoneError('');
+    let hasErrors = false;
     
-    const result = checkoutSchema.safeParse({ email, phone });
-    
-    if (!result.success) {
-      const errors = result.error.flatten().fieldErrors;
-      if (errors.email?.[0]) setEmailError(errors.email[0]);
-      if (errors.phone?.[0]) setPhoneError(errors.phone[0]);
-      return false;
+    // Validate email separately
+    const emailResult = z.string().trim().min(1, 'Email address is required').email('Please enter a valid email address').max(255, 'Email must be less than 255 characters').safeParse(email);
+    if (!emailResult.success) {
+      setEmailError(emailResult.error.errors[0]?.message || 'Email address is required');
+      hasErrors = true;
+    } else {
+      setEmailError('');
     }
     
-    return true;
+    // Validate phone separately
+    const phoneResult = z.string().trim().min(1, 'Phone number is required').min(10, 'Phone number must be at least 10 digits').max(15, 'Phone number must be less than 15 digits').regex(/^\+?[0-9]{10,15}$/, 'Please enter a valid phone number (digits only, 10-15 characters)').safeParse(phone);
+    if (!phoneResult.success) {
+      setPhoneError(phoneResult.error.errors[0]?.message || 'Phone number is required');
+      hasErrors = true;
+    } else {
+      setPhoneError('');
+    }
+    
+    return !hasErrors;
   };
 
   const verifyPayment = useCallback(async (
@@ -313,11 +321,6 @@ const Cart = () => {
     
     if (!validateForm()) {
       console.log('[Cart] Form validation failed');
-      toast({
-        title: 'Please fix the errors',
-        description: 'Check your email and phone number.',
-        variant: 'destructive',
-      });
       return;
     }
     
