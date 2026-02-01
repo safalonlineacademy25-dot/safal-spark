@@ -102,15 +102,24 @@ async function verifyRazorpaySignature(
   }
 }
 
+// Helper function to delay execution (for spacing out emails)
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // Helper function to send download email
 async function sendDownloadEmail(
   orderId: string,
   customerEmail: string,
   customerName: string | null,
-  products: Array<{ name: string; downloadToken: string }>
+  products: Array<{ name: string; downloadToken: string }>,
+  isComboPackEmail = false,
+  comboPackName?: string,
+  emailIndex?: number,
+  totalEmails?: number
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    console.log("Sending download email to:", customerEmail);
+    console.log("Sending download email to:", customerEmail, "isCombo:", isComboPackEmail);
     
     const response = await fetch(`${supabaseUrl}/functions/v1/send-download-email`, {
       method: 'POST',
@@ -123,6 +132,10 @@ async function sendDownloadEmail(
         customerEmail,
         customerName,
         products,
+        isComboPackEmail,
+        comboPackName,
+        emailIndex,
+        totalEmails,
       }),
     });
 
@@ -242,7 +255,7 @@ serve(async (req) => {
 
     console.log("Payment verified, order updated:", order.id, "Status:", order.status);
 
-    // Get order items with product names for download token generation
+    // Get order items with product details
     const { data: orderItems, error: itemsError } = await supabase
       .from('order_items')
       .select('product_id, product_name')
@@ -252,42 +265,117 @@ serve(async (req) => {
       console.error("Error fetching order items:", itemsError);
     }
 
-    // Generate download tokens for each product
+    // For each order item, check if it's a combo pack
     const productDownloads: Array<{ name: string; downloadToken: string }> = [];
+    const comboPackEmails: Array<{
+      productName: string;
+      files: Array<{ name: string; downloadToken: string; fileOrder: number }>;
+    }> = [];
     
     if (orderItems && orderItems.length > 0) {
-      const tokens = orderItems.map((item: any) => {
-        const token = crypto.randomUUID();
-        productDownloads.push({
-          name: item.product_name,
-          downloadToken: token,
-        });
-        return {
-          order_id: order_id,
-          product_id: item.product_id,
-          token: token,
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
-          download_count: 0,
-        };
-      });
-
-      const { error: tokenError } = await supabase
-        .from('download_tokens')
-        .insert(tokens);
-
-      if (tokenError) {
-        console.error("Error creating download tokens:", tokenError);
-      } else {
-        console.log("Download tokens created:", tokens.length);
+      for (const item of orderItems) {
+        if (!item.product_id) continue;
+        
+        // Get product details including category
+        const { data: product, error: productError } = await supabase
+          .from('products')
+          .select('id, name, category, file_url')
+          .eq('id', item.product_id)
+          .single();
+          
+        if (productError || !product) {
+          console.error("Error fetching product:", productError);
+          continue;
+        }
+        
+        // Check if it's a combo pack
+        if (product.category === 'combo-packs') {
+          // Get combo pack files
+          const { data: comboFiles, error: comboFilesError } = await supabase
+            .from('combo_pack_files')
+            .select('*')
+            .eq('product_id', item.product_id)
+            .order('file_order', { ascending: true });
+            
+          if (comboFilesError) {
+            console.error("Error fetching combo pack files:", comboFilesError);
+            continue;
+          }
+          
+          if (comboFiles && comboFiles.length > 0) {
+            console.log(`Found ${comboFiles.length} files for combo pack: ${product.name}`);
+            
+            // Create download tokens for each combo file
+            const comboFileTokens: Array<{ name: string; downloadToken: string; fileOrder: number }> = [];
+            
+            for (const comboFile of comboFiles) {
+              const token = crypto.randomUUID();
+              
+              // Insert download token for combo file
+              // We use a special format: product_id is the main product, but we store file info
+              const { error: tokenError } = await supabase
+                .from('download_tokens')
+                .insert({
+                  order_id: order_id,
+                  product_id: item.product_id,
+                  token: token,
+                  expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                  download_count: 0,
+                });
+                
+              if (tokenError) {
+                console.error("Error creating combo file download token:", tokenError);
+                continue;
+              }
+              
+              comboFileTokens.push({
+                name: comboFile.file_name,
+                downloadToken: token,
+                fileOrder: comboFile.file_order,
+              });
+            }
+            
+            comboPackEmails.push({
+              productName: product.name,
+              files: comboFileTokens,
+            });
+          }
+        } else {
+          // Regular product - single file
+          const token = crypto.randomUUID();
+          
+          const { error: tokenError } = await supabase
+            .from('download_tokens')
+            .insert({
+              order_id: order_id,
+              product_id: item.product_id,
+              token: token,
+              expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+              download_count: 0,
+            });
+            
+          if (tokenError) {
+            console.error("Error creating download token:", tokenError);
+            continue;
+          }
+          
+          productDownloads.push({
+            name: item.product_name,
+            downloadToken: token,
+          });
+        }
       }
     }
 
+    console.log("Regular products:", productDownloads.length);
+    console.log("Combo packs:", comboPackEmails.length);
+
     // Send download links via email and WhatsApp
     let deliveryStatus = 'pending';
-    const deliveryResults: { email?: any; whatsapp?: any } = {};
+    const deliveryResults: { email?: any; whatsapp?: any; comboEmails?: any[] } = {};
 
+    // Send email for regular products
     if (productDownloads.length > 0) {
-      // Send email (always attempt)
       const emailResult = await sendDownloadEmail(
         order_id,
         order.customer_email,
@@ -295,18 +383,71 @@ serve(async (req) => {
         productDownloads
       );
       deliveryResults.email = emailResult;
+      
+      if (emailResult.success) {
+        deliveryStatus = 'sent';
+      }
+    }
 
-      // Send WhatsApp (only if opted in)
+    // Send series of emails for combo packs
+    if (comboPackEmails.length > 0) {
+      deliveryResults.comboEmails = [];
+      
+      for (const comboPack of comboPackEmails) {
+        const totalEmails = comboPack.files.length;
+        
+        for (let i = 0; i < comboPack.files.length; i++) {
+          const file = comboPack.files[i];
+          const emailIndex = i + 1;
+          
+          // Add a small delay between emails to avoid rate limiting
+          if (i > 0) {
+            await delay(2000); // 2 second delay between emails
+          }
+          
+          const emailResult = await sendDownloadEmail(
+            order_id,
+            order.customer_email,
+            order.customer_name,
+            [{ name: file.name, downloadToken: file.downloadToken }],
+            true, // isComboPackEmail
+            comboPack.productName,
+            emailIndex,
+            totalEmails
+          );
+          
+          deliveryResults.comboEmails!.push({
+            productName: comboPack.productName,
+            fileName: file.name,
+            emailIndex,
+            totalEmails,
+            ...emailResult,
+          });
+          
+          if (emailResult.success) {
+            deliveryStatus = 'sent';
+          }
+        }
+      }
+    }
+
+    // Send WhatsApp (only if opted in)
+    if (productDownloads.length > 0 || comboPackEmails.length > 0) {
       const whatsappResult = await sendWhatsAppDownload(
         order.customer_email,
         order.whatsapp_optin || false
       );
       deliveryResults.whatsapp = whatsappResult;
 
-      // Determine overall delivery status (must be: pending, sent, failed)
-      if (emailResult.success || (order.whatsapp_optin && whatsappResult.success)) {
+      // Determine overall delivery status
+      const hasSuccessfulDelivery = 
+        deliveryResults.email?.success || 
+        deliveryResults.comboEmails?.some((e: any) => e.success) ||
+        (order.whatsapp_optin && whatsappResult.success);
+        
+      if (hasSuccessfulDelivery) {
         deliveryStatus = 'sent';
-      } else {
+      } else if (!hasSuccessfulDelivery && (productDownloads.length > 0 || comboPackEmails.length > 0)) {
         deliveryStatus = 'failed';
       }
 

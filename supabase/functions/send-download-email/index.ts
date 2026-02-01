@@ -51,7 +51,20 @@ interface DownloadEmailRequest {
   products: Array<{
     name: string;
     downloadToken: string;
+    isComboFile?: boolean;
+    fileNumber?: number;
+    totalFiles?: number;
   }>;
+  // For combo packs - send multiple emails
+  isComboPackEmail?: boolean;
+  comboPackName?: string;
+  emailIndex?: number;
+  totalEmails?: number;
+}
+
+// Helper to delay execution
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 serve(async (req: Request): Promise<Response> => {
@@ -64,11 +77,21 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { orderId, customerEmail, customerName, products }: DownloadEmailRequest = await req.json();
+    const { 
+      orderId, 
+      customerEmail, 
+      customerName, 
+      products,
+      isComboPackEmail,
+      comboPackName,
+      emailIndex,
+      totalEmails
+    }: DownloadEmailRequest = await req.json();
 
     console.log("Sending download email to:", customerEmail);
     console.log("Order ID:", orderId);
     console.log("Products:", products);
+    console.log("Is combo pack email:", isComboPackEmail);
 
     // Create Supabase client and get settings
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -84,69 +107,152 @@ serve(async (req: Request): Promise<Response> => {
     const baseUrl = "https://hujuqkhbdptsdnbnkslo.supabase.co/functions/v1/download-file";
     const downloadLinks = products.map(p => ({
       name: p.name,
-      url: `${baseUrl}?token=${p.downloadToken}`
+      url: `${baseUrl}?token=${p.downloadToken}`,
+      isComboFile: p.isComboFile,
+      fileNumber: p.fileNumber,
+      totalFiles: p.totalFiles
     }));
 
-    // Build email HTML
-    const productLinksHtml = downloadLinks.map(link => `
-      <tr>
-        <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
-          <strong>${link.name}</strong>
-          <br />
-          <a href="${link.url}" style="color: #2563eb; text-decoration: none;">
-            Download Now →
-          </a>
-        </td>
-      </tr>
-    `).join("");
+    // Build email subject and HTML based on whether it's a combo pack series email
+    let emailSubject: string;
+    let emailHtml: string;
 
-    const emailHtml = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        </head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: #f3f4f6;">
-          <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-            <div style="background-color: #ffffff; border-radius: 12px; padding: 40px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-              <h1 style="color: #111827; margin: 0 0 24px 0; font-size: 24px;">
-                🎉 Your Download is Ready!
-              </h1>
-              
-              <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
-                Hi ${customerName || "there"},
-              </p>
-              
-              <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
-                Thank you for your purchase! Your digital products are ready for download.
-              </p>
-              
-              <div style="background-color: #f9fafb; border-radius: 8px; padding: 20px; margin: 0 0 24px 0;">
-                <h2 style="color: #111827; font-size: 18px; margin: 0 0 16px 0;">
-                  Your Downloads
-                </h2>
-                <table style="width: 100%; border-collapse: collapse;">
-                  ${productLinksHtml}
-                </table>
+    if (isComboPackEmail && comboPackName) {
+      // Combo pack series email
+      emailSubject = `📦 ${comboPackName} - Part ${emailIndex} of ${totalEmails}`;
+      
+      const productLinksHtml = downloadLinks.map(link => `
+        <tr>
+          <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
+            <strong>${link.name}</strong>
+            <br />
+            <a href="${link.url}" style="color: #2563eb; text-decoration: none; display: inline-block; margin-top: 8px; padding: 8px 16px; background-color: #2563eb; color: #ffffff; border-radius: 6px;">
+              Download Now →
+            </a>
+          </td>
+        </tr>
+      `).join("");
+
+      emailHtml = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: #f3f4f6;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+              <div style="background-color: #ffffff; border-radius: 12px; padding: 40px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                <div style="text-align: center; margin-bottom: 24px;">
+                  <span style="display: inline-block; background-color: #dbeafe; color: #1d4ed8; padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: 600;">
+                    📦 Part ${emailIndex} of ${totalEmails}
+                  </span>
+                </div>
+                
+                <h1 style="color: #111827; margin: 0 0 24px 0; font-size: 24px; text-align: center;">
+                  ${comboPackName}
+                </h1>
+                
+                <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
+                  Hi ${customerName || "there"},
+                </p>
+                
+                <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
+                  Here's <strong>Part ${emailIndex} of ${totalEmails}</strong> from your Combo Pack purchase! 
+                  ${emailIndex && totalEmails && emailIndex < totalEmails 
+                    ? `You will receive the remaining ${totalEmails - emailIndex} email(s) shortly.` 
+                    : 'This is the final part of your Combo Pack!'}
+                </p>
+                
+                <div style="background-color: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 20px; margin: 0 0 24px 0;">
+                  <h2 style="color: #166534; font-size: 18px; margin: 0 0 16px 0;">
+                    📄 Your Download
+                  </h2>
+                  <table style="width: 100%; border-collapse: collapse;">
+                    ${productLinksHtml}
+                  </table>
+                </div>
+                
+                <p style="color: #6b7280; font-size: 14px; line-height: 1.5; margin: 0 0 16px 0;">
+                  <strong>Order ID:</strong> ${orderId}
+                </p>
+                
+                <p style="color: #6b7280; font-size: 14px; line-height: 1.5; margin: 0;">
+                  Download links expire in 7 days and can be used up to 3 times. If you have any issues, please contact our support team.
+                </p>
               </div>
               
-              <p style="color: #6b7280; font-size: 14px; line-height: 1.5; margin: 0 0 16px 0;">
-                <strong>Order ID:</strong> ${orderId}
-              </p>
-              
-              <p style="color: #6b7280; font-size: 14px; line-height: 1.5; margin: 0;">
-                Download links expire in 7 days and can be used up to 3 times. If you have any issues, please contact our support team.
+              <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 24px 0 0 0;">
+                © ${new Date().getFullYear()} Safal Online Academy Document. All rights reserved.
               </p>
             </div>
-            
-            <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 24px 0 0 0;">
-              © ${new Date().getFullYear()} Safal Online Academy Document. All rights reserved.
-            </p>
-          </div>
-        </body>
-      </html>
-    `;
+          </body>
+        </html>
+      `;
+    } else {
+      // Standard single email
+      emailSubject = "Your Download is Ready! 🎉";
+      
+      const productLinksHtml = downloadLinks.map(link => `
+        <tr>
+          <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
+            <strong>${link.name}</strong>
+            <br />
+            <a href="${link.url}" style="color: #2563eb; text-decoration: none;">
+              Download Now →
+            </a>
+          </td>
+        </tr>
+      `).join("");
+
+      emailHtml = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: #f3f4f6;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+              <div style="background-color: #ffffff; border-radius: 12px; padding: 40px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                <h1 style="color: #111827; margin: 0 0 24px 0; font-size: 24px;">
+                  🎉 Your Download is Ready!
+                </h1>
+                
+                <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
+                  Hi ${customerName || "there"},
+                </p>
+                
+                <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
+                  Thank you for your purchase! Your digital products are ready for download.
+                </p>
+                
+                <div style="background-color: #f9fafb; border-radius: 8px; padding: 20px; margin: 0 0 24px 0;">
+                  <h2 style="color: #111827; font-size: 18px; margin: 0 0 16px 0;">
+                    Your Downloads
+                  </h2>
+                  <table style="width: 100%; border-collapse: collapse;">
+                    ${productLinksHtml}
+                  </table>
+                </div>
+                
+                <p style="color: #6b7280; font-size: 14px; line-height: 1.5; margin: 0 0 16px 0;">
+                  <strong>Order ID:</strong> ${orderId}
+                </p>
+                
+                <p style="color: #6b7280; font-size: 14px; line-height: 1.5; margin: 0;">
+                  Download links expire in 7 days and can be used up to 3 times. If you have any issues, please contact our support team.
+                </p>
+              </div>
+              
+              <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 24px 0 0 0;">
+                © ${new Date().getFullYear()} Safal Online Academy Document. All rights reserved.
+              </p>
+            </div>
+          </body>
+        </html>
+      `;
+    }
 
     // Check if email is disabled or using dummy key (for testing)
     if (!emailEnabled) {
@@ -164,7 +270,7 @@ serve(async (req: Request): Promise<Response> => {
     if (resendApiKey.includes("dummy") || resendApiKey.includes("test")) {
       console.log("⚠️ Using dummy API key - email not actually sent");
       console.log("Email would be sent to:", customerEmail);
-      console.log("Email HTML preview:", emailHtml.substring(0, 500) + "...");
+      console.log("Subject:", emailSubject);
       
       return new Response(
         JSON.stringify({ 
@@ -172,7 +278,7 @@ serve(async (req: Request): Promise<Response> => {
           message: "Test mode - email simulated",
           preview: {
             to: customerEmail,
-            subject: "Your Download is Ready! 🎉",
+            subject: emailSubject,
             downloadLinks
           }
         }),
@@ -181,7 +287,6 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // Send actual email via Resend
-    // Use custom sender from settings, fallback to Resend's test sender
     const senderEmail = settings['sender_email'] || "support@safalonlinesolutions.com";
     const senderName = settings['sender_name'] || "Safal Online Academy";
     
@@ -196,7 +301,7 @@ serve(async (req: Request): Promise<Response> => {
       body: JSON.stringify({
         from: `${senderName} <${senderEmail}>`,
         to: [customerEmail],
-        subject: "Your Download is Ready! 🎉",
+        subject: emailSubject,
         html: emailHtml,
       }),
     });
@@ -208,14 +313,16 @@ serve(async (req: Request): Promise<Response> => {
       throw new Error(result.message || "Failed to send email");
     }
 
-    // Update order delivery status
-    await supabase
-      .from("orders")
-      .update({ 
-        delivery_status: "email_sent",
-        delivery_attempts: 1 
-      })
-      .eq("id", orderId);
+    // Update order delivery status (only for first email or non-combo)
+    if (!isComboPackEmail || emailIndex === 1) {
+      await supabase
+        .from("orders")
+        .update({ 
+          delivery_status: "email_sent",
+          delivery_attempts: 1 
+        })
+        .eq("id", orderId);
+    }
 
     return new Response(
       JSON.stringify({ success: true, emailId: result.id }),

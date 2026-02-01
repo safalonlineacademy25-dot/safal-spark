@@ -27,6 +27,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   'pune-university': 'Pune University Notes',
   'engineering': 'Engineering Notes',
   'iit': 'IIT Notes',
+  'combo-packs': 'Combo Packs',
   'others': 'Others',
 };
 
@@ -205,6 +206,7 @@ const ProductsSection = () => {
                       {product.category === 'pune-university' && '🎓'}
                       {product.category === 'engineering' && '⚙️'}
                       {product.category === 'iit' && '🏛️'}
+                      {product.category === 'combo-packs' && '📦'}
                       {product.category === 'others' && '📖'}
                     </div>
                   </div>

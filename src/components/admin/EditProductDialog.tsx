@@ -11,6 +11,7 @@ import { useUpdateProduct, Product } from '@/hooks/useProducts';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { useProductFileUpload } from '@/hooks/useProductFileUpload';
 import FileUploadProgress from './FileUploadProgress';
+import ComboPackFilesManager from './ComboPackFilesManager';
 
 interface EditProductDialogProps {
   product: Product;
@@ -157,6 +158,7 @@ const EditProductDialog = ({ product, children }: EditProductDialogProps) => {
 
   const displayImage = imagePreview || formData.image_url;
   const displayFileName = selectedFile?.name || existingFileName;
+  const isComboPackCategory = formData.category === 'combo-packs';
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -213,6 +215,7 @@ const EditProductDialog = ({ product, children }: EditProductDialogProps) => {
                   <SelectItem value="pune-university">Pune University Notes</SelectItem>
                   <SelectItem value="engineering">Engineering Notes</SelectItem>
                   <SelectItem value="iit">IIT Notes</SelectItem>
+                  <SelectItem value="combo-packs">Combo Packs</SelectItem>
                   <SelectItem value="others">Others</SelectItem>
                 </SelectContent>
               </Select>
@@ -326,43 +329,50 @@ const EditProductDialog = ({ product, children }: EditProductDialogProps) => {
             />
           </div>
 
-          {/* Product File Upload */}
-          <div className="space-y-2">
-            <Label>Product File (PDF, ZIP, etc.)</Label>
-            <input
-              ref={productFileInputRef}
-              type="file"
-              accept=".pdf,.zip,.rar,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
-              onChange={handleProductFileSelect}
-              className="hidden"
+          {/* Product File Upload - Conditional based on category */}
+          {isComboPackCategory ? (
+            <ComboPackFilesManager
+              productId={product.id}
+              isNewProduct={false}
             />
-            
-            <FileUploadProgress
-              fileName={displayFileName}
-              fileSize={selectedFile?.size || 0}
-              isUploading={isFileUploading}
-              progress={fileProgress}
-              onCancel={cancelFileUpload}
-              onRemove={removeProductFile}
-              onSelect={() => productFileInputRef.current?.click()}
-              disabled={isFileUploading}
-            />
-            
-            <p className="text-xs text-muted-foreground">
-              Or paste an external URL below
-            </p>
-            <Input
-              id="edit-file_url"
-              value={formData.file_url}
-              onChange={(e) => {
-                setFormData({ ...formData, file_url: e.target.value });
-                setSelectedFile(null);
-                setExistingFileName(null);
-              }}
-              placeholder="https://..."
-              disabled={isFileUploading}
-            />
-          </div>
+          ) : (
+            <div className="space-y-2">
+              <Label>Product File (PDF, ZIP, etc.)</Label>
+              <input
+                ref={productFileInputRef}
+                type="file"
+                accept=".pdf,.zip,.rar,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
+                onChange={handleProductFileSelect}
+                className="hidden"
+              />
+              
+              <FileUploadProgress
+                fileName={displayFileName}
+                fileSize={selectedFile?.size || 0}
+                isUploading={isFileUploading}
+                progress={fileProgress}
+                onCancel={cancelFileUpload}
+                onRemove={removeProductFile}
+                onSelect={() => productFileInputRef.current?.click()}
+                disabled={isFileUploading}
+              />
+              
+              <p className="text-xs text-muted-foreground">
+                Or paste an external URL below
+              </p>
+              <Input
+                id="edit-file_url"
+                value={formData.file_url}
+                onChange={(e) => {
+                  setFormData({ ...formData, file_url: e.target.value });
+                  setSelectedFile(null);
+                  setExistingFileName(null);
+                }}
+                placeholder="https://..."
+                disabled={isFileUploading}
+              />
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="edit-features">Features (one per line)</Label>
