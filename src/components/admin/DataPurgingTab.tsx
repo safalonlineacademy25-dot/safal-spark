@@ -435,7 +435,10 @@ const DataPurgingTab = () => {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handlePurge}
+              onClick={(e) => {
+                e.preventDefault();
+                handlePurge();
+              }}
               disabled={isLoading}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90 gap-2"
             >
