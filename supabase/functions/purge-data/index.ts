@@ -50,11 +50,12 @@ Deno.serve(async (req) => {
     // Check if user is super_admin using service role
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
     
+    // Check if user has super_admin role (user may have multiple roles)
     const { data: roleData, error: roleError } = await supabaseAdmin
       .from("user_roles")
       .select("role")
       .eq("user_id", user.id)
-      .maybeSingle();
+      .eq("role", "super_admin");
 
     if (roleError) {
       console.error("[purge-data] Role check error:", roleError);
@@ -64,8 +65,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (!roleData || roleData.role !== "super_admin") {
-      console.warn("[purge-data] Access denied for user:", user.id, "role:", roleData?.role);
+    // Check if any row with super_admin role exists
+    if (!roleData || roleData.length === 0) {
+      console.warn("[purge-data] Access denied for user:", user.id, "- not a super_admin");
       return new Response(
         JSON.stringify({ error: "Super Admin access required" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
