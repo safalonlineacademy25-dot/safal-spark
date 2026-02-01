@@ -106,7 +106,8 @@ serve(async (req: Request): Promise<Response> => {
         products:product_id (
           id,
           name,
-          file_url
+          file_url,
+          category
         )
       `)
       .eq("token", token)
@@ -154,8 +155,73 @@ serve(async (req: Request): Promise<Response> => {
 
     // Get product details
     const product = tokenData.products as any;
-    if (!product || !product.file_url) {
-      console.error("Product or file URL not found");
+    if (!product) {
+      console.error("Product not found");
+      return new Response(
+        JSON.stringify({ error: "Product not available" }),
+        { 
+          status: 404, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
+    }
+
+    console.log("Product found:", product.name, "Category:", product.category);
+
+    let fileUrl: string | null = null;
+    let fileName: string = product.name;
+
+    // Check if this is a combo pack - look for combo pack files
+    if (product.category === 'combo-packs') {
+      // For combo packs, we need to find the specific file based on the token
+      // Each combo file gets its own token during order verification
+      // We'll match by looking at the order of tokens created
+      
+      // Get all tokens for this order and product, ordered by creation
+      const { data: orderTokens, error: orderTokensError } = await supabase
+        .from("download_tokens")
+        .select("id, token, created_at")
+        .eq("order_id", tokenData.order_id)
+        .eq("product_id", tokenData.product_id)
+        .order("created_at", { ascending: true });
+        
+      if (orderTokensError) {
+        console.error("Error fetching order tokens:", orderTokensError);
+      }
+      
+      // Find the index of this token
+      const tokenIndex = orderTokens?.findIndex(t => t.token === token) ?? -1;
+      
+      if (tokenIndex >= 0) {
+        // Get the combo pack file at this index
+        const { data: comboFiles, error: comboFilesError } = await supabase
+          .from("combo_pack_files")
+          .select("*")
+          .eq("product_id", tokenData.product_id)
+          .order("file_order", { ascending: true });
+          
+        if (comboFilesError) {
+          console.error("Error fetching combo pack files:", comboFilesError);
+        }
+        
+        if (comboFiles && comboFiles[tokenIndex]) {
+          fileUrl = comboFiles[tokenIndex].file_url;
+          fileName = comboFiles[tokenIndex].file_name;
+          console.log("Combo pack file found:", fileName, "at index:", tokenIndex);
+        }
+      }
+      
+      // Fallback to product's main file_url if no combo file found
+      if (!fileUrl && product.file_url) {
+        fileUrl = product.file_url;
+      }
+    } else {
+      // Regular product
+      fileUrl = product.file_url;
+    }
+
+    if (!fileUrl) {
+      console.error("File URL not found");
       return new Response(
         JSON.stringify({ error: "Product file not available" }),
         { 
@@ -164,8 +230,6 @@ serve(async (req: Request): Promise<Response> => {
         }
       );
     }
-
-    console.log("Product found:", product.name);
 
     // Increment download count
     const { error: updateError } = await supabase
@@ -188,9 +252,6 @@ serve(async (req: Request): Promise<Response> => {
       console.log("Note: Could not update product download count");
     }
 
-    // Get file URL
-    const fileUrl = product.file_url;
-    
     // If it's a Supabase Storage URL, generate a signed URL
     if (fileUrl.includes('supabase') && fileUrl.includes('product-files')) {
       // Extract the file path from the URL
@@ -215,7 +276,7 @@ serve(async (req: Request): Promise<Response> => {
           );
         }
         
-        console.log("Redirecting to signed URL for:", product.name);
+        console.log("Redirecting to signed URL for:", fileName);
         
         // Return redirect to signed URL
         return new Response(null, {
@@ -229,14 +290,13 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // For legacy Google Drive URLs or other external URLs
-    // Note: This is a security risk - external URLs should be migrated to Supabase Storage
     console.log("⚠️ Warning: Serving external URL (should migrate to Supabase Storage):", fileUrl.substring(0, 50));
     
     return new Response(
       JSON.stringify({ 
         success: true,
         download_url: fileUrl,
-        product_name: product.name,
+        product_name: fileName,
         downloads_remaining: MAX_DOWNLOADS - (currentDownloads + 1),
         message: "Click the download URL to get your file"
       }),

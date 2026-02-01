@@ -9,7 +9,10 @@ import { Plus, Loader2, Upload, X } from 'lucide-react';
 import { useAddProduct, ProductInsert } from '@/hooks/useProducts';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { useProductFileUpload } from '@/hooks/useProductFileUpload';
+import { useComboPackFileUpload } from '@/hooks/useComboPackFiles';
+import { supabase } from '@/integrations/supabase/client';
 import FileUploadProgress from './FileUploadProgress';
+import ComboPackFilesManager from './ComboPackFilesManager';
 
 interface AddProductDialogProps {
   children?: React.ReactNode;
@@ -33,6 +36,7 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [pendingComboFiles, setPendingComboFiles] = useState<Array<{ file: File; order: number }>>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const productFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -44,6 +48,7 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
     isUploading: isFileUploading, 
     progress: fileProgress 
   } = useProductFileUpload();
+  const { uploadFile: uploadComboFile, isUploading: isComboUploading } = useComboPackFileUpload();
 
   // Cancel uploads and cleanup when dialog closes
   const handleOpenChange = (newOpen: boolean) => {
@@ -156,7 +161,15 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
     };
 
     try {
-      await addProduct.mutateAsync(product);
+      const newProduct = await addProduct.mutateAsync(product);
+      
+      // If it's a combo pack, upload the pending files
+      if (formData.category === 'combo-packs' && pendingComboFiles.length > 0 && newProduct?.id) {
+        for (const { file, order } of pendingComboFiles) {
+          await uploadComboFile(file, newProduct.id, order);
+        }
+      }
+      
       setOpen(false);
       resetForm();
     } catch (error) {
@@ -184,7 +197,10 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
     setImagePreview(null);
     setSelectedImageFile(null);
     setSelectedFile(null);
+    setPendingComboFiles([]);
   };
+
+  const isComboPackCategory = formData.category === 'combo-packs';
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -242,6 +258,7 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
                   <SelectItem value="pune-university">Pune University Notes</SelectItem>
                   <SelectItem value="engineering">Engineering Notes</SelectItem>
                   <SelectItem value="iit">IIT Notes</SelectItem>
+                  <SelectItem value="combo-packs">Combo Packs</SelectItem>
                   <SelectItem value="others">Others</SelectItem>
                 </SelectContent>
               </Select>
@@ -355,48 +372,57 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
             />
           </div>
 
-          {/* Product File Upload */}
-          <div className="space-y-2">
-            <Label>Product File (PDF, ZIP, etc.)</Label>
-            <input
-              ref={productFileInputRef}
-              type="file"
-              accept=".pdf,.zip,.rar,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
-              onChange={handleProductFileSelect}
-              className="hidden"
+          {/* Product File Upload - Conditional based on category */}
+          {isComboPackCategory ? (
+            <ComboPackFilesManager
+              productId={null}
+              isNewProduct={true}
+              pendingFiles={pendingComboFiles}
+              onFilesChange={setPendingComboFiles}
             />
-            
-            <FileUploadProgress
-              fileName={selectedFile?.name || null}
-              fileSize={selectedFile?.size || 0}
-              isUploading={isFileUploading}
-              progress={fileProgress}
-              onCancel={cancelFileUpload}
-              onRemove={removeProductFile}
-              onSelect={() => productFileInputRef.current?.click()}
-              disabled={isFileUploading}
-            />
-            
-            {formData.file_url && !selectedFile && (
-              <div className="text-xs text-muted-foreground">
-                Current file: <span className="font-mono">{formData.file_url.split('/').pop()}</span>
-              </div>
-            )}
-            
-            <p className="text-xs text-muted-foreground">
-              Or paste an external URL below
-            </p>
-            <Input
-              id="file_url"
-              value={formData.file_url || ''}
-              onChange={(e) => {
-                setFormData({ ...formData, file_url: e.target.value });
-                setSelectedFile(null);
-              }}
-              placeholder="https://..."
-              disabled={isFileUploading}
-            />
-          </div>
+          ) : (
+            <div className="space-y-2">
+              <Label>Product File (PDF, ZIP, etc.)</Label>
+              <input
+                ref={productFileInputRef}
+                type="file"
+                accept=".pdf,.zip,.rar,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
+                onChange={handleProductFileSelect}
+                className="hidden"
+              />
+              
+              <FileUploadProgress
+                fileName={selectedFile?.name || null}
+                fileSize={selectedFile?.size || 0}
+                isUploading={isFileUploading}
+                progress={fileProgress}
+                onCancel={cancelFileUpload}
+                onRemove={removeProductFile}
+                onSelect={() => productFileInputRef.current?.click()}
+                disabled={isFileUploading}
+              />
+              
+              {formData.file_url && !selectedFile && (
+                <div className="text-xs text-muted-foreground">
+                  Current file: <span className="font-mono">{formData.file_url.split('/').pop()}</span>
+                </div>
+              )}
+              
+              <p className="text-xs text-muted-foreground">
+                Or paste an external URL below
+              </p>
+              <Input
+                id="file_url"
+                value={formData.file_url || ''}
+                onChange={(e) => {
+                  setFormData({ ...formData, file_url: e.target.value });
+                  setSelectedFile(null);
+                }}
+                placeholder="https://..."
+                disabled={isFileUploading}
+              />
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="features">Features (one per line)</Label>
@@ -413,7 +439,7 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={addProduct.isPending || isImageUploading || isFileUploading}>
+            <Button type="submit" disabled={addProduct.isPending || isImageUploading || isFileUploading || isComboUploading}>
               {addProduct.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Add Product
             </Button>

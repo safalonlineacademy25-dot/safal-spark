@@ -41,6 +41,7 @@ const Products = () => {
     { id: 'pune-university', label: 'Pune University Notes' },
     { id: 'engineering', label: 'Engineering Notes' },
     { id: 'iit', label: 'IIT Notes' },
+    { id: 'combo-packs', label: 'Combo Packs' },
     { id: 'others', label: 'Others' },
   ];
 
@@ -166,6 +167,7 @@ const Products = () => {
                           {product.category === 'pune-university' && '🎓'}
                           {product.category === 'engineering' && '⚙️'}
                           {product.category === 'iit' && '🏛️'}
+                          {product.category === 'combo-packs' && '📦'}
                           {product.category === 'others' && '📖'}
                         </div>
                       </div>
