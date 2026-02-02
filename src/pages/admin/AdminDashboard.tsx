@@ -27,6 +27,7 @@ import {
   History,
   Sparkles,
   Trash2,
+  RotateCcw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -45,6 +46,7 @@ import PaginationControls from '@/components/admin/PaginationControls';
 import BroadcastHistoryTab from '@/components/admin/BroadcastHistoryTab';
 import PromotionsTab from '@/components/admin/PromotionsTab';
 import DataPurgingTab from '@/components/admin/DataPurgingTab';
+import RefundsTab from '@/components/admin/RefundsTab';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
 import OrdersChart from '@/components/admin/OrdersChart';
 import { usePagination } from '@/hooks/usePagination';
@@ -180,6 +182,7 @@ const AdminDashboard = () => {
     { id: 'products', label: 'Products', icon: Package },
     { id: 'orders', label: 'Orders', icon: ShoppingCart },
     { id: 'payments', label: 'Failed Payments', icon: CreditCard },
+    { id: 'refunds', label: 'Refunds', icon: RotateCcw },
     { id: 'customers', label: 'Customers', icon: Users },
     { id: 'email', label: 'Email Logs', icon: Mail },
     { id: 'whatsapp', label: 'WhatsApp Logs', icon: MessageCircle },
@@ -1286,6 +1289,12 @@ const AdminDashboard = () => {
 
             {activeTab === 'dbsnapshot' && (
               <DBSnapshotTab isActive={activeTab === 'dbsnapshot'} />
+            )}
+
+            {activeTab === 'refunds' && (
+              <ErrorBoundary>
+                <RefundsTab />
+              </ErrorBoundary>
             )}
 
             {activeTab === 'promotions' && (

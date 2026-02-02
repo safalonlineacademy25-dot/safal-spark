@@ -169,6 +169,66 @@ export type Database = {
           },
         ]
       }
+      email_delivery_logs: {
+        Row: {
+          created_at: string
+          delivery_status: string
+          email_type: string
+          error_message: string | null
+          id: string
+          order_id: string
+          part_number: number | null
+          product_id: string | null
+          recipient_email: string
+          resend_email_id: string | null
+          total_parts: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          delivery_status?: string
+          email_type?: string
+          error_message?: string | null
+          id?: string
+          order_id: string
+          part_number?: number | null
+          product_id?: string | null
+          recipient_email: string
+          resend_email_id?: string | null
+          total_parts?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          delivery_status?: string
+          email_type?: string
+          error_message?: string | null
+          id?: string
+          order_id?: string
+          part_number?: number | null
+          product_id?: string | null
+          recipient_email?: string
+          resend_email_id?: string | null
+          total_parts?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_delivery_logs_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_delivery_logs_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string | null
@@ -407,6 +467,65 @@ export type Database = {
           window_start?: string
         }
         Relationships: []
+      }
+      refunds: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          error_message: string | null
+          failed_email: string | null
+          id: string
+          order_id: string
+          processed_at: string | null
+          processed_by: string | null
+          razorpay_payment_id: string
+          razorpay_refund_id: string | null
+          reason: string
+          status: string
+          whatsapp_sent: boolean | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          error_message?: string | null
+          failed_email?: string | null
+          id?: string
+          order_id: string
+          processed_at?: string | null
+          processed_by?: string | null
+          razorpay_payment_id: string
+          razorpay_refund_id?: string | null
+          reason: string
+          status?: string
+          whatsapp_sent?: boolean | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          error_message?: string | null
+          failed_email?: string | null
+          id?: string
+          order_id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          razorpay_payment_id?: string
+          razorpay_refund_id?: string | null
+          reason?: string
+          status?: string
+          whatsapp_sent?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refunds_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       settings: {
         Row: {

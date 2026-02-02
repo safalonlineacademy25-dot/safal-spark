@@ -51,6 +51,7 @@ interface DownloadEmailRequest {
   products: Array<{
     name: string;
     downloadToken: string;
+    productId?: string;
     isComboFile?: boolean;
     fileNumber?: number;
     totalFiles?: number;
@@ -62,9 +63,84 @@ interface DownloadEmailRequest {
   totalEmails?: number;
 }
 
-// Helper to delay execution
-function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+// Log email delivery to database and create refund if failed
+async function logEmailDelivery(
+  supabase: any,
+  orderId: string,
+  productId: string | null,
+  recipientEmail: string,
+  resendEmailId: string | null,
+  deliveryStatus: 'sent' | 'failed' | 'bounced',
+  errorMessage: string | null,
+  emailType: string,
+  partNumber: number | null,
+  totalParts: number | null
+): Promise<void> {
+  try {
+    // Insert email delivery log
+    await supabase.from('email_delivery_logs').insert({
+      order_id: orderId,
+      product_id: productId,
+      resend_email_id: resendEmailId,
+      recipient_email: recipientEmail,
+      email_type: emailType,
+      part_number: partNumber,
+      total_parts: totalParts,
+      delivery_status: deliveryStatus,
+      error_message: errorMessage,
+    });
+
+    // If email failed, check if we should create a refund entry
+    if (deliveryStatus === 'failed' || deliveryStatus === 'bounced') {
+      console.log("Email delivery failed, checking for refund eligibility...");
+      
+      // Get order details for refund
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .select('id, razorpay_payment_id, total_amount, status')
+        .eq('id', orderId)
+        .single();
+
+      if (orderError || !order) {
+        console.error("Could not fetch order for refund:", orderError);
+        return;
+      }
+
+      // Only create refund if order was paid and has payment ID
+      if ((order.status === 'paid' || order.status === 'completed') && order.razorpay_payment_id) {
+        // Check if refund already exists for this order
+        const { data: existingRefund } = await supabase
+          .from('refunds')
+          .select('id')
+          .eq('order_id', orderId)
+          .single();
+
+        if (!existingRefund) {
+          console.log("Creating refund entry for failed email delivery");
+          await supabase.from('refunds').insert({
+            order_id: orderId,
+            razorpay_payment_id: order.razorpay_payment_id,
+            amount: order.total_amount,
+            currency: 'INR',
+            reason: 'email_delivery_failed',
+            failed_email: recipientEmail,
+            status: 'eligible',
+          });
+        }
+      }
+
+      // Update order delivery status
+      await supabase
+        .from('orders')
+        .update({ 
+          delivery_status: 'failed',
+          delivery_attempts: 1
+        })
+        .eq('id', orderId);
+    }
+  } catch (err) {
+    console.error("Error logging email delivery:", err);
+  }
 }
 
 serve(async (req: Request): Promise<Response> => {
@@ -108,6 +184,7 @@ serve(async (req: Request): Promise<Response> => {
     const downloadLinks = products.map(p => ({
       name: p.name,
       url: `${baseUrl}?token=${p.downloadToken}`,
+      productId: p.productId,
       isComboFile: p.isComboFile,
       fileNumber: p.fileNumber,
       totalFiles: p.totalFiles
@@ -254,6 +331,12 @@ serve(async (req: Request): Promise<Response> => {
       `;
     }
 
+    // Determine email type and part info for logging
+    const emailType = isComboPackEmail ? 'combo_part' : 'download';
+    const partNumber: number | null = isComboPackEmail && emailIndex !== undefined ? emailIndex : null;
+    const totalParts: number | null = isComboPackEmail && totalEmails !== undefined ? totalEmails : null;
+    const productId = products[0]?.productId || null;
+
     // Check if email is disabled or using dummy key (for testing)
     if (!emailEnabled) {
       console.log("⚠️ Email delivery is disabled in settings");
@@ -310,8 +393,43 @@ serve(async (req: Request): Promise<Response> => {
     console.log("Resend API response:", result);
 
     if (!response.ok) {
-      throw new Error(result.message || "Failed to send email");
+      const errorMessage = result.message || "Failed to send email";
+      console.error("Resend API error:", errorMessage);
+      
+      // Log failed email delivery and create refund entry
+      await logEmailDelivery(
+        supabase,
+        orderId,
+        productId,
+        customerEmail,
+        null,
+        'failed',
+        errorMessage,
+        emailType,
+        partNumber,
+        totalParts
+      );
+      
+      throw new Error(errorMessage);
     }
+
+    // Check if the Resend response indicates a bounce or invalid email
+    // Resend returns { id: "email_id" } on success, but may have additional status info
+    const resendEmailId = result.id;
+    
+    // Log successful email send
+    await logEmailDelivery(
+      supabase,
+      orderId,
+      productId,
+      customerEmail,
+      resendEmailId,
+      'sent',
+      null,
+      emailType,
+      partNumber,
+      totalParts
+    );
 
     // Update order delivery status (only for first email or non-combo)
     if (!isComboPackEmail || emailIndex === 1) {
