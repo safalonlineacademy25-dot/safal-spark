@@ -86,7 +86,10 @@ const ProductsSection = () => {
   };
 
   return (
-    <section id="products" className="section-padding bg-gradient-to-b from-primary/5 via-secondary/5 to-background">
+    <section
+      id="products"
+      className="section-padding -mt-16 pt-10 md:-mt-20 md:pt-12 bg-gradient-to-b from-primary/5 via-secondary/5 to-background"
+    >
       <div className="container-custom">
         {/* Header */}
         <motion.div
@@ -94,7 +97,7 @@ const ProductsSection = () => {
           initial="hidden"
           whileInView="visible"
           viewport={viewportSettings}
-          className="text-center mb-10 md:mb-12"
+          className="text-center mb-6 md:mb-8"
         >
           <motion.span 
             className="inline-block px-4 py-1.5 rounded-full bg-secondary/10 text-secondary text-sm font-medium mb-4"
@@ -119,7 +122,7 @@ const ProductsSection = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={viewportSettings}
           transition={{ duration: 0.4, delay: 0.1 }}
-          className="flex flex-wrap justify-center gap-2 mb-10"
+          className="flex flex-wrap justify-center gap-2 mb-6"
         >
           {categories.map((category, index) => (
             <motion.div
