@@ -523,13 +523,13 @@ const Cart = () => {
 
               {/* Order Summary */}
               <div className="lg:col-span-1">
-                <div className="bg-card rounded-xl border border-border p-6 sticky top-24">
-                  <h2 className="text-xl font-bold text-foreground mb-6">Order Summary</h2>
+                <div className="bg-card rounded-xl border border-border p-4 sticky top-24">
+                  <h2 className="text-lg font-bold text-foreground mb-4">Order Summary</h2>
 
                   {/* Contact Details */}
-                  <div className="space-y-4 mb-6">
+                  <div className="space-y-3 mb-4">
                     <div>
-                      <label className="text-sm font-medium text-foreground mb-1.5 block">
+                      <label className="text-sm font-medium text-foreground mb-1 block">
                         Email Address *
                       </label>
                       <input
@@ -540,19 +540,19 @@ const Cart = () => {
                           if (emailError) setEmailError('');
                         }}
                         placeholder="your@email.com"
-                        className={`w-full px-4 py-2.5 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring ${
+                        className={`w-full px-3 py-2 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm ${
                           emailError ? 'border-destructive' : 'border-input'
                         }`}
                       />
                       {emailError && (
-                        <div className="flex items-center gap-1.5 mt-2 px-3 py-2 rounded-md bg-destructive/10 border border-destructive/30 animate-shake">
-                          <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0" />
-                          <p className="text-sm font-medium text-destructive">{emailError}</p>
+                        <div className="flex items-center gap-1.5 mt-1.5 px-2 py-1.5 rounded-md bg-destructive/10 border border-destructive/30 animate-shake">
+                          <AlertCircle className="h-3.5 w-3.5 text-destructive flex-shrink-0" />
+                          <p className="text-xs font-medium text-destructive">{emailError}</p>
                         </div>
                       )}
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-foreground mb-1.5 block">
+                      <label className="text-sm font-medium text-foreground mb-1 block">
                         Phone Number *
                       </label>
                       <input
@@ -566,14 +566,14 @@ const Cart = () => {
                         }}
                         placeholder="+919876543210"
                         maxLength={15}
-                        className={`w-full px-4 py-2.5 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring ${
+                        className={`w-full px-3 py-2 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm ${
                           phoneError ? 'border-destructive' : 'border-input'
                         }`}
                       />
                       {phoneError && (
-                        <div className="flex items-center gap-1.5 mt-2 px-3 py-2 rounded-md bg-destructive/10 border border-destructive/30 animate-shake">
-                          <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0" />
-                          <p className="text-sm font-medium text-destructive">{phoneError}</p>
+                        <div className="flex items-center gap-1.5 mt-1.5 px-2 py-1.5 rounded-md bg-destructive/10 border border-destructive/30 animate-shake">
+                          <AlertCircle className="h-3.5 w-3.5 text-destructive flex-shrink-0" />
+                          <p className="text-xs font-medium text-destructive">{phoneError}</p>
                         </div>
                       )}
                     </div>
@@ -581,38 +581,34 @@ const Cart = () => {
 
                   {/* WhatsApp Opt-in - only show if enabled in admin settings */}
                   {whatsappEnabled && (
-                    <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 mb-6">
+                    <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50 mb-4">
                       <Checkbox
                         id="whatsapp"
                         checked={whatsappOptIn}
                         disabled
                       />
-                      <label htmlFor="whatsapp" className="text-sm text-muted-foreground">
+                      <label htmlFor="whatsapp" className="text-xs text-muted-foreground">
                         Order delivery notification will send on WhatsApp
                       </label>
                     </div>
                   )}
 
                   {/* Price Breakdown */}
-                  <div className="space-y-3 mb-6 pb-6 border-b border-border">
+                  <div className="space-y-2 mb-4 pb-4 border-b border-border">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Subtotal ({items.length} items)</span>
                       <span className="text-foreground">₹{getTotal()}</span>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Discount</span>
-                      <span className="text-secondary">-₹0</span>
-                    </div>
                   </div>
 
-                  <div className="flex justify-between mb-6">
-                    <span className="text-lg font-semibold text-foreground">Total</span>
-                    <span className="text-2xl font-bold price-text">₹{getTotal()}</span>
+                  <div className="flex justify-between mb-4">
+                    <span className="text-base font-semibold text-foreground">Total</span>
+                    <span className="text-xl font-bold price-text">₹{getTotal()}</span>
                   </div>
 
                   <Button
                     type="button"
-                    size="lg"
+                    size="default"
                     className="w-full touch-manipulation select-none"
                     onMouseDown={(e) => {
                       e.preventDefault();
@@ -648,18 +644,18 @@ const Cart = () => {
                   </Button>
 
                   {/* Trust Badges */}
-                  <div className="mt-6 space-y-3">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Shield className="h-4 w-4 text-secondary" />
+                  <div className="mt-4 space-y-2">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Shield className="h-3.5 w-3.5 text-secondary" />
                       <span>Secure payment via Razorpay</span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Mail className="h-4 w-4 text-primary" />
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Mail className="h-3.5 w-3.5 text-primary" />
                       <span>Download link sent to email</span>
                     </div>
                     {whatsappEnabled && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <MessageCircle className="h-4 w-4 text-secondary" />
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <MessageCircle className="h-3.5 w-3.5 text-secondary" />
                         <span>WhatsApp delivery (if opted)</span>
                       </div>
                     )}
