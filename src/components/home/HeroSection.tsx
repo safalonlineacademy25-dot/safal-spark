@@ -27,18 +27,18 @@ const HeroSection = () => {
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItSDI0di0yaDEyem0wLTRWMjhIMjR2Mmgxem0tMTIgOGgxMnYtMkgyNHYyem0xMi0xNnYySDI0di0yaDEyeiIvPjwvZz48L2c+PC9zdmc+')] opacity-30" />
 
       <div className="relative container-custom">
-        <div className="min-h-[50vh] flex flex-col justify-center py-8 md:py-12 bg-cyan-700">
+        <div className="min-h-[40vh] flex flex-col justify-center py-6 md:py-8 bg-cyan-700">
           <motion.div className="max-w-4xl mx-auto text-center" variants={staggerContainer} initial="hidden" animate="visible">
             {/* Badge */}
-            <motion.div variants={staggerItem} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary-foreground/10 backdrop-blur-sm border border-primary-foreground/20 mb-4">
-              <span className="flex h-2 w-2 rounded-full bg-secondary animate-pulse" />
+            <motion.div variants={staggerItem} className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-foreground/10 backdrop-blur-sm border border-primary-foreground/20 mb-2">
+              <span className="flex h-1.5 w-1.5 rounded-full bg-secondary animate-pulse" />
               <span className="text-xs font-medium text-primary-foreground">
                 Trusted by 1000+ Students
               </span>
             </motion.div>
 
             {/* Headline */}
-            <motion.h1 variants={staggerItem} className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-primary-foreground leading-tight mb-4">
+            <motion.h1 variants={staggerItem} className="text-xl md:text-2xl lg:text-3xl font-extrabold text-primary-foreground leading-tight mb-3">
               Crack Competitive Exams with{' '}
               <span className="relative">
                 Smart, Exam-Ready Notes
@@ -67,15 +67,15 @@ const HeroSection = () => {
             </motion.h1>
 
             {/* Student Images Gallery */}
-            <motion.div variants={staggerItem} className="flex justify-center gap-3 mb-4">
+            <motion.div variants={staggerItem} className="flex justify-center gap-2 mb-3">
               {studentImages.map((img, index) => (
                 <motion.div
                   key={index}
-                  className="w-16 h-16 md:w-20 md:h-20 rounded-lg overflow-hidden border-2 border-primary-foreground/20 shadow-lg"
+                  className="w-12 h-12 md:w-16 md:h-16 rounded-lg overflow-hidden border-2 border-primary-foreground/20 shadow-lg"
                   initial={{ opacity: 0, scale: 0.8, y: 20 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   transition={{ delay: 0.5 + index * 0.15, duration: 0.4 }}
-                  whileHover={{ scale: 1.05, y: -5 }}
+                  whileHover={{ scale: 1.05, y: -3 }}
                 >
                   <img
                     src={img}
@@ -87,9 +87,9 @@ const HeroSection = () => {
             </motion.div>
 
             {/* CTA Buttons */}
-            <motion.div variants={staggerItem} className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
+            <motion.div variants={staggerItem} className="flex flex-col sm:flex-row gap-2 justify-center mb-4">
               <Link to="/products">
-                <Button size="lg" variant="hero-outline" className="w-full sm:w-auto group">
+                <Button size="default" variant="hero-outline" className="w-full sm:w-auto group">
                   <Download className="mr-2 h-4 w-4 transition-transform group-hover:-translate-y-0.5" />
                   Download Notes Now
                 </Button>
@@ -97,8 +97,8 @@ const HeroSection = () => {
             </motion.div>
 
             {/* Trust Points */}
-            <motion.div variants={staggerItem} className="flex flex-wrap justify-center gap-6 md:gap-8">
-              {trustPoints.map((point, index) => <motion.div key={index} className="flex items-center gap-2 text-primary-foreground/90" initial={{
+            <motion.div variants={staggerItem} className="flex flex-wrap justify-center gap-4 md:gap-6">
+              {trustPoints.map((point, index) => <motion.div key={index} className="flex items-center gap-1.5 text-primary-foreground/90" initial={{
               opacity: 0,
               y: 10
             }} animate={{
@@ -108,8 +108,8 @@ const HeroSection = () => {
               delay: 0.6 + index * 0.1,
               duration: 0.4
             }}>
-                  <point.icon className="h-5 w-5" />
-                  <span className="text-sm font-medium">{point.text}</span>
+                  <point.icon className="h-4 w-4" />
+                  <span className="text-xs font-medium">{point.text}</span>
                 </motion.div>)}
             </motion.div>
           </motion.div>
