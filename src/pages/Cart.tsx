@@ -579,17 +579,12 @@ const Cart = () => {
                     </div>
                   </div>
 
-                  {/* WhatsApp Opt-in - only show if enabled in admin settings */}
+                  {/* WhatsApp notification info - only show if enabled in admin settings */}
                   {whatsappEnabled && (
-                    <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50 mb-4">
-                      <Checkbox
-                        id="whatsapp"
-                        checked={whatsappOptIn}
-                        disabled
-                      />
-                      <label htmlFor="whatsapp" className="text-xs text-muted-foreground">
+                    <div className="p-3 rounded-lg bg-muted/50 mb-4">
+                      <p className="text-xs text-muted-foreground">
                         Order delivery notification will send on WhatsApp
-                      </label>
+                      </p>
                     </div>
                   )}
 
