@@ -1,7 +1,5 @@
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
-import { Download, FileText, Shield, IndianRupee } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Shield, IndianRupee, Download } from 'lucide-react';
 import { staggerContainer, staggerItem } from '@/hooks/useScrollAnimation';
 import studentStudy1 from '@/assets/student-study-1.jpg';
 import studentStudy2 from '@/assets/student-study-2.jpg';
@@ -27,7 +25,7 @@ const HeroSection = () => {
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItSDI0di0yaDEyem0wLTRWMjhIMjR2Mmgxem0tMTIgOGgxMnYtMkgyNHYyem0xMi0xNnYySDI0di0yaDEyeiIvPjwvZz48L2c+PC9zdmc+')] opacity-30" />
 
       <div className="relative container-custom">
-        <div className="min-h-[40vh] flex flex-col justify-center py-6 md:py-8 bg-cyan-700">
+        <div className="min-h-[28vh] flex flex-col justify-center py-4 md:py-6 bg-cyan-700">
           <motion.div className="max-w-4xl mx-auto text-center" variants={staggerContainer} initial="hidden" animate="visible">
             {/* Badge */}
             <motion.div variants={staggerItem} className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-foreground/10 backdrop-blur-sm border border-primary-foreground/20 mb-2">
@@ -71,7 +69,7 @@ const HeroSection = () => {
               {studentImages.map((img, index) => (
                 <motion.div
                   key={index}
-                  className="w-12 h-12 md:w-16 md:h-16 rounded-lg overflow-hidden border-2 border-primary-foreground/20 shadow-lg"
+                  className="w-10 h-10 md:w-14 md:h-14 rounded-lg overflow-hidden border-2 border-primary-foreground/20 shadow-lg"
                   initial={{ opacity: 0, scale: 0.8, y: 20 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   transition={{ delay: 0.5 + index * 0.15, duration: 0.4 }}
@@ -84,16 +82,6 @@ const HeroSection = () => {
                   />
                 </motion.div>
               ))}
-            </motion.div>
-
-            {/* CTA Buttons */}
-            <motion.div variants={staggerItem} className="flex flex-col sm:flex-row gap-2 justify-center mb-4">
-              <Link to="/products">
-                <Button size="default" variant="hero-outline" className="w-full sm:w-auto group">
-                  <Download className="mr-2 h-4 w-4 transition-transform group-hover:-translate-y-0.5" />
-                  Download Notes Now
-                </Button>
-              </Link>
             </motion.div>
 
             {/* Trust Points */}
