@@ -27,22 +27,22 @@ const HeroSection = () => {
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItSDI0di0yaDEyem0wLTRWMjhIMjR2Mmgxem0tMTIgOGgxMnYtMkgyNHYyem0xMi0xNnYySDI0di0yaDEyeiIvPjwvZz48L2c+PC9zdmc+')] opacity-30" />
 
       <div className="relative container-custom">
-        <div className="min-h-[85vh] flex flex-col justify-center py-16 md:py-24 bg-cyan-700">
+        <div className="min-h-[50vh] flex flex-col justify-center py-8 md:py-12 bg-cyan-700">
           <motion.div className="max-w-4xl mx-auto text-center" variants={staggerContainer} initial="hidden" animate="visible">
             {/* Badge */}
-            <motion.div variants={staggerItem} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-foreground/10 backdrop-blur-sm border border-primary-foreground/20 mb-6">
+            <motion.div variants={staggerItem} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary-foreground/10 backdrop-blur-sm border border-primary-foreground/20 mb-4">
               <span className="flex h-2 w-2 rounded-full bg-secondary animate-pulse" />
-              <span className="text-sm font-medium text-primary-foreground">
+              <span className="text-xs font-medium text-primary-foreground">
                 Trusted by 1000+ Students
               </span>
             </motion.div>
 
             {/* Headline */}
-            <motion.h1 variants={staggerItem} className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-primary-foreground leading-tight mb-6">
+            <motion.h1 variants={staggerItem} className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-primary-foreground leading-tight mb-4">
               Crack Competitive Exams with{' '}
               <span className="relative">
                 Smart, Exam-Ready Notes
-                <motion.svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 300 12" fill="none" initial={{
+                <motion.svg className="absolute -bottom-1 left-0 w-full" viewBox="0 0 300 12" fill="none" initial={{
                 pathLength: 0,
                 opacity: 0
               }} animate={{
@@ -67,11 +67,11 @@ const HeroSection = () => {
             </motion.h1>
 
             {/* Student Images Gallery */}
-            <motion.div variants={staggerItem} className="flex justify-center gap-4 mb-8">
+            <motion.div variants={staggerItem} className="flex justify-center gap-3 mb-4">
               {studentImages.map((img, index) => (
                 <motion.div
                   key={index}
-                  className="w-24 h-24 md:w-32 md:h-32 rounded-xl overflow-hidden border-2 border-primary-foreground/20 shadow-lg"
+                  className="w-16 h-16 md:w-20 md:h-20 rounded-lg overflow-hidden border-2 border-primary-foreground/20 shadow-lg"
                   initial={{ opacity: 0, scale: 0.8, y: 20 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   transition={{ delay: 0.5 + index * 0.15, duration: 0.4 }}
@@ -87,10 +87,10 @@ const HeroSection = () => {
             </motion.div>
 
             {/* CTA Buttons */}
-            <motion.div variants={staggerItem} className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+            <motion.div variants={staggerItem} className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
               <Link to="/products">
-                <Button size="xl" variant="hero-outline" className="w-full sm:w-auto group">
-                  <Download className="mr-2 h-5 w-5 transition-transform group-hover:-translate-y-0.5" />
+                <Button size="lg" variant="hero-outline" className="w-full sm:w-auto group">
+                  <Download className="mr-2 h-4 w-4 transition-transform group-hover:-translate-y-0.5" />
                   Download Notes Now
                 </Button>
               </Link>
