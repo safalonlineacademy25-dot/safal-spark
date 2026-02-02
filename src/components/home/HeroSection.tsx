@@ -25,22 +25,22 @@ const HeroSection = () => {
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItSDI0di0yaDEyem0wLTRWMjhIMjR2Mmgxem0tMTIgOGgxMnYtMkgyNHYyem0xMi0xNnYySDI0di0yaDEyeiIvPjwvZz48L2c+PC9zdmc+')] opacity-30" />
 
       <div className="relative container-custom">
-        <div className="min-h-[32vh] flex flex-col justify-center py-6 md:py-8 bg-cyan-700">
+        <div className="min-h-[36vh] flex flex-col justify-center py-8 md:py-10">
           <motion.div className="max-w-5xl mx-auto w-full" variants={staggerContainer} initial="hidden" animate="visible">
             {/* Two Column Layout */}
-            <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8">
+            <div className="flex flex-col md:flex-row items-center gap-8 md:gap-10">
               {/* Left: Text Content */}
               <div className="flex-1 text-center md:text-left">
                 {/* Badge */}
-                <motion.div variants={staggerItem} className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-foreground/10 backdrop-blur-sm border border-primary-foreground/20 mb-3">
-                  <span className="flex h-1.5 w-1.5 rounded-full bg-secondary animate-pulse" />
-                  <span className="text-xs font-medium text-primary-foreground">
+                <motion.div variants={staggerItem} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary-foreground/10 backdrop-blur-sm border border-primary-foreground/20 mb-4">
+                  <span className="flex h-2 w-2 rounded-full bg-secondary animate-pulse" />
+                  <span className="text-xs md:text-sm font-medium text-primary-foreground">
                     Trusted by 1000+ Students
                   </span>
                 </motion.div>
 
-                {/* Headline */}
-                <motion.h1 variants={staggerItem} className="text-xl md:text-2xl lg:text-3xl font-extrabold text-primary-foreground leading-tight mb-3">
+                {/* Headline - Larger and more prominent */}
+                <motion.h1 variants={staggerItem} className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-primary-foreground leading-tight mb-4">
                   Crack Competitive Exams with{' '}
                   <span className="relative inline-block">
                     Smart, Exam-Ready Notes
@@ -69,8 +69,8 @@ const HeroSection = () => {
                 </motion.h1>
 
                 {/* Trust Points */}
-                <motion.div variants={staggerItem} className="flex flex-wrap justify-center md:justify-start gap-3 md:gap-4">
-                  {trustPoints.map((point, index) => <motion.div key={index} className="flex items-center gap-1.5 text-primary-foreground/90" initial={{
+                <motion.div variants={staggerItem} className="flex flex-wrap justify-center md:justify-start gap-4 md:gap-5">
+                  {trustPoints.map((point, index) => <motion.div key={index} className="flex items-center gap-2 text-primary-foreground/90" initial={{
                   opacity: 0,
                   y: 10
                 }} animate={{
@@ -80,18 +80,18 @@ const HeroSection = () => {
                   delay: 0.6 + index * 0.1,
                   duration: 0.4
                 }}>
-                      <point.icon className="h-4 w-4" />
-                      <span className="text-xs font-medium">{point.text}</span>
+                      <point.icon className="h-4 w-4 md:h-5 md:w-5" />
+                      <span className="text-xs md:text-sm font-medium">{point.text}</span>
                     </motion.div>)}
                 </motion.div>
               </div>
 
-              {/* Right: Student Images */}
-              <motion.div variants={staggerItem} className="flex gap-3 md:gap-4">
+              {/* Right: Student Images - Larger and more prominent */}
+              <motion.div variants={staggerItem} className="flex gap-4 md:gap-5">
                 {studentImages.map((img, index) => (
                   <motion.div
                     key={index}
-                    className="w-20 h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 rounded-xl overflow-hidden border-3 border-primary-foreground/30 shadow-xl"
+                    className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 lg:w-36 lg:h-36 rounded-2xl overflow-hidden border-4 border-primary-foreground/40 shadow-2xl"
                     initial={{ opacity: 0, scale: 0.8, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     transition={{ delay: 0.4 + index * 0.12, duration: 0.5 }}
