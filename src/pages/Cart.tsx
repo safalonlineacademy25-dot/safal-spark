@@ -443,23 +443,23 @@ const Cart = () => {
 
       <div className="min-h-screen flex flex-col">
         <Header />
-        <main className="flex-1 section-padding">
+        <main className="flex-1 py-4 px-4 md:py-6 md:px-6">
           <div className="container-custom">
-            <h1 className="text-3xl font-bold text-foreground mb-8">Shopping Cart</h1>
+            <h1 className="text-xl font-bold text-foreground mb-4">Shopping Cart</h1>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               {/* Cart Items */}
-              <div className="lg:col-span-2 space-y-4">
+              <div className="lg:col-span-2 space-y-3">
                 {items.map((item, index) => (
                   <motion.div
                     key={item.product.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="bg-card rounded-xl border border-border p-4 md:p-6"
+                    className="bg-card rounded-lg border border-border p-3"
                   >
-                    <div className="flex gap-4">
-                      <div className="w-20 h-20 rounded-lg bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center shrink-0 overflow-hidden">
+                    <div className="flex gap-3">
+                      <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center shrink-0 overflow-hidden">
                         {item.product.image_url ? (
                           <img 
                             src={getImageUrl(item.product.image_url)} 
@@ -468,14 +468,14 @@ const Cart = () => {
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
                               target.style.display = 'none';
-                              target.parentElement!.innerHTML = `<span class="text-3xl">${
+                              target.parentElement!.innerHTML = `<span class="text-2xl">${
                                 item.product.category === 'notes' ? '📚' : 
                                 item.product.category === 'mock-papers' ? '📝' : '🎁'
                               }</span>`;
                             }}
                           />
                         ) : (
-                          <span className="text-3xl">
+                          <span className="text-2xl">
                             {item.product.category === 'notes' && '📚'}
                             {item.product.category === 'mock-papers' && '📝'}
                             {item.product.category === 'combo' && '🎁'}
@@ -483,14 +483,11 @@ const Cart = () => {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-foreground mb-1 truncate">
+                        <h3 className="font-semibold text-foreground text-sm truncate">
                           {item.product.name}
                         </h3>
-                        <p className="text-sm text-muted-foreground mb-2 line-clamp-1">
-                          {item.product.description}
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg font-bold price-text">
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-base font-bold price-text">
                             ₹{item.product.price}
                           </span>
                           {item.product.original_price && (
@@ -502,11 +499,11 @@ const Cart = () => {
                       </div>
                       <Button
                         variant="ghost"
-                        size="icon"
+                        size="sm"
                         onClick={() => removeItem(item.product.id)}
-                        className="text-muted-foreground hover:text-destructive"
+                        className="text-muted-foreground hover:text-destructive h-8 w-8 p-0"
                       >
-                        <Trash2 className="h-5 w-5" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </motion.div>
@@ -514,8 +511,9 @@ const Cart = () => {
 
                 <Button
                   variant="ghost"
+                  size="sm"
                   onClick={clearCart}
-                  className="text-muted-foreground"
+                  className="text-muted-foreground text-xs"
                 >
                   Clear Cart
                 </Button>
