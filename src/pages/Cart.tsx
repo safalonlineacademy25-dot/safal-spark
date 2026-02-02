@@ -651,7 +651,7 @@ const Cart = () => {
                     {whatsappEnabled && (
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <MessageCircle className="h-3.5 w-3.5 text-secondary" />
-                        <span>WhatsApp delivery (if opted)</span>
+                        <span>Order delivery notification on WhatsApp</span>
                       </div>
                     )}
                   </div>
