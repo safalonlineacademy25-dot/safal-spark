@@ -1,121 +1,144 @@
 import { motion } from 'framer-motion';
-import { Shield, IndianRupee, Download } from 'lucide-react';
+import { Shield, IndianRupee, Download, Award, Users, BookOpen } from 'lucide-react';
 import { staggerContainer, staggerItem } from '@/hooks/useScrollAnimation';
 import studentStudy1 from '@/assets/student-study-1.jpg';
 import studentStudy2 from '@/assets/student-study-2.jpg';
 import studentStudy3 from '@/assets/student-study-3.jpg';
 
 const HeroSection = () => {
-  const trustPoints = [{
-    icon: Download,
-    text: 'Instant PDF Access'
-  }, {
-    icon: Shield,
-    text: 'Secure Razorpay Payments'
-  }, {
-    icon: IndianRupee,
-    text: 'Student-Friendly Pricing'
-  }];
+  const trustPoints = [
+    { icon: Download, text: 'Instant PDF Access' },
+    { icon: Shield, text: 'Secure Payments' },
+    { icon: IndianRupee, text: 'Student-Friendly Pricing' },
+  ];
 
-  const studentImages = [studentStudy1, studentStudy2, studentStudy3];
+  const studentImages = [
+    { src: studentStudy1, label: 'UPSC Aspirant' },
+    { src: studentStudy2, label: 'Banking Prep' },
+    { src: studentStudy3, label: 'SSC Candidate' },
+  ];
 
-  return <section className="relative overflow-hidden">
-      {/* Background */}
-      <div className="absolute inset-0 hero-gradient opacity-95" />
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItSDI0di0yaDEyem0wLTRWMjhIMjR2Mmgxem0tMTIgOGgxMnYtMkgyNHYyem0xMi0xNnYySDI0di0yaDEyeiIvPjwvZz48L2c+PC9zdmc+')] opacity-30" />
+  return (
+    <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary/95 to-primary/90">
+      {/* Premium Background Pattern */}
+      <div className="absolute inset-0 opacity-[0.03]">
+        <div className="absolute inset-0" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+        }} />
+      </div>
+      
+      {/* Gradient Overlay for depth */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-primary/50" />
 
       <div className="relative container-custom">
-        <div className="min-h-[36vh] flex flex-col justify-center py-8 md:py-10">
-          <motion.div className="max-w-5xl mx-auto w-full" variants={staggerContainer} initial="hidden" animate="visible">
-            {/* Two Column Layout */}
-            <div className="flex flex-col md:flex-row items-center gap-8 md:gap-10">
-              {/* Left: Text Content */}
-              <div className="flex-1 text-center md:text-left">
-                {/* Badge */}
-                <motion.div variants={staggerItem} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary-foreground/10 backdrop-blur-sm border border-primary-foreground/20 mb-4">
-                  <span className="flex h-2 w-2 rounded-full bg-secondary animate-pulse" />
-                  <span className="text-xs md:text-sm font-medium text-primary-foreground">
-                    Trusted by 1000+ Students
-                  </span>
-                </motion.div>
+        <div className="py-8 md:py-12 lg:py-14">
+          <motion.div 
+            className="max-w-6xl mx-auto w-full"
+            variants={staggerContainer} 
+            initial="hidden" 
+            animate="visible"
+          >
+            {/* Corporate Stacked Layout */}
+            <div className="flex flex-col items-center text-center">
+              
+              {/* Trust Badge - Top */}
+              <motion.div 
+                variants={staggerItem} 
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 mb-6"
+              >
+                <Award className="h-4 w-4 text-secondary" />
+                <span className="text-sm font-semibold text-primary-foreground tracking-wide">
+                  Trusted by 1,000+ Students Across India
+                </span>
+              </motion.div>
 
-                {/* Headline - Larger and more prominent */}
-                <motion.h1 variants={staggerItem} className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-primary-foreground leading-tight mb-4">
-                  Crack Competitive Exams with{' '}
-                  <span className="relative inline-block">
-                    Smart, Exam-Ready Notes
-                    <motion.svg className="absolute -bottom-1 left-0 w-full" viewBox="0 0 300 12" fill="none" initial={{
-                    pathLength: 0,
-                    opacity: 0
-                  }} animate={{
-                    pathLength: 1,
-                    opacity: 1
-                  }} transition={{
-                    delay: 0.8,
-                    duration: 0.8,
-                    ease: "easeOut"
-                  }}>
-                      <motion.path d="M2 8C50 4 150 2 298 8" stroke="hsl(160 84% 39%)" strokeWidth="4" strokeLinecap="round" initial={{
-                      pathLength: 0
-                    }} animate={{
-                      pathLength: 1
-                    }} transition={{
-                      delay: 0.8,
-                      duration: 0.8,
-                      ease: "easeOut"
-                    }} />
-                    </motion.svg>
-                  </span>
-                </motion.h1>
+              {/* Main Headline - Prominent */}
+              <motion.h1 
+                variants={staggerItem} 
+                className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-primary-foreground leading-[1.1] mb-8 tracking-tight"
+              >
+                <span className="block">Crack Competitive Exams</span>
+                <span className="block mt-2 bg-gradient-to-r from-secondary via-emerald-300 to-secondary bg-clip-text text-transparent">
+                  with Smart, Exam-Ready Notes
+                </span>
+              </motion.h1>
 
-                {/* Trust Points */}
-                <motion.div variants={staggerItem} className="flex flex-wrap justify-center md:justify-start gap-4 md:gap-5">
-                  {trustPoints.map((point, index) => <motion.div key={index} className="flex items-center gap-2 text-primary-foreground/90" initial={{
-                  opacity: 0,
-                  y: 10
-                }} animate={{
-                  opacity: 1,
-                  y: 0
-                }} transition={{
-                  delay: 0.6 + index * 0.1,
-                  duration: 0.4
-                }}>
-                      <point.icon className="h-4 w-4 md:h-5 md:w-5" />
-                      <span className="text-xs md:text-sm font-medium">{point.text}</span>
-                    </motion.div>)}
-                </motion.div>
-              </div>
-
-              {/* Right: Student Images - Larger and more prominent */}
-              <motion.div variants={staggerItem} className="flex gap-4 md:gap-5">
-                {studentImages.map((img, index) => (
+              {/* Student Images Row - Centered & Prominent */}
+              <motion.div 
+                variants={staggerItem}
+                className="flex items-center justify-center gap-4 md:gap-6 lg:gap-8 mb-8"
+              >
+                {studentImages.map((student, index) => (
                   <motion.div
                     key={index}
-                    className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 lg:w-36 lg:h-36 rounded-2xl overflow-hidden border-4 border-primary-foreground/40 shadow-2xl"
-                    initial={{ opacity: 0, scale: 0.8, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    transition={{ delay: 0.4 + index * 0.12, duration: 0.5 }}
-                    whileHover={{ scale: 1.08, y: -4, rotate: index === 1 ? 0 : (index === 0 ? -3 : 3) }}
+                    className="relative group"
+                    initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ delay: 0.5 + index * 0.15, duration: 0.6, ease: "easeOut" }}
                   >
-                    <img
-                      src={img}
-                      alt={`Student studying ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
+                    {/* Image Container with Premium Border */}
+                    <div className="relative">
+                      <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 lg:w-32 lg:h-32 rounded-2xl overflow-hidden ring-4 ring-white/30 shadow-2xl shadow-black/20 group-hover:ring-secondary/50 transition-all duration-300">
+                        <img
+                          src={student.src}
+                          alt={student.label}
+                          className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
+                        />
+                        {/* Gradient Overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                      </div>
+                      
+                      {/* Floating Label */}
+                      <motion.div 
+                        className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-white rounded-full shadow-lg whitespace-nowrap"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.8 + index * 0.1 }}
+                      >
+                        <span className="text-xs font-bold text-primary">{student.label}</span>
+                      </motion.div>
+                    </div>
                   </motion.div>
                 ))}
               </motion.div>
+
+              {/* Trust Points Row */}
+              <motion.div 
+                variants={staggerItem} 
+                className="flex flex-wrap items-center justify-center gap-4 md:gap-6 lg:gap-8"
+              >
+                {trustPoints.map((point, index) => (
+                  <motion.div 
+                    key={index} 
+                    className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.9 + index * 0.1, duration: 0.4 }}
+                  >
+                    <div className="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center">
+                      <point.icon className="h-4 w-4 text-secondary" />
+                    </div>
+                    <span className="text-sm font-medium text-primary-foreground">{point.text}</span>
+                  </motion.div>
+                ))}
+              </motion.div>
+
             </div>
           </motion.div>
         </div>
       </div>
 
-      {/* Wave Bottom */}
+      {/* Elegant Wave Separator */}
       <div className="absolute bottom-0 left-0 right-0">
-        <svg viewBox="0 0 1440 120" fill="none" className="w-full h-auto" preserveAspectRatio="none">
-          <path d="M0 120L60 105C120 90 240 60 360 45C480 30 600 30 720 37.5C840 45 960 60 1080 67.5C1200 75 1320 75 1380 75L1440 75V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z" fill="hsl(210 20% 98%)" />
+        <svg viewBox="0 0 1440 80" fill="none" className="w-full h-auto" preserveAspectRatio="none">
+          <path 
+            d="M0 80L48 74.7C96 69 192 59 288 53.3C384 48 480 48 576 50.7C672 53 768 59 864 58.7C960 59 1056 53 1152 50.7C1248 48 1344 48 1392 48L1440 48V80H1392C1344 80 1248 80 1152 80C1056 80 960 80 864 80C768 80 672 80 576 80C480 80 384 80 288 80C192 80 96 80 48 80H0Z" 
+            fill="hsl(210 20% 98%)" 
+          />
         </svg>
       </div>
-    </section>;
+    </section>
+  );
 };
+
 export default HeroSection;
