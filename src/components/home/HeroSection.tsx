@@ -77,14 +77,14 @@ const HeroSection = () => {
                     transition={{ delay: 0.3 + index * 0.1, duration: 0.4, ease: "easeOut" }}
                   >
                     {/* Image Container */}
-                    <div className="relative">
-                      <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl overflow-hidden ring-2 ring-white/30 shadow-lg group-hover:ring-secondary/50 transition-all duration-300">
+                    <div className="relative group-hover:scale-125 transition-transform duration-300 ease-out">
+                      <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl overflow-hidden ring-2 ring-white/30 shadow-lg group-hover:ring-secondary group-hover:shadow-2xl group-hover:shadow-secondary/30 transition-all duration-300">
                         <img
                           src={student.src}
                           alt={student.label}
                           className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent group-hover:from-black/10" />
                       </div>
                       
                       {/* Floating Label */}
