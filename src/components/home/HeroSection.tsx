@@ -13,9 +13,9 @@ const HeroSection = () => {
   ];
 
   const studentImages = [
-    { src: studentStudy1, label: 'UPSC Aspirant' },
-    { src: studentStudy2, label: 'Banking Prep' },
-    { src: studentStudy3, label: 'SSC Candidate' },
+    { src: studentStudy1, label: 'UPSC' },
+    { src: studentStudy2, label: 'Banking' },
+    { src: studentStudy3, label: 'SSC' },
   ];
 
   return (
@@ -66,7 +66,7 @@ const HeroSection = () => {
               {/* Student Images Row - Compact */}
               <motion.div 
                 variants={staggerItem}
-                className="flex items-center justify-center gap-3 md:gap-4 mb-4"
+                className="flex items-center justify-center gap-6 md:gap-10 lg:gap-14 mb-4"
               >
                 {studentImages.map((student, index) => (
                   <motion.div
