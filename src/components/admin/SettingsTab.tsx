@@ -70,6 +70,7 @@ interface DeliverySettings {
   emailEnabled: boolean;
   whatsappEnabled: boolean;
   resendApiKey: string;
+  resendWebhookSecret: string;
   whatsappAccessToken: string;
   whatsappPhoneNumberId: string;
   whatsappTemplateName: string;
@@ -118,12 +119,14 @@ const SettingsTab = () => {
     emailEnabled: true,
     whatsappEnabled: true,
     resendApiKey: '',
+    resendWebhookSecret: '',
     whatsappAccessToken: '',
     whatsappPhoneNumberId: '',
     whatsappTemplateName: '',
   });
   const [savingDelivery, setSavingDelivery] = useState(false);
   const [showResendKey, setShowResendKey] = useState(false);
+  const [showResendWebhookSecret, setShowResendWebhookSecret] = useState(false);
   const [showWhatsappToken, setShowWhatsappToken] = useState(false);
 
   // Load admin users
@@ -195,6 +198,7 @@ const SettingsTab = () => {
           emailEnabled: settingsMap['email_enabled'] !== 'false',
           whatsappEnabled: settingsMap['whatsapp_enabled'] !== 'false',
           resendApiKey: settingsMap['resend_api_key'] || '',
+          resendWebhookSecret: settingsMap['resend_webhook_secret'] || '',
           whatsappAccessToken: settingsMap['whatsapp_access_token'] || '',
           whatsappPhoneNumberId: settingsMap['whatsapp_phone_number_id'] || '',
           whatsappTemplateName: settingsMap['whatsapp_template_name'] || '',
@@ -421,6 +425,7 @@ const SettingsTab = () => {
         upsertSetting('email_enabled', deliverySettings.emailEnabled.toString()),
         upsertSetting('whatsapp_enabled', deliverySettings.whatsappEnabled.toString()),
         upsertSetting('resend_api_key', deliverySettings.resendApiKey),
+        upsertSetting('resend_webhook_secret', deliverySettings.resendWebhookSecret),
         upsertSetting('whatsapp_access_token', deliverySettings.whatsappAccessToken),
         upsertSetting('whatsapp_phone_number_id', deliverySettings.whatsappPhoneNumberId),
         upsertSetting('whatsapp_template_name', deliverySettings.whatsappTemplateName),
@@ -861,6 +866,43 @@ const SettingsTab = () => {
               <a href="https://resend.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                 Resend Dashboard
               </a>
+            </p>
+          </div>
+
+          {/* Resend Webhook Secret */}
+          <div className="space-y-2">
+            <Label htmlFor="resend-webhook-secret">Resend Webhook Secret</Label>
+            <div className="relative">
+              <Input
+                id="resend-webhook-secret"
+                type={showResendWebhookSecret ? 'text' : 'password'}
+                placeholder="whsec_xxxxxxxxxxxx"
+                value={deliverySettings.resendWebhookSecret}
+                onChange={(e) =>
+                  setDeliverySettings((prev) => ({ ...prev, resendWebhookSecret: e.target.value }))
+                }
+                disabled={!isSuperAdmin}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                onClick={() => setShowResendWebhookSecret(!showResendWebhookSecret)}
+              >
+                {showResendWebhookSecret ? (
+                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <Eye className="h-4 w-4 text-muted-foreground" />
+                )}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Get your webhook signing secret from{' '}
+              <a href="https://resend.com/webhooks" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                Resend Webhooks
+              </a>
+              {' '}after setting up the webhook endpoint
             </p>
           </div>
 
