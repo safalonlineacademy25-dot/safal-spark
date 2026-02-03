@@ -7,20 +7,20 @@ const HowItWorksSection = () => {
     {
       icon: MousePointer,
       step: '01',
-      title: 'Choose Your Product',
-      description: 'Browse our collection of exam notes and mock papers. Select what suits your preparation needs.',
+      title: 'Select & Add to Cart',
+      description: 'Browse our exam notes and mock papers. Click "Add to Cart" on the products you need, then click the cart icon to review your order.',
     },
     {
       icon: CreditCard,
       step: '02',
       title: 'Pay Securely via Razorpay',
-      description: 'Complete your purchase using UPI, Credit/Debit Cards, or Wallets. 100% secure payment.',
+      description: 'Proceed to checkout and pay using UPI, Credit/Debit Cards, or Wallets. 100% secure payment gateway.',
     },
     {
       icon: Download,
       step: '03',
-      title: 'Download Instantly',
-      description: 'Get immediate access to your PDF files. Download links also sent via Email & WhatsApp.',
+      title: 'Get Your PDFs via Email',
+      description: 'Download links are sent instantly to your email. You\'ll also receive a WhatsApp notification confirming delivery.',
     },
   ];
 
