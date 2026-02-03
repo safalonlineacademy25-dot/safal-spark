@@ -412,7 +412,7 @@ const Cart = () => {
         </Helmet>
         <div className="min-h-screen flex flex-col">
           <Header />
-          <main className="flex-1 flex items-center justify-center">
+          <main className="flex-1 flex items-center justify-center pb-20">
             <div className="text-center px-4">
               <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-muted flex items-center justify-center">
                 <ShoppingBag className="h-10 w-10 text-muted-foreground" />
