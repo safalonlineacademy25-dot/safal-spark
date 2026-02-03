@@ -39,9 +39,11 @@ const Products = () => {
     { id: 'notes', label: 'Competitive Exam Notes' },
     { id: 'mock-papers', label: 'Mock Papers' },
     { id: 'pune-university', label: 'Pune University Notes' },
+    { id: 'mumbai-university', label: 'Mumbai University Notes' },
     { id: 'engineering', label: 'Engineering Notes' },
     { id: 'iit', label: 'IIT Notes' },
     { id: 'combo-packs', label: 'Combo Packs' },
+    { id: 'audio-notes', label: 'Audio Notes' },
     { id: 'others', label: 'Others' },
   ];
 
@@ -165,9 +167,11 @@ const Products = () => {
                           {product.category === 'notes' && '📚'}
                           {product.category === 'mock-papers' && '📝'}
                           {product.category === 'pune-university' && '🎓'}
+                          {product.category === 'mumbai-university' && '🏫'}
                           {product.category === 'engineering' && '⚙️'}
                           {product.category === 'iit' && '🏛️'}
                           {product.category === 'combo-packs' && '📦'}
+                          {product.category === 'audio-notes' && '🎧'}
                           {product.category === 'others' && '📖'}
                         </div>
                       </div>
