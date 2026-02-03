@@ -11,7 +11,7 @@ const FAQSection = () => {
   const faqs = [
     {
       question: 'How will I receive my study materials after payment?',
-      answer: 'After successful payment via Razorpay, you will receive instant access to download your PDF files. Download links are also sent to your email and WhatsApp (if opted in).',
+      answer: 'After successful payment via Razorpay, download links are sent directly to your email. You\'ll also receive a WhatsApp notification confirming that your order has been delivered.',
     },
     {
       question: 'Are the notes updated for the latest exam patterns?',
@@ -23,7 +23,7 @@ const FAQSection = () => {
     },
     {
       question: 'Can I download the files multiple times?',
-      answer: 'Yes, you can download your purchased files unlimited times. Your download links remain active, and you can access them anytime from your email.',
+      answer: 'Yes, you can download your purchased files unlimited times. Your download links remain active in your email, and you can access them anytime.',
     },
     {
       question: 'What payment methods are accepted?',
@@ -35,7 +35,7 @@ const FAQSection = () => {
     },
     {
       question: 'Do I need to create an account to purchase?',
-      answer: 'No account creation is required. Simply add products to cart, enter your email and phone number at checkout, complete payment, and receive your downloads instantly.',
+      answer: 'No account creation is required. Simply add products to cart, enter your email and phone number at checkout, complete payment, and receive your downloads via email.',
     },
     {
       question: 'In which language are the notes available?',
