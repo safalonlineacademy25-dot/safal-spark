@@ -41,15 +41,34 @@ interface ResendWebhookPayload {
   };
 }
 
+// Helper function to get settings from database
+async function getSettings(supabase: any): Promise<Record<string, string>> {
+  const { data, error } = await supabase
+    .from('settings')
+    .select('key, value');
+  
+  if (error) {
+    console.error("Error fetching settings:", error);
+    return {};
+  }
+  
+  const settings: Record<string, string> = {};
+  if (data) {
+    data.forEach((s: { key: string; value: string | null }) => {
+      if (s.value) settings[s.key] = s.value;
+    });
+  }
+  return settings;
+}
+
 // Verify webhook signature from Resend (using Svix)
 async function verifyWebhookSignature(
   payload: string,
-  headers: Headers
+  headers: Headers,
+  webhookSecret: string | undefined
 ): Promise<boolean> {
-  const webhookSecret = Deno.env.get("RESEND_WEBHOOK_SECRET");
-  
   if (!webhookSecret) {
-    console.warn("RESEND_WEBHOOK_SECRET not configured - skipping signature verification");
+    console.warn("Resend webhook secret not configured - skipping signature verification");
     return true; // Allow in development but log warning
   }
 
@@ -135,8 +154,15 @@ serve(async (req: Request): Promise<Response> => {
   try {
     const payload = await req.text();
     
+    // Create Supabase client and get settings
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const settings = await getSettings(supabase);
+    
+    // Get webhook secret from database settings
+    const webhookSecret = settings['resend_webhook_secret'];
+    
     // Verify webhook signature
-    const isValid = await verifyWebhookSignature(payload, req.headers);
+    const isValid = await verifyWebhookSignature(payload, req.headers, webhookSecret);
     if (!isValid) {
       console.error("Invalid webhook signature");
       return new Response(
@@ -149,9 +175,6 @@ serve(async (req: Request): Promise<Response> => {
     console.log("Received Resend webhook event:", event.type);
     console.log("Email ID:", event.data.email_id);
     console.log("Recipients:", event.data.to);
-
-    // Create Supabase client
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Handle different event types
     switch (event.type) {
