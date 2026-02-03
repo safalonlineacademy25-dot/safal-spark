@@ -53,8 +53,8 @@ export const useActiveProducts = () => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      // Return with null file_url for type safety
-      return (data || []).map(p => ({ ...p, file_url: null })) as Product[];
+      // Return with null file_url and audio_url for type safety
+      return (data || []).map(p => ({ ...p, file_url: null, audio_url: null })) as Product[];
     },
   });
 };
@@ -90,6 +90,7 @@ export const useAddProduct = () => {
         description: newProduct.description ?? null,
         image_url: newProduct.image_url ?? null,
         file_url: newProduct.file_url ?? null,
+        audio_url: newProduct.audio_url ?? null,
         badge: newProduct.badge ?? null,
         is_active: newProduct.is_active ?? true,
         features: newProduct.features ?? null,

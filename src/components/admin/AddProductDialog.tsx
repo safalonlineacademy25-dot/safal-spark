@@ -28,6 +28,7 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
     original_price: 0,
     image_url: '',
     file_url: '',
+    audio_url: '',
     badge: '',
     is_active: true,
     features: [],
@@ -36,9 +37,11 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedAudioFile, setSelectedAudioFile] = useState<File | null>(null);
   const [pendingComboFiles, setPendingComboFiles] = useState<Array<{ file: File; order: number }>>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const productFileInputRef = useRef<HTMLInputElement>(null);
+  const audioFileInputRef = useRef<HTMLInputElement>(null);
 
   const addProduct = useAddProduct();
   const { uploadImage, isUploading: isImageUploading, cancelUpload: cancelImageUpload } = useImageUpload();
@@ -48,6 +51,12 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
     isUploading: isFileUploading, 
     progress: fileProgress 
   } = useProductFileUpload();
+  const { 
+    uploadFile: uploadAudioFile, 
+    cancelUpload: cancelAudioUpload, 
+    isUploading: isAudioUploading, 
+    progress: audioProgress 
+  } = useProductFileUpload();
   const { uploadFile: uploadComboFile, isUploading: isComboUploading } = useComboPackFileUpload();
 
   // Cancel uploads and cleanup when dialog closes
@@ -55,6 +64,7 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
     if (!newOpen) {
       cancelImageUpload();
       cancelFileUpload();
+      cancelAudioUpload();
       if (imagePreview) {
         URL.revokeObjectURL(imagePreview);
       }
@@ -102,12 +112,28 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
     cancelFileUpload();
   };
 
+  const handleAudioFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSelectedAudioFile(file);
+  };
+
+  const removeAudioFile = () => {
+    setSelectedAudioFile(null);
+    setFormData({ ...formData, audio_url: '' });
+    if (audioFileInputRef.current) {
+      audioFileInputRef.current.value = '';
+    }
+    cancelAudioUpload();
+  };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     let imageUrl = formData.image_url || null;
     let fileUrl = formData.file_url || null;
+    let audioUrl = formData.audio_url || null;
     
     // Run uploads in parallel for better performance
     const uploadPromises: Promise<void>[] = [];
@@ -138,6 +164,19 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
       );
     }
     
+    // Audio file upload promise
+    if (selectedAudioFile && !formData.audio_url) {
+      uploadPromises.push(
+        uploadAudioFile(selectedAudioFile).then((url) => {
+          if (url) {
+            audioUrl = url;
+          } else {
+            throw new Error('Audio upload failed');
+          }
+        })
+      );
+    }
+    
     // Wait for all uploads to complete in parallel
     if (uploadPromises.length > 0) {
       try {
@@ -155,6 +194,7 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
       description: formData.description || null,
       image_url: imageUrl,
       file_url: fileUrl,
+      audio_url: audioUrl,
       badge: formData.badge && formData.badge.trim().length > 0 ? formData.badge.trim() : null,
       is_active: formData.is_active ?? true,
       features: featuresInput ? featuresInput.split('\n').filter(f => f.trim()) : [],
@@ -189,6 +229,7 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
       original_price: 0,
       image_url: '',
       file_url: '',
+      audio_url: '',
       badge: '',
       is_active: true,
       features: [],
@@ -197,10 +238,12 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
     setImagePreview(null);
     setSelectedImageFile(null);
     setSelectedFile(null);
+    setSelectedAudioFile(null);
     setPendingComboFiles([]);
   };
 
   const isComboPackCategory = formData.category === 'combo-packs';
+  const isAudioNotesCategory = formData.category === 'audio-notes';
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -259,6 +302,7 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
                   <SelectItem value="engineering">Engineering Notes</SelectItem>
                   <SelectItem value="iit">IIT Notes</SelectItem>
                   <SelectItem value="combo-packs">Combo Packs</SelectItem>
+                  <SelectItem value="audio-notes">Audio Notes</SelectItem>
                   <SelectItem value="others">Others</SelectItem>
                 </SelectContent>
               </Select>
@@ -424,6 +468,49 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
             </div>
           )}
 
+          {/* Optional Audio File Upload */}
+          <div className="space-y-2">
+            <Label>Audio File (Optional - MP3, WAV, etc.)</Label>
+            <input
+              ref={audioFileInputRef}
+              type="file"
+              accept=".mp3,.wav,.m4a,.ogg,.aac"
+              onChange={handleAudioFileSelect}
+              className="hidden"
+            />
+            
+            <FileUploadProgress
+              fileName={selectedAudioFile?.name || null}
+              fileSize={selectedAudioFile?.size || 0}
+              isUploading={isAudioUploading}
+              progress={audioProgress}
+              onCancel={cancelAudioUpload}
+              onRemove={removeAudioFile}
+              onSelect={() => audioFileInputRef.current?.click()}
+              disabled={isAudioUploading}
+            />
+            
+            {formData.audio_url && !selectedAudioFile && (
+              <div className="text-xs text-muted-foreground">
+                Current audio: <span className="font-mono">{formData.audio_url.split('/').pop()}</span>
+              </div>
+            )}
+            
+            <p className="text-xs text-muted-foreground">
+              Or paste an external URL below
+            </p>
+            <Input
+              id="audio_url"
+              value={formData.audio_url || ''}
+              onChange={(e) => {
+                setFormData({ ...formData, audio_url: e.target.value });
+                setSelectedAudioFile(null);
+              }}
+              placeholder="https://..."
+              disabled={isAudioUploading}
+            />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="features">Features (one per line)</Label>
             <Textarea
@@ -439,7 +526,7 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={addProduct.isPending || isImageUploading || isFileUploading || isComboUploading}>
+            <Button type="submit" disabled={addProduct.isPending || isImageUploading || isFileUploading || isComboUploading || isAudioUploading}>
               {addProduct.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Add Product
             </Button>
