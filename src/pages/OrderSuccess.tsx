@@ -20,8 +20,8 @@ const OrderSuccess = () => {
 
       <div className="min-h-screen flex flex-col bg-background">
         <Header />
-        <main className="flex-1 section-padding flex items-center justify-center">
-          <div className="container-custom max-w-2xl">
+        <main className="flex-1 py-4 md:py-6 flex items-center justify-center">
+          <div className="container-custom max-w-xl px-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -33,9 +33,9 @@ const OrderSuccess = () => {
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-                className="w-24 h-24 mx-auto mb-6 rounded-full bg-secondary/10 flex items-center justify-center"
+                className="w-16 h-16 mx-auto mb-4 rounded-full bg-secondary/10 flex items-center justify-center"
               >
-                <CheckCircle className="h-14 w-14 text-secondary" />
+                <CheckCircle className="h-10 w-10 text-secondary" />
               </motion.div>
 
               {/* Success Message */}
@@ -44,14 +44,14 @@ const OrderSuccess = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
               >
-                <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
+                <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
                   Payment Successful! 🎉
                 </h1>
-                <p className="text-lg text-muted-foreground mb-2">
+                <p className="text-base text-muted-foreground mb-1">
                   Thank you for your purchase
                 </p>
                 {orderNumber && (
-                  <p className="text-sm font-medium text-primary mb-6">
+                  <p className="text-xs font-medium text-primary mb-4">
                     Order ID: {orderNumber}
                   </p>
                 )}
@@ -62,24 +62,24 @@ const OrderSuccess = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="bg-card rounded-2xl border border-border p-6 md:p-8 mb-8 text-left"
+                className="bg-card rounded-xl border border-border p-4 mb-4 text-left"
               >
-                <h2 className="text-lg font-semibold text-foreground mb-4 text-center">
+                <h2 className="text-base font-semibold text-foreground mb-3 text-center">
                   What happens next?
                 </h2>
 
-                <div className="space-y-4">
+                <div className="space-y-2">
                   {/* Email Delivery */}
-                  <div className="flex items-start gap-4 p-4 rounded-xl bg-muted/50">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <Mail className="h-5 w-5 text-primary" />
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <Mail className="h-4 w-4 text-primary" />
                     </div>
                     <div>
-                      <h3 className="font-medium text-foreground mb-1">
+                      <h3 className="text-sm font-medium text-foreground">
                         Check your email
                       </h3>
-                      <p className="text-sm text-muted-foreground">
-                        Download links have been sent to{' '}
+                      <p className="text-xs text-muted-foreground">
+                        Download links sent to{' '}
                         {email ? (
                           <span className="font-medium text-foreground">{email}</span>
                         ) : (
@@ -90,31 +90,31 @@ const OrderSuccess = () => {
                   </div>
 
                   {/* WhatsApp Delivery */}
-                  <div className="flex items-start gap-4 p-4 rounded-xl bg-muted/50">
-                    <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center shrink-0">
-                      <MessageCircle className="h-5 w-5 text-secondary" />
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                    <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center shrink-0">
+                      <MessageCircle className="h-4 w-4 text-secondary" />
                     </div>
                     <div>
-                      <h3 className="font-medium text-foreground mb-1">
+                      <h3 className="text-sm font-medium text-foreground">
                         WhatsApp notification
                       </h3>
-                      <p className="text-sm text-muted-foreground">
-                        If you opted in, you'll also receive download links on WhatsApp
+                      <p className="text-xs text-muted-foreground">
+                        If opted in, you'll also get links on WhatsApp
                       </p>
                     </div>
                   </div>
 
                   {/* Download Info */}
-                  <div className="flex items-start gap-4 p-4 rounded-xl bg-muted/50">
-                    <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
-                      <Download className="h-5 w-5 text-accent-foreground" />
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                    <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
+                      <Download className="h-4 w-4 text-accent-foreground" />
                     </div>
                     <div>
-                      <h3 className="font-medium text-foreground mb-1">
+                      <h3 className="text-sm font-medium text-foreground">
                         Download your files
                       </h3>
-                      <p className="text-sm text-muted-foreground">
-                        Links are valid for <strong>7 days</strong> with up to <strong>3 downloads</strong> per product
+                      <p className="text-xs text-muted-foreground">
+                        Valid for <strong>7 days</strong>, up to <strong>3 downloads</strong>
                       </p>
                     </div>
                   </div>
@@ -126,16 +126,16 @@ const OrderSuccess = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
-                className="flex flex-col sm:flex-row gap-4 justify-center"
+                className="flex flex-col sm:flex-row gap-3 justify-center"
               >
                 <Link to="/">
-                  <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                  <Button variant="outline" size="default" className="w-full sm:w-auto">
                     <Home className="mr-2 h-4 w-4" />
                     Back to Home
                   </Button>
                 </Link>
                 <Link to="/products">
-                  <Button size="lg" className="w-full sm:w-auto">
+                  <Button size="default" className="w-full sm:w-auto">
                     Continue Shopping
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
@@ -147,9 +147,9 @@ const OrderSuccess = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.6 }}
-                className="text-sm text-muted-foreground mt-8"
+                className="text-xs text-muted-foreground mt-4"
               >
-                Didn't receive your email? Check your spam folder or{' '}
+                Didn't receive your email? Check spam or{' '}
                 <a href="mailto:support@safalonlineacademy.com" className="text-primary hover:underline">
                   contact support
                 </a>
