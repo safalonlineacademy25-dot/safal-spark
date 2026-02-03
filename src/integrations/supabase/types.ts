@@ -344,6 +344,7 @@ export type Database = {
       }
       products: {
         Row: {
+          audio_url: string | null
           badge: string | null
           category: string
           created_at: string | null
@@ -362,6 +363,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          audio_url?: string | null
           badge?: string | null
           category: string
           created_at?: string | null
@@ -380,6 +382,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          audio_url?: string | null
           badge?: string | null
           category?: string
           created_at?: string | null

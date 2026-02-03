@@ -28,15 +28,19 @@ const EditProductDialog = ({ product, children }: EditProductDialogProps) => {
     original_price: 0,
     image_url: '',
     file_url: '',
+    audio_url: '',
     badge: '',
     is_active: true,
   });
   const [featuresInput, setFeaturesInput] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedAudioFile, setSelectedAudioFile] = useState<File | null>(null);
   const [existingFileName, setExistingFileName] = useState<string | null>(null);
+  const [existingAudioFileName, setExistingAudioFileName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const productFileInputRef = useRef<HTMLInputElement>(null);
+  const audioFileInputRef = useRef<HTMLInputElement>(null);
 
   const updateProduct = useUpdateProduct();
   const { uploadImage, isUploading: isImageUploading, cancelUpload: cancelImageUpload } = useImageUpload();
@@ -46,13 +50,19 @@ const EditProductDialog = ({ product, children }: EditProductDialogProps) => {
     isUploading: isFileUploading, 
     progress: fileProgress 
   } = useProductFileUpload();
+  const { 
+    uploadFile: uploadAudioFile, 
+    cancelUpload: cancelAudioUpload, 
+    isUploading: isAudioUploading, 
+    progress: audioProgress 
+  } = useProductFileUpload();
 
   // Cancel uploads when dialog closes
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
-      // Cancel any ongoing uploads when closing
       cancelImageUpload();
       cancelFileUpload();
+      cancelAudioUpload();
     }
     setOpen(newOpen);
   };
@@ -67,18 +77,27 @@ const EditProductDialog = ({ product, children }: EditProductDialogProps) => {
         original_price: product.original_price || 0,
         image_url: product.image_url || '',
         file_url: product.file_url || '',
+        audio_url: product.audio_url || '',
         badge: product.badge || '',
         is_active: product.is_active ?? true,
       });
       setFeaturesInput(product.features?.join('\n') || '');
       setImagePreview(null);
       setSelectedFile(null);
+      setSelectedAudioFile(null);
       // Extract filename from existing URL
       if (product.file_url) {
         const fileName = product.file_url.split('/').pop() || null;
         setExistingFileName(fileName);
       } else {
         setExistingFileName(null);
+      }
+      // Extract audio filename from existing URL
+      if (product.audio_url) {
+        const audioFileName = product.audio_url.split('/').pop() || null;
+        setExistingAudioFileName(audioFileName);
+      } else {
+        setExistingAudioFileName(null);
       }
     }
   }, [open, product]);
@@ -133,6 +152,30 @@ const EditProductDialog = ({ product, children }: EditProductDialogProps) => {
     cancelFileUpload();
   };
 
+  const handleAudioFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setSelectedAudioFile(file);
+    setExistingAudioFileName(null);
+    
+    // Upload to Supabase Storage
+    const url = await uploadAudioFile(file, product.id);
+    if (url) {
+      setFormData({ ...formData, audio_url: url });
+    }
+  };
+
+  const removeAudioFile = () => {
+    setSelectedAudioFile(null);
+    setExistingAudioFileName(null);
+    setFormData({ ...formData, audio_url: '' });
+    if (audioFileInputRef.current) {
+      audioFileInputRef.current.value = '';
+    }
+    cancelAudioUpload();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -146,6 +189,7 @@ const EditProductDialog = ({ product, children }: EditProductDialogProps) => {
         description: formData.description || null,
         image_url: formData.image_url || null,
         file_url: formData.file_url || null,
+        audio_url: formData.audio_url || null,
         badge: formData.badge && formData.badge.trim().length > 0 ? formData.badge.trim() : null,
         is_active: formData.is_active,
         features: featuresInput ? featuresInput.split('\n').filter(f => f.trim()) : [],
@@ -158,7 +202,9 @@ const EditProductDialog = ({ product, children }: EditProductDialogProps) => {
 
   const displayImage = imagePreview || formData.image_url;
   const displayFileName = selectedFile?.name || existingFileName;
+  const displayAudioFileName = selectedAudioFile?.name || existingAudioFileName;
   const isComboPackCategory = formData.category === 'combo-packs';
+  const isAudioNotesCategory = formData.category === 'audio-notes';
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -216,6 +262,7 @@ const EditProductDialog = ({ product, children }: EditProductDialogProps) => {
                   <SelectItem value="engineering">Engineering Notes</SelectItem>
                   <SelectItem value="iit">IIT Notes</SelectItem>
                   <SelectItem value="combo-packs">Combo Packs</SelectItem>
+                  <SelectItem value="audio-notes">Audio Notes</SelectItem>
                   <SelectItem value="others">Others</SelectItem>
                 </SelectContent>
               </Select>
@@ -374,6 +421,44 @@ const EditProductDialog = ({ product, children }: EditProductDialogProps) => {
             </div>
           )}
 
+          {/* Optional Audio File Upload */}
+          <div className="space-y-2">
+            <Label>Audio File (Optional - MP3, WAV, etc.)</Label>
+            <input
+              ref={audioFileInputRef}
+              type="file"
+              accept=".mp3,.wav,.m4a,.ogg,.aac"
+              onChange={handleAudioFileSelect}
+              className="hidden"
+            />
+            
+            <FileUploadProgress
+              fileName={displayAudioFileName}
+              fileSize={selectedAudioFile?.size || 0}
+              isUploading={isAudioUploading}
+              progress={audioProgress}
+              onCancel={cancelAudioUpload}
+              onRemove={removeAudioFile}
+              onSelect={() => audioFileInputRef.current?.click()}
+              disabled={isAudioUploading}
+            />
+            
+            <p className="text-xs text-muted-foreground">
+              Or paste an external URL below
+            </p>
+            <Input
+              id="edit-audio_url"
+              value={formData.audio_url}
+              onChange={(e) => {
+                setFormData({ ...formData, audio_url: e.target.value });
+                setSelectedAudioFile(null);
+                setExistingAudioFileName(null);
+              }}
+              placeholder="https://..."
+              disabled={isAudioUploading}
+            />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="edit-features">Features (one per line)</Label>
             <Textarea
@@ -398,7 +483,7 @@ const EditProductDialog = ({ product, children }: EditProductDialogProps) => {
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={updateProduct.isPending || isImageUploading || isFileUploading}>
+            <Button type="submit" disabled={updateProduct.isPending || isImageUploading || isFileUploading || isAudioUploading}>
               {updateProduct.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Save Changes
             </Button>
