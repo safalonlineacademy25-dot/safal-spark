@@ -82,11 +82,35 @@ const AdminDashboard = () => {
   const needsCustomers = activeTab === 'customers';
   
   // Only fetch data when the relevant tab is active - improves initial load performance
-  const { data: products, isLoading: productsLoading } = useProducts({ enabled: needsProducts });
+  const { data: products, isLoading: productsLoading, refetch: refetchProducts } = useProducts({ enabled: needsProducts });
   const { data: orders, isLoading: ordersLoading, refetch: refetchOrders, isError: ordersError, error: ordersErrorObj } = useOrders({ enabled: needsOrders });
-  const { data: customers, isLoading: customersLoading } = useCustomers({ enabled: needsCustomers });
+  const { data: customers, isLoading: customersLoading, refetch: refetchCustomers } = useCustomers({ enabled: needsCustomers });
   const [resendingEmail, setResendingEmail] = useState<string | null>(null);
   const [resendingWhatsApp, setResendingWhatsApp] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Force refresh all data for current tab
+  const handleRefreshData = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      // Invalidate all queries first to clear stale cache
+      await queryClient.invalidateQueries();
+      
+      // Then refetch based on active tab
+      const refreshPromises: Promise<any>[] = [];
+      if (needsProducts) refreshPromises.push(refetchProducts());
+      if (needsOrders) refreshPromises.push(refetchOrders());
+      if (needsCustomers) refreshPromises.push(refetchCustomers());
+      
+      await Promise.all(refreshPromises);
+      toast.success('Data refreshed');
+    } catch (error) {
+      console.error('Refresh error:', error);
+      toast.error('Failed to refresh data');
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [queryClient, needsProducts, needsOrders, needsCustomers, refetchProducts, refetchOrders, refetchCustomers]);
 
   // Quick order search removed (admin search controls were removed to simplify the UI)
 
@@ -500,6 +524,16 @@ const AdminDashboard = () => {
                   {' '}— Here's what's happening today.
                 </p>
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefreshData}
+                disabled={isRefreshing}
+                className="gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
+              </Button>
             </div>
           </header>
 
