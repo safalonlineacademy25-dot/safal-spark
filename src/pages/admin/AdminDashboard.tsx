@@ -28,6 +28,7 @@ import {
   Sparkles,
   Trash2,
   RotateCcw,
+  BarChart3,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -47,6 +48,7 @@ import BroadcastHistoryTab from '@/components/admin/BroadcastHistoryTab';
 import PromotionsTab from '@/components/admin/PromotionsTab';
 import DataPurgingTab from '@/components/admin/DataPurgingTab';
 import RefundsTab from '@/components/admin/RefundsTab';
+import VisitorStatsTab from '@/components/admin/VisitorStatsTab';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
 import OrdersChart from '@/components/admin/OrdersChart';
 import { usePagination } from '@/hooks/usePagination';
@@ -208,6 +210,7 @@ const AdminDashboard = () => {
     { id: 'payments', label: 'Failed Payments', icon: CreditCard },
     { id: 'refunds', label: 'Refunds', icon: RotateCcw },
     { id: 'customers', label: 'Customers', icon: Users },
+    { id: 'visitors', label: 'Visitor Stats', icon: BarChart3 },
     { id: 'email', label: 'Email Logs', icon: Mail },
     { id: 'whatsapp', label: 'WhatsApp Logs', icon: MessageCircle },
     { id: 'broadcasts', label: 'Broadcast History', icon: History },
@@ -1342,6 +1345,8 @@ const AdminDashboard = () => {
                 <DataPurgingTab />
               </ErrorBoundary>
             )}
+
+            {activeTab === 'visitors' && <VisitorStatsTab />}
 
             {activeTab === 'settings' && <SettingsTab />}
           </div>
