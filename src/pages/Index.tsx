@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
@@ -7,8 +8,32 @@ import AudienceSection from '@/components/home/AudienceSection';
 import HowItWorksSection from '@/components/home/HowItWorksSection';
 import FAQSection from '@/components/home/FAQSection';
 import CTASection from '@/components/home/CTASection';
+import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
+  const hasTracked = useRef(false);
+
+  // Track page visit once per session
+  useEffect(() => {
+    const trackVisit = async () => {
+      // Only track once per page load
+      if (hasTracked.current) return;
+      hasTracked.current = true;
+
+      try {
+        await supabase.functions.invoke('track-visit', {
+          method: 'POST',
+        });
+        console.log('[Index] Visit tracked');
+      } catch (error) {
+        // Silently fail - visitor tracking shouldn't affect user experience
+        console.log('[Index] Failed to track visit:', error);
+      }
+    };
+
+    trackVisit();
+  }, []);
+
   return (
     <>
       <Helmet>

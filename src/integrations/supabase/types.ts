@@ -575,6 +575,30 @@ export type Database = {
         }
         Relationships: []
       }
+      visitor_stats: {
+        Row: {
+          created_at: string
+          id: string
+          updated_at: string
+          visit_count: number
+          visit_date: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          updated_at?: string
+          visit_count?: number
+          visit_date: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          updated_at?: string
+          visit_count?: number
+          visit_date?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -604,6 +628,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_visitor_count: { Args: never; Returns: Json }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
