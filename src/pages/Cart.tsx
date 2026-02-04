@@ -537,7 +537,7 @@ const Cart = () => {
                           setEmail(e.target.value);
                           if (emailError) setEmailError('');
                         }}
-                        placeholder="your@email.com"
+                        placeholder=""
                         className={`w-full px-3 py-2 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm ${
                           emailError ? 'border-destructive' : 'border-input'
                         }`}
@@ -562,7 +562,7 @@ const Cart = () => {
                           setPhone(value);
                           if (phoneError) setPhoneError('');
                         }}
-                        placeholder="+919876543210"
+                        placeholder=""
                         maxLength={15}
                         className={`w-full px-3 py-2 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm ${
                           phoneError ? 'border-destructive' : 'border-input'
