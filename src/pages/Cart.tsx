@@ -153,21 +153,19 @@ const Cart = () => {
     if (productIdToAdd && allProducts) {
       const product = allProducts.find(p => p.id === productIdToAdd);
       if (product) {
-        // Check if already in cart
-        const existingItem = items.find(item => item.product.id === productIdToAdd);
-        if (!existingItem) {
-          addItem(product);
-          toast({
-            title: 'Product added to cart',
-            description: `${product.name} has been added to your cart.`,
-          });
-        }
+       // Clear existing cart and add only this product (QR code = direct buy)
+       clearCart();
+       addItem(product);
+       toast({
+         title: 'Ready to checkout',
+         description: `${product.name} has been added to your cart.`,
+       });
       }
       // Remove the add parameter from URL
       searchParams.delete('add');
       setSearchParams(searchParams, { replace: true });
     }
-  }, [searchParams, allProducts, items, addItem, setSearchParams, toast]);
+ }, [searchParams, allProducts, addItem, clearCart, setSearchParams, toast]);
 
   const validateForm = (): boolean => {
     let hasErrors = false;
