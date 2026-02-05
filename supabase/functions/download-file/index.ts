@@ -172,62 +172,63 @@ serve(async (req: Request): Promise<Response> => {
     let fileUrl: string | null = null;
     let fileName: string = product.name;
 
-    // Check if this is a combo pack - look for combo pack files
-    if (product.category === 'combo-packs') {
-      // For combo packs, we need to find the specific file based on the token
-      // Each combo file gets its own token during order verification
-      // We'll match by looking at the order of tokens created
-      
-      // Get all tokens for this order and product, ordered by creation
-      const { data: orderTokens, error: orderTokensError } = await supabase
-        .from("download_tokens")
-        .select("id, token, created_at")
-        .eq("order_id", tokenData.order_id)
-        .eq("product_id", tokenData.product_id)
-        .order("created_at", { ascending: true });
-        
-      if (orderTokensError) {
-        console.error("Error fetching order tokens:", orderTokensError);
+     // All products now use combo_pack_files and product_audio_files tables
+     // Find the specific file based on the token order
+     
+     // Get all tokens for this order and product, ordered by creation
+     const { data: orderTokens, error: orderTokensError } = await supabase
+       .from("download_tokens")
+       .select("id, token, created_at")
+       .eq("order_id", tokenData.order_id)
+       .eq("product_id", tokenData.product_id)
+       .order("created_at", { ascending: true });
+       
+     if (orderTokensError) {
+       console.error("Error fetching order tokens:", orderTokensError);
+     }
+     
+     // Find the index of this token
+     const tokenIndex = orderTokens?.findIndex(t => t.token === token) ?? -1;
+     
+     if (tokenIndex >= 0) {
+       // Get document files
+       const { data: documentFiles, error: documentFilesError } = await supabase
+         .from("combo_pack_files")
+         .select("*")
+         .eq("product_id", tokenData.product_id)
+         .order("file_order", { ascending: true });
+         
+       if (documentFilesError) {
+         console.error("Error fetching document files:", documentFilesError);
       }
       
-      // Find the index of this token
-      const tokenIndex = orderTokens?.findIndex(t => t.token === token) ?? -1;
-      
-      if (tokenIndex >= 0) {
-        // Get the combo pack file at this index
-        const { data: comboFiles, error: comboFilesError } = await supabase
-          .from("combo_pack_files")
-          .select("*")
-          .eq("product_id", tokenData.product_id)
-          .order("file_order", { ascending: true });
-          
-        if (comboFilesError) {
-          console.error("Error fetching combo pack files:", comboFilesError);
-        }
-        
-        const totalComboFiles = comboFiles?.length || 0;
-        
-        // Check if this token index is for a combo file or the audio file
-        if (comboFiles && tokenIndex < totalComboFiles) {
-          // Token is for a combo pack file
-          fileUrl = comboFiles[tokenIndex].file_url;
-          fileName = comboFiles[tokenIndex].file_name;
-          console.log("Combo pack file found:", fileName, "at index:", tokenIndex);
-        } else if (product.audio_url && tokenIndex === totalComboFiles) {
-          // Token is for the audio file (added after combo files)
-          fileUrl = product.audio_url;
-          fileName = product.audio_url.split('/').pop() || 'audio.mp3';
-          console.log("Audio file found for combo pack:", fileName);
-        }
+       // Get audio files
+       const { data: audioFiles, error: audioFilesError } = await supabase
+         .from("product_audio_files")
+         .select("*")
+         .eq("product_id", tokenData.product_id)
+         .order("file_order", { ascending: true });
+         
+       if (audioFilesError) {
+         console.error("Error fetching audio files:", audioFilesError);
+       }
+       
+       const totalDocumentFiles = documentFiles?.length || 0;
+       const totalAudioFiles = audioFiles?.length || 0;
+       
+       // Check if this token index is for a document file or an audio file
+       if (documentFiles && tokenIndex < totalDocumentFiles) {
+         // Token is for a document file
+         fileUrl = documentFiles[tokenIndex].file_url;
+         fileName = documentFiles[tokenIndex].file_name;
+         console.log("Document file found:", fileName, "at index:", tokenIndex);
+       } else if (audioFiles && tokenIndex >= totalDocumentFiles && tokenIndex < totalDocumentFiles + totalAudioFiles) {
+         // Token is for an audio file
+         const audioIndex = tokenIndex - totalDocumentFiles;
+         fileUrl = audioFiles[audioIndex].file_url;
+         fileName = audioFiles[audioIndex].file_name;
+         console.log("Audio file found:", fileName, "at audio index:", audioIndex);
       }
-      
-      // Fallback to product's main file_url if no combo file found
-      if (!fileUrl && product.file_url) {
-        fileUrl = product.file_url;
-      }
-    } else {
-      // Regular product
-      fileUrl = product.file_url;
     }
 
     if (!fileUrl) {

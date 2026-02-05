@@ -42,7 +42,6 @@ const Products = () => {
     { id: 'mumbai-university', label: 'Mumbai University Notes' },
     { id: 'engineering', label: 'Engineering Notes' },
     { id: 'iit', label: 'IIT Notes' },
-    { id: 'combo-packs', label: 'Combo Packs' },
     { id: 'audio-notes', label: 'Audio Notes' },
     { id: 'others', label: 'Others' },
   ];
@@ -170,7 +169,6 @@ const Products = () => {
                           {product.category === 'mumbai-university' && '🏫'}
                           {product.category === 'engineering' && '⚙️'}
                           {product.category === 'iit' && '🏛️'}
-                          {product.category === 'combo-packs' && '📦'}
                           {product.category === 'audio-notes' && '🎧'}
                           {product.category === 'others' && '📖'}
                         </div>
