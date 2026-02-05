@@ -89,7 +89,7 @@ const ProductsSection = () => {
   return (
     <section
       id="products"
-      className="section-padding -mt-16 pt-10 md:-mt-20 md:pt-12 bg-gradient-to-b from-primary/5 via-secondary/5 to-background"
+      className="section-padding -mt-20 pt-6 md:-mt-24 md:pt-8 bg-gradient-to-b from-primary/5 via-secondary/5 to-background"
     >
       <div className="container-custom">
         {/* Header */}
@@ -112,7 +112,7 @@ const ProductsSection = () => {
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             All Study Materials
           </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-muted-foreground max-w-2xl mx-auto text-sm md:text-base">
             Choose the package that suits your preparation. All products include instant PDF download.
           </p>
         </motion.div>
@@ -123,7 +123,7 @@ const ProductsSection = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={viewportSettings}
           transition={{ duration: 0.4, delay: 0.1 }}
-          className="flex flex-wrap justify-center gap-2 mb-6"
+          className="flex flex-wrap justify-center gap-2 mb-4"
         >
           {categories.map((category, index) => (
             <motion.div
