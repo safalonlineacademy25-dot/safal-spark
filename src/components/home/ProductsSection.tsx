@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ShoppingCart, Check, Download, Star, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -38,6 +38,27 @@ const ProductsSection = () => {
   const items = useCartStore((state) => state.items);
   const { toast } = useToast();
   const [activeCategory, setActiveCategory] = useState<string>('all');
+
+  // Hint the browser to fetch product images ASAP (even if the grid is only partially visible).
+  useEffect(() => {
+    if (!products?.length) return;
+
+    const urls = products
+      .map((p) => getImageUrl(p.image_url))
+      .filter(Boolean) as string[];
+
+    // Preload only the first few to avoid unnecessary bandwidth.
+    urls.slice(0, 6).forEach((href) => {
+      const selector = `link[rel="preload"][as="image"][href="${CSS.escape(href)}"]`;
+      if (document.head.querySelector(selector)) return;
+
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'image';
+      link.href = href;
+      document.head.appendChild(link);
+    });
+  }, [products]);
 
   // Get unique categories from products
   const categories = useMemo(() => {
@@ -89,7 +110,7 @@ const ProductsSection = () => {
   return (
     <section
       id="products"
-      className="section-padding -mt-20 pt-6 md:-mt-24 md:pt-8 bg-gradient-to-b from-primary/5 via-secondary/5 to-background"
+      className="section-padding -mt-12 pt-10 md:-mt-16 md:pt-12 bg-gradient-to-b from-primary/5 via-secondary/5 to-background"
     >
       <div className="container-custom">
         {/* Header */}
@@ -172,7 +193,8 @@ const ProductsSection = () => {
                 variants={cardVariants}
                 initial="hidden"
                 whileInView="visible"
-                viewport={{ once: true, margin: "-50px" }}
+                // Trigger earlier so the first row becomes visible even when only a small portion is on-screen.
+                viewport={{ once: true, amount: 0.12 }}
                 whileHover={{ y: -8, transition: { duration: 0.3 } }}
                 className="relative group"
               >
@@ -199,7 +221,7 @@ const ProductsSection = () => {
                         alt={product.name}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         loading="eager"
-                        fetchPriority="high"
+                        fetchPriority={index < 3 ? 'high' : 'auto'}
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';
                           e.currentTarget.parentElement?.querySelector('.fallback-icon')?.classList.remove('hidden');
