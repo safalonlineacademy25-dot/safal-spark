@@ -288,90 +288,94 @@ serve(async (req) => {
           continue;
         }
         
-        // Check if it's a combo pack
-        if (product.category === 'combo-packs') {
-          // Get combo pack files
-          const { data: comboFiles, error: comboFilesError } = await supabase
-            .from('combo_pack_files')
-            .select('*')
-            .eq('product_id', item.product_id)
-            .order('file_order', { ascending: true });
-            
-          if (comboFilesError) {
-            console.error("Error fetching combo pack files:", comboFilesError);
-            continue;
-          }
-          
-          if (comboFiles && comboFiles.length > 0) {
-            console.log(`Found ${comboFiles.length} files for combo pack: ${product.name}`);
-            
-            // Create download tokens for each combo file
-            const comboFileTokens: Array<{ name: string; downloadToken: string; fileOrder: number }> = [];
-            
-            for (const comboFile of comboFiles) {
-              const token = crypto.randomUUID();
-              
-              // Insert download token for combo file
-              // We use a special format: product_id is the main product, but we store file info
-              const { error: tokenError } = await supabase
-                .from('download_tokens')
-                .insert({
-                  order_id: order_id,
-                  product_id: item.product_id,
-                  token: token,
-                  expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-                  download_count: 0,
-                });
-                
-              if (tokenError) {
-                console.error("Error creating combo file download token:", tokenError);
-                continue;
-              }
-              
-              comboFileTokens.push({
-                name: comboFile.file_name,
-                downloadToken: token,
-                fileOrder: comboFile.file_order,
-              });
-            }
-            
-            // Also include audio file if present on the product
-            if (product.audio_url) {
-              console.log(`Found audio file for combo pack: ${product.name}`);
-              const audioToken = crypto.randomUUID();
-              
-              // Extract audio file name from URL
-              const audioFileName = product.audio_url.split('/').pop() || 'audio.mp3';
-              
-              const { error: audioTokenError } = await supabase
-                .from('download_tokens')
-                .insert({
-                  order_id: order_id,
-                  product_id: item.product_id,
-                  token: audioToken,
-                  expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-                  download_count: 0,
-                });
-                
-              if (audioTokenError) {
-                console.error("Error creating audio file download token:", audioTokenError);
-              } else {
-                // Add audio file as the last item
-                comboFileTokens.push({
-                  name: `🎧 ${audioFileName}`,
-                  downloadToken: audioToken,
-                  fileOrder: comboFiles.length + 1,
-                });
-                console.log(`Added audio file to combo pack delivery: ${audioFileName}`);
-              }
-            }
-            
-            comboPackEmails.push({
-              productName: product.name,
-              files: comboFileTokens,
-            });
-          }
-        } else {
+         // Check if it's a combo pack
+         if (product.category === 'combo-packs') {
+           // Get combo pack files (may be empty for “audio-only” combo packs)
+           const { data: comboFiles, error: comboFilesError } = await supabase
+             .from('combo_pack_files')
+             .select('*')
+             .eq('product_id', item.product_id)
+             .order('file_order', { ascending: true });
+             
+           if (comboFilesError) {
+             console.error("Error fetching combo pack files:", comboFilesError);
+             continue;
+           }
+
+           const comboFileTokens: Array<{ name: string; downloadToken: string; fileOrder: number }> = [];
+           const comboFilesCount = comboFiles?.length || 0;
+
+           if (comboFilesCount > 0) {
+             console.log(`Found ${comboFilesCount} files for combo pack: ${product.name}`);
+
+             // Create download tokens for each combo file
+             for (const comboFile of comboFiles!) {
+               const token = crypto.randomUUID();
+
+               const { error: tokenError } = await supabase
+                 .from('download_tokens')
+                 .insert({
+                   order_id: order_id,
+                   product_id: item.product_id,
+                   token: token,
+                   expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                   download_count: 0,
+                 });
+
+               if (tokenError) {
+                 console.error("Error creating combo file download token:", tokenError);
+                 continue;
+               }
+
+               comboFileTokens.push({
+                 name: comboFile.file_name,
+                 downloadToken: token,
+                 fileOrder: comboFile.file_order,
+               });
+             }
+           } else {
+             console.log(`Combo pack has 0 files in combo_pack_files: ${product.name}`);
+           }
+
+           // Also include audio file if present on the product (even if there are 0 combo files)
+           if (product.audio_url) {
+             console.log(`Found audio file for combo pack: ${product.name}`);
+             const audioToken = crypto.randomUUID();
+
+             const audioFileName = product.audio_url.split('/').pop() || 'audio.mp3';
+
+             const { error: audioTokenError } = await supabase
+               .from('download_tokens')
+               .insert({
+                 order_id: order_id,
+                 product_id: item.product_id,
+                 token: audioToken,
+                 expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                 download_count: 0,
+               });
+
+             if (audioTokenError) {
+               console.error("Error creating audio file download token:", audioTokenError);
+             } else {
+               comboFileTokens.push({
+                 name: `🎧 ${audioFileName}`,
+                 downloadToken: audioToken,
+                 fileOrder: comboFilesCount + 1,
+               });
+               console.log(`Added audio file to combo pack delivery: ${audioFileName}`);
+             }
+           }
+
+           // Only enqueue if we actually have something to send
+           if (comboFileTokens.length > 0) {
+             comboPackEmails.push({
+               productName: product.name,
+               files: comboFileTokens,
+             });
+           } else {
+             console.warn(`No deliverable files found for combo pack ${product.name} (no combo files and no audio_url)`);
+           }
+         } else {
           // Regular product - single file
           const token = crypto.randomUUID();
           
