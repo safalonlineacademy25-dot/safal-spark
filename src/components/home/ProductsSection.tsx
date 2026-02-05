@@ -28,7 +28,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   'mumbai-university': 'Mumbai University Notes',
   'engineering': 'Engineering Notes',
   'iit': 'IIT Notes',
-  'combo-packs': 'Combo Packs',
   'audio-notes': 'Audio Notes',
   'others': 'Others',
 };
@@ -212,7 +211,6 @@ const ProductsSection = () => {
                       {product.category === 'mumbai-university' && '🏫'}
                       {product.category === 'engineering' && '⚙️'}
                       {product.category === 'iit' && '🏛️'}
-                      {product.category === 'combo-packs' && '📦'}
                       {product.category === 'audio-notes' && '🎧'}
                       {product.category === 'others' && '📖'}
                     </div>
