@@ -110,7 +110,7 @@ const ProductsSection = () => {
   return (
     <section
       id="products"
-      className="section-padding -mt-12 pt-10 md:-mt-16 md:pt-12 bg-gradient-to-b from-primary/5 via-secondary/5 to-background"
+      className="relative z-10 section-padding -mt-16 pt-10 md:-mt-24 md:pt-12 bg-gradient-to-b from-primary/5 via-secondary/5 to-background"
     >
       <div className="container-custom">
         {/* Header */}
@@ -119,7 +119,7 @@ const ProductsSection = () => {
           initial="hidden"
           whileInView="visible"
           viewport={viewportSettings}
-          className="text-center mb-6 md:mb-8"
+          className="text-center mb-4 md:mb-6"
         >
           <motion.span 
             className="inline-block px-4 py-1.5 rounded-full bg-secondary/10 text-secondary text-sm font-medium mb-4"
@@ -191,10 +191,8 @@ const ProductsSection = () => {
                 key={product.id}
                 custom={index}
                 variants={cardVariants}
-                initial="hidden"
-                whileInView="visible"
-                // Trigger earlier so the first row becomes visible even when only a small portion is on-screen.
-                viewport={{ once: true, amount: 0.12 }}
+                // Important: don't gate visibility behind scroll. Cards should render/animate immediately on load
+                // so users can see products above the fold without having to scroll.
                 whileHover={{ y: -8, transition: { duration: 0.3 } }}
                 className="relative group"
               >
@@ -221,7 +219,6 @@ const ProductsSection = () => {
                         alt={product.name}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         loading="eager"
-                        fetchPriority={index < 3 ? 'high' : 'auto'}
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';
                           e.currentTarget.parentElement?.querySelector('.fallback-icon')?.classList.remove('hidden');
