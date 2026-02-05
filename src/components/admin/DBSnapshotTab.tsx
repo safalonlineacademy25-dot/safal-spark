@@ -37,6 +37,15 @@ const TABLE_CONFIG = [
   { name: 'customers', displayName: 'Customers', description: 'Customer contact information' },
   { name: 'download_tokens', displayName: 'Download Tokens', description: 'Secure download access tokens' },
   { name: 'user_roles', displayName: 'User Roles', description: 'Admin user permissions' },
+ { name: 'combo_pack_files', displayName: 'Combo Pack Files', description: 'Document files for combo products' },
+ { name: 'product_audio_files', displayName: 'Product Audio Files', description: 'Audio files attached to products' },
+ { name: 'email_delivery_logs', displayName: 'Email Delivery Logs', description: 'Email sending status and history' },
+ { name: 'broadcast_logs', displayName: 'Broadcast Logs', description: 'WhatsApp broadcast history' },
+ { name: 'promotion_logs', displayName: 'Promotion Logs', description: 'Promotional campaign history' },
+ { name: 'refunds', displayName: 'Refunds', description: 'Payment refund records' },
+ { name: 'settings', displayName: 'Settings', description: 'Application configuration settings' },
+ { name: 'visitor_stats', displayName: 'Visitor Stats', description: 'Daily website visitor counts' },
+ { name: 'rate_limits', displayName: 'Rate Limits', description: 'API rate limiting records' },
 ] as const;
 
 const BUCKET_CONFIG = [
@@ -70,58 +79,45 @@ const fetchTableCounts = async (): Promise<TableInfo[]> => {
 };
 
 const fetchBucketStatsPaged = async (bucketName: string): Promise<{ fileCount: number; totalSize: number }> => {
-  // Goal: be fast + avoid deep folder recursion.
-  // We do a flat, paginated listing and sum file sizes from object metadata.
-
-  const LIMIT = 1000;
+  // Count actual files only (exclude folders) by checking for file metadata
+  const LIMIT = 100;
   let fileCount = 0;
   let totalSize = 0;
 
-  // Prefer listV2 if available (cursor pagination, flat listing).
-  const fileApi = supabase.storage.from(bucketName) as any;
-  if (typeof fileApi.listV2 === 'function') {
-    let cursor: string | undefined = undefined;
-
-    for (let page = 0; page < 50; page++) {
-      const { data, error } = await fileApi.listV2({ limit: LIMIT, cursor, with_delimiter: false });
-      if (error) {
-        console.error(`Error listing bucket ${bucketName}:`, error);
-        return { fileCount: 0, totalSize: 0 };
-      }
-
-      const objects: any[] = data?.objects || [];
-      for (const obj of objects) {
-        fileCount += 1;
-        totalSize += obj?.metadata?.size || 0;
-      }
-
-      cursor = data?.nextCursor;
-      if (!cursor) break;
-    }
-
-    return { fileCount, totalSize };
-  }
-
-  // Fallback to list (offset pagination)
-  for (let offset = 0; offset < 50000; offset += LIMIT) {
-    const { data: files, error } = await supabase.storage
+  try {
+    // List root level items
+    const { data: rootItems, error } = await supabase.storage
       .from(bucketName)
-      .list('', { limit: LIMIT, offset });
+      .list('', { limit: LIMIT });
 
     if (error) {
       console.error(`Error listing bucket ${bucketName}:`, error);
       return { fileCount: 0, totalSize: 0 };
     }
 
-    const items = files || [];
-    for (const f of items) {
-      if (f?.metadata) {
+    // Filter to only count actual files (items with metadata containing size)
+    // Folders don't have metadata.size or have id as null
+    for (const item of rootItems || []) {
+      // Check if it's an actual file (has metadata with size > 0)
+      if (item.metadata && typeof item.metadata.size === 'number') {
         fileCount += 1;
-        totalSize += f.metadata.size || 0;
+        totalSize += item.metadata.size;
+      } else if (item.id && !item.name?.endsWith('/')) {
+        // Also check for nested folders - list them recursively
+        const { data: nestedItems } = await supabase.storage
+          .from(bucketName)
+          .list(item.name, { limit: LIMIT });
+        
+        for (const nested of nestedItems || []) {
+          if (nested.metadata && typeof nested.metadata.size === 'number') {
+            fileCount += 1;
+            totalSize += nested.metadata.size;
+          }
+        }
       }
     }
-
-    if (items.length < LIMIT) break;
+  } catch (err) {
+    console.error(`Error counting files in bucket ${bucketName}:`, err);
   }
 
   return { fileCount, totalSize };
