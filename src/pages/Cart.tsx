@@ -526,6 +526,26 @@ const Cart = () => {
 
                   {/* Contact Details */}
                   <div className="space-y-3 mb-4">
+                    {/* Friendly prompt when fields are empty */}
+                    {(!email || !phone) && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, ease: 'easeOut' }}
+                        className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20"
+                      >
+                        <motion.div
+                          animate={{ scale: [1, 1.15, 1] }}
+                          transition={{ repeat: Infinity, repeatDelay: 2, duration: 0.6 }}
+                        >
+                          <Mail className="h-4 w-4 text-primary mt-0.5" />
+                        </motion.div>
+                        <p className="text-xs text-muted-foreground">
+                          <span className="font-medium text-foreground">Enter your details below</span> to receive your order confirmation and download links.
+                        </p>
+                      </motion.div>
+                    )}
+
                     <div>
                       <label className="text-sm font-medium text-foreground mb-1 block">
                         Email Address *
@@ -537,7 +557,7 @@ const Cart = () => {
                           setEmail(e.target.value);
                           if (emailError) setEmailError('');
                         }}
-                        placeholder=""
+                        placeholder="your@email.com"
                         className={`w-full px-3 py-2 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm ${
                           emailError ? 'border-destructive' : 'border-input'
                         }`}
@@ -562,7 +582,7 @@ const Cart = () => {
                           setPhone(value);
                           if (phoneError) setPhoneError('');
                         }}
-                        placeholder=""
+                        placeholder="9876543210"
                         maxLength={15}
                         className={`w-full px-3 py-2 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm ${
                           phoneError ? 'border-destructive' : 'border-input'
