@@ -198,6 +198,8 @@ const ProductsSection = () => {
                         src={getImageUrl(product.image_url)!}
                         alt={product.name}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        loading="eager"
+                        fetchPriority="high"
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';
                           e.currentTarget.parentElement?.querySelector('.fallback-icon')?.classList.remove('hidden');
