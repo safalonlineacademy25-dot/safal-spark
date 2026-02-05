@@ -107,7 +107,8 @@ serve(async (req: Request): Promise<Response> => {
           id,
           name,
           file_url,
-          category
+          category,
+          audio_url
         )
       `)
       .eq("token", token)
@@ -204,10 +205,19 @@ serve(async (req: Request): Promise<Response> => {
           console.error("Error fetching combo pack files:", comboFilesError);
         }
         
-        if (comboFiles && comboFiles[tokenIndex]) {
+        const totalComboFiles = comboFiles?.length || 0;
+        
+        // Check if this token index is for a combo file or the audio file
+        if (comboFiles && tokenIndex < totalComboFiles) {
+          // Token is for a combo pack file
           fileUrl = comboFiles[tokenIndex].file_url;
           fileName = comboFiles[tokenIndex].file_name;
           console.log("Combo pack file found:", fileName, "at index:", tokenIndex);
+        } else if (product.audio_url && tokenIndex === totalComboFiles) {
+          // Token is for the audio file (added after combo files)
+          fileUrl = product.audio_url;
+          fileName = product.audio_url.split('/').pop() || 'audio.mp3';
+          console.log("Audio file found for combo pack:", fileName);
         }
       }
       

@@ -279,7 +279,7 @@ serve(async (req) => {
         // Get product details including category
         const { data: product, error: productError } = await supabase
           .from('products')
-          .select('id, name, category, file_url')
+          .select('id, name, category, file_url, audio_url')
           .eq('id', item.product_id)
           .single();
           
@@ -333,6 +333,37 @@ serve(async (req) => {
                 downloadToken: token,
                 fileOrder: comboFile.file_order,
               });
+            }
+            
+            // Also include audio file if present on the product
+            if (product.audio_url) {
+              console.log(`Found audio file for combo pack: ${product.name}`);
+              const audioToken = crypto.randomUUID();
+              
+              // Extract audio file name from URL
+              const audioFileName = product.audio_url.split('/').pop() || 'audio.mp3';
+              
+              const { error: audioTokenError } = await supabase
+                .from('download_tokens')
+                .insert({
+                  order_id: order_id,
+                  product_id: item.product_id,
+                  token: audioToken,
+                  expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                  download_count: 0,
+                });
+                
+              if (audioTokenError) {
+                console.error("Error creating audio file download token:", audioTokenError);
+              } else {
+                // Add audio file as the last item
+                comboFileTokens.push({
+                  name: `🎧 ${audioFileName}`,
+                  downloadToken: audioToken,
+                  fileOrder: comboFiles.length + 1,
+                });
+                console.log(`Added audio file to combo pack delivery: ${audioFileName}`);
+              }
             }
             
             comboPackEmails.push({
