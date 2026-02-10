@@ -79,43 +79,39 @@ const fetchTableCounts = async (): Promise<TableInfo[]> => {
 };
 
 const fetchBucketStatsPaged = async (bucketName: string): Promise<{ fileCount: number; totalSize: number }> => {
-  // Count actual files only (exclude folders) by checking for file metadata
-  const LIMIT = 100;
   let fileCount = 0;
   let totalSize = 0;
+  const LIMIT = 1000;
 
-  try {
-    // List root level items
-    const { data: rootItems, error } = await supabase.storage
-      .from(bucketName)
-      .list('', { limit: LIMIT });
+  // Recursively list all files in a folder path
+  const listFolder = async (folderPath: string) => {
+    let offset = 0;
+    while (true) {
+      const { data: items, error } = await supabase.storage
+        .from(bucketName)
+        .list(folderPath, { limit: LIMIT, offset });
 
-    if (error) {
-      console.error(`Error listing bucket ${bucketName}:`, error);
-      return { fileCount: 0, totalSize: 0 };
-    }
+      if (error || !items || items.length === 0) break;
 
-    // Filter to only count actual files (items with metadata containing size)
-    // Folders don't have metadata.size or have id as null
-    for (const item of rootItems || []) {
-      // Check if it's an actual file (has metadata with size > 0)
-      if (item.metadata && typeof item.metadata.size === 'number') {
-        fileCount += 1;
-        totalSize += item.metadata.size;
-      } else if (item.id && !item.name?.endsWith('/')) {
-        // Also check for nested folders - list them recursively
-        const { data: nestedItems } = await supabase.storage
-          .from(bucketName)
-          .list(item.name, { limit: LIMIT });
-        
-        for (const nested of nestedItems || []) {
-          if (nested.metadata && typeof nested.metadata.size === 'number') {
-            fileCount += 1;
-            totalSize += nested.metadata.size;
-          }
+      for (const item of items) {
+        if (item.metadata && typeof item.metadata.size === 'number' && item.metadata.size > 0) {
+          // It's a file
+          fileCount += 1;
+          totalSize += item.metadata.size;
+        } else if (item.id === null || (!item.metadata?.mimetype)) {
+          // It's likely a folder — recurse into it
+          const subPath = folderPath ? `${folderPath}/${item.name}` : item.name;
+          await listFolder(subPath);
         }
       }
+
+      if (items.length < LIMIT) break;
+      offset += LIMIT;
     }
+  };
+
+  try {
+    await listFolder('');
   } catch (err) {
     console.error(`Error counting files in bucket ${bucketName}:`, err);
   }
