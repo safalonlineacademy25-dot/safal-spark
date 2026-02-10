@@ -178,6 +178,66 @@ export const useDeleteProduct = () => {
   
   return useMutation({
     mutationFn: async (id: string) => {
+      // 1. Get combo pack files to delete from storage
+      const { data: comboFiles } = await supabase
+        .from('combo_pack_files')
+        .select('file_url')
+        .eq('product_id', id);
+
+      // 2. Get audio files to delete from storage
+      const { data: audioFiles } = await supabase
+        .from('product_audio_files')
+        .select('file_url')
+        .eq('product_id', id);
+
+      // 3. Get product image URL
+      const { data: product } = await supabase
+        .from('products')
+        .select('image_url, file_url')
+        .eq('id', id)
+        .single();
+
+      // 4. Delete storage files for product-files bucket
+      const productFilePaths: string[] = [];
+      for (const f of comboFiles || []) {
+        const path = extractStoragePath(f.file_url, 'product-files');
+        if (path) productFilePaths.push(path);
+      }
+      for (const f of audioFiles || []) {
+        const path = extractStoragePath(f.file_url, 'product-files');
+        if (path) productFilePaths.push(path);
+      }
+      if (product?.file_url) {
+        const path = extractStoragePath(product.file_url, 'product-files');
+        if (path) productFilePaths.push(path);
+      }
+
+      if (productFilePaths.length > 0) {
+        await supabase.storage.from('product-files').remove(productFilePaths);
+      }
+
+      // 5. Delete product image from product-images bucket
+      if (product?.image_url) {
+        const imgPath = extractStoragePath(product.image_url, 'product-images');
+        if (imgPath) {
+          await supabase.storage.from('product-images').remove([imgPath]);
+        }
+      }
+
+      // 6. Also remove any remaining folder contents in storage
+      try {
+        const { data: remainingFiles } = await supabase.storage
+          .from('product-files')
+          .list(id);
+        if (remainingFiles && remainingFiles.length > 0) {
+          const paths = remainingFiles.map(f => `${id}/${f.name}`);
+          await supabase.storage.from('product-files').remove(paths);
+        }
+      } catch {
+        // Ignore if folder doesn't exist
+      }
+
+      // 7. Delete the product (cascades to combo_pack_files, product_audio_files, download_tokens)
       const { error } = await supabase
         .from('products')
         .delete()
@@ -211,3 +271,20 @@ export const useDeleteProduct = () => {
     },
   });
 };
+
+// Helper to extract storage path from a full URL
+function extractStoragePath(url: string, bucketName: string): string | null {
+  if (!url) return null;
+  const marker = `/storage/v1/object/public/${bucketName}/`;
+  const idx = url.indexOf(marker);
+  if (idx !== -1) {
+    return decodeURIComponent(url.substring(idx + marker.length));
+  }
+  // Try authenticated URL pattern
+  const authMarker = `/storage/v1/object/${bucketName}/`;
+  const authIdx = url.indexOf(authMarker);
+  if (authIdx !== -1) {
+    return decodeURIComponent(url.substring(authIdx + authMarker.length));
+  }
+  return null;
+}
