@@ -1325,7 +1325,7 @@ const AdminDashboard = () => {
             )}
 
             {activeTab === 'dbsnapshot' && (
-              <DBSnapshotTab isActive={activeTab === 'dbsnapshot'} />
+              <DBSnapshotTab isActive={activeTab === 'dbsnapshot'} isSuperAdmin={isSuperAdmin} />
             )}
 
             {activeTab === 'refunds' && (

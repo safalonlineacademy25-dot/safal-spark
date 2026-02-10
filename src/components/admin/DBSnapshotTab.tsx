@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Database,
@@ -9,11 +10,24 @@ import {
   FileArchive,
   FileDown,
   FileJson,
+  Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 interface TableInfo {
   name: string;
@@ -136,9 +150,12 @@ const fetchBucketStatsAll = async (): Promise<BucketInfo[]> => {
 
 interface DBSnapshotTabProps {
   isActive?: boolean;
+  isSuperAdmin?: boolean;
 }
 
-const DBSnapshotTab = ({ isActive = false }: DBSnapshotTabProps) => {
+const DBSnapshotTab = ({ isActive = false, isSuperAdmin = false }: DBSnapshotTabProps) => {
+  const queryClient = useQueryClient();
+  const [clearingBucket, setClearingBucket] = useState<string | null>(null);
   const {
     data: tables = [],
     isLoading: tablesLoading,
@@ -245,6 +262,64 @@ const DBSnapshotTab = ({ isActive = false }: DBSnapshotTabProps) => {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  const clearBucket = async (bucketName: string) => {
+    setClearingBucket(bucketName);
+    try {
+      const listAllFiles = async (path: string): Promise<string[]> => {
+        const allPaths: string[] = [];
+        let offset = 0;
+        const LIMIT = 1000;
+        while (true) {
+          const { data: items, error } = await supabase.storage
+            .from(bucketName)
+            .list(path, { limit: LIMIT, offset });
+          if (error || !items || items.length === 0) break;
+          for (const item of items) {
+            const fullPath = path ? `${path}/${item.name}` : item.name;
+            if (item.metadata && typeof item.metadata.size === 'number' && item.metadata.size > 0) {
+              allPaths.push(fullPath);
+            } else if (item.id === null || !item.metadata?.mimetype) {
+              const subFiles = await listAllFiles(fullPath);
+              allPaths.push(...subFiles);
+            }
+          }
+          if (items.length < LIMIT) break;
+          offset += LIMIT;
+        }
+        return allPaths;
+      };
+
+      const filePaths = await listAllFiles('');
+      if (filePaths.length === 0) {
+        toast.info('Bucket is already empty');
+        setClearingBucket(null);
+        return;
+      }
+
+      // Delete in batches of 100
+      const batchSize = 100;
+      let deleted = 0;
+      for (let i = 0; i < filePaths.length; i += batchSize) {
+        const batch = filePaths.slice(i, i + batchSize);
+        const { error } = await supabase.storage.from(bucketName).remove(batch);
+        if (error) {
+          console.error(`Error deleting batch from ${bucketName}:`, error);
+          toast.error(`Error clearing ${bucketName}: ${error.message}`);
+          break;
+        }
+        deleted += batch.length;
+      }
+
+      toast.success(`Cleared ${deleted} files from ${bucketName}`);
+      queryClient.invalidateQueries({ queryKey: ['db-snapshot', 'buckets'] });
+    } catch (err: any) {
+      console.error(`Error clearing bucket ${bucketName}:`, err);
+      toast.error(`Failed to clear bucket: ${err.message}`);
+    } finally {
+      setClearingBucket(null);
+    }
   };
 
   const refreshAll = async () => {
@@ -392,6 +467,55 @@ const DBSnapshotTab = ({ isActive = false }: DBSnapshotTabProps) => {
                     <p className="text-xl font-bold text-foreground">{formatBytes(bucket.totalSize)}</p>
                   </div>
                 </div>
+
+                {isSuperAdmin && bucket.fileCount > 0 && (
+                  <div className="mt-3 pt-3 border-t border-border">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="w-full gap-2"
+                          disabled={clearingBucket === bucket.name}
+                        >
+                          {clearingBucket === bucket.name ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                          {clearingBucket === bucket.name ? 'Clearing...' : `Clear All Files (${bucket.fileCount})`}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Clear {bucket.displayName}?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete <strong>all {bucket.fileCount} files</strong> ({formatBytes(bucket.totalSize)}) from the <strong>{bucket.name}</strong> bucket. This action cannot be undone.
+                            {bucket.name === 'product-files' && (
+                              <span className="block mt-2 text-destructive font-medium">
+                                ⚠️ Warning: This will remove all downloadable product files. Customers won't be able to download purchased products until files are re-uploaded.
+                              </span>
+                            )}
+                            {bucket.name === 'product-images' && (
+                              <span className="block mt-2 text-destructive font-medium">
+                                ⚠️ Warning: This will remove all product images. Products will show fallback icons until images are re-uploaded.
+                              </span>
+                            )}
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => clearBucket(bucket.name)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Yes, Clear All Files
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                )}
               </motion.div>
             ))}
           </div>
