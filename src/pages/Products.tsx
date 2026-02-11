@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { ShoppingCart, Check, Download, Star, Filter, Loader2 } from 'lucide-react';
@@ -34,17 +34,27 @@ const Products = () => {
     window.scrollTo(0, 0);
   }, []);
 
-  const categories = [
-    { id: 'all', label: 'All Products' },
-    { id: 'notes', label: 'Competitive Exam Notes' },
-    { id: 'mock-papers', label: 'Mock Papers' },
-    { id: 'pune-university', label: 'Pune University Notes' },
-    { id: 'mumbai-university', label: 'Mumbai University Notes' },
-    { id: 'engineering', label: 'Engineering Notes' },
-    { id: 'iit', label: 'IIT Notes' },
-    { id: 'audio-notes', label: 'Audio Notes' },
-    { id: 'others', label: 'Others' },
-  ];
+  const CATEGORY_LABELS: Record<string, string> = {
+    'all': 'All Products',
+    'notes': 'Competitive Exam Notes',
+    'mock-papers': 'Mock Papers',
+    'pune-university': 'Pune University Notes',
+    'mumbai-university': 'Mumbai University Notes',
+    'engineering': 'Engineering Notes',
+    'iit': 'IIT Notes',
+    'audio-notes': 'Audio Notes',
+    'others': 'Others',
+  };
+
+  // Only show categories that have products
+  const categories = useMemo(() => {
+    if (!products) return [{ id: 'all', label: 'All Products' }];
+    const uniqueCategories = [...new Set(products.map(p => p.category))];
+    return [
+      { id: 'all', label: 'All Products' },
+      ...uniqueCategories.map(cat => ({ id: cat, label: CATEGORY_LABELS[cat] || cat }))
+    ];
+  }, [products]);
 
   const filteredProducts =
     selectedCategory === 'all'
