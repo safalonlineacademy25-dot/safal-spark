@@ -150,7 +150,7 @@ const OrderSuccess = () => {
                 className="text-xs text-muted-foreground mt-4"
               >
                 Didn't receive your email? Check spam or{' '}
-                <a href="mailto:support@safalonlineacademy.com" className="text-primary hover:underline">
+                <a href="mailto:support@safalonlinesolutions.com" className="text-primary hover:underline">
                   contact support
                 </a>
               </motion.p>
