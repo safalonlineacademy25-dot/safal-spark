@@ -74,6 +74,8 @@ interface DeliverySettings {
   whatsappAccessToken: string;
   whatsappPhoneNumberId: string;
   whatsappTemplateName: string;
+  whatsappBroadcastTemplateName: string;
+  whatsappPromotionTemplateName: string;
 }
 
 interface PaymentSettings {
@@ -123,6 +125,8 @@ const SettingsTab = () => {
     whatsappAccessToken: '',
     whatsappPhoneNumberId: '',
     whatsappTemplateName: '',
+    whatsappBroadcastTemplateName: '',
+    whatsappPromotionTemplateName: '',
   });
   const [savingDelivery, setSavingDelivery] = useState(false);
   const [showResendKey, setShowResendKey] = useState(false);
@@ -202,6 +206,8 @@ const SettingsTab = () => {
           whatsappAccessToken: settingsMap['whatsapp_access_token'] || '',
           whatsappPhoneNumberId: settingsMap['whatsapp_phone_number_id'] || '',
           whatsappTemplateName: settingsMap['whatsapp_template_name'] || '',
+          whatsappBroadcastTemplateName: settingsMap['whatsapp_broadcast_template_name'] || '',
+          whatsappPromotionTemplateName: settingsMap['whatsapp_promotion_template_name'] || '',
         });
 
         // Load signup setting
@@ -429,6 +435,8 @@ const SettingsTab = () => {
         upsertSetting('whatsapp_access_token', deliverySettings.whatsappAccessToken),
         upsertSetting('whatsapp_phone_number_id', deliverySettings.whatsappPhoneNumberId),
         upsertSetting('whatsapp_template_name', deliverySettings.whatsappTemplateName),
+        upsertSetting('whatsapp_broadcast_template_name', deliverySettings.whatsappBroadcastTemplateName),
+        upsertSetting('whatsapp_promotion_template_name', deliverySettings.whatsappPromotionTemplateName),
       ]);
       
       toast.success('Delivery settings saved to database');
@@ -962,7 +970,41 @@ const SettingsTab = () => {
               disabled={!isSuperAdmin}
             />
             <p className="text-xs text-muted-foreground">
-              The approved message template name from Meta Business Manager. Required for business-initiated messages.
+              Delivery notification template from Meta Business Manager. Used for order delivery messages.
+            </p>
+          </div>
+
+          {/* WhatsApp Broadcast Template Name */}
+          <div className="space-y-2">
+            <Label htmlFor="whatsapp-broadcast-template-name">WhatsApp Broadcast Template Name</Label>
+            <Input
+              id="whatsapp-broadcast-template-name"
+              placeholder="soa_broadcast_template"
+              value={deliverySettings.whatsappBroadcastTemplateName}
+              onChange={(e) =>
+                setDeliverySettings((prev) => ({ ...prev, whatsappBroadcastTemplateName: e.target.value }))
+              }
+              disabled={!isSuperAdmin}
+            />
+            <p className="text-xs text-muted-foreground">
+              Template used for product broadcast messages to customers.
+            </p>
+          </div>
+
+          {/* WhatsApp Promotion Template Name */}
+          <div className="space-y-2">
+            <Label htmlFor="whatsapp-promotion-template-name">WhatsApp Promotion Template Name</Label>
+            <Input
+              id="whatsapp-promotion-template-name"
+              placeholder="soa_promotion_template"
+              value={deliverySettings.whatsappPromotionTemplateName}
+              onChange={(e) =>
+                setDeliverySettings((prev) => ({ ...prev, whatsappPromotionTemplateName: e.target.value }))
+              }
+              disabled={!isSuperAdmin}
+            />
+            <p className="text-xs text-muted-foreground">
+              Template used for promotional campaign messages to customers.
             </p>
           </div>
 
