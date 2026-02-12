@@ -28,15 +28,31 @@ export default function PromotionBroadcastDialog({ onBroadcastSent }: PromotionB
   const [loadingCount, setLoadingCount] = useState(false);
 
   // Form state
-  const [templateName, setTemplateName] = useState('promotional_message');
+  const [templateName, setTemplateName] = useState('');
   const [promotionMessage, setPromotionMessage] = useState('');
 
-  // Fetch recipient count when dialog opens
+  // Fetch recipient count and template name when dialog opens
   useEffect(() => {
     if (open) {
       fetchRecipientCount();
+      fetchPromotionTemplateName();
     }
   }, [open]);
+
+  const fetchPromotionTemplateName = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'whatsapp_promotion_template_name')
+        .maybeSingle();
+      if (!error && data?.value) {
+        setTemplateName(data.value);
+      }
+    } catch (err) {
+      console.error('Error fetching promotion template name:', err);
+    }
+  };
 
   const fetchRecipientCount = async () => {
     setLoadingCount(true);
@@ -58,7 +74,6 @@ export default function PromotionBroadcastDialog({ onBroadcastSent }: PromotionB
   };
 
   const resetForm = () => {
-    setTemplateName('promotional_message');
     setPromotionMessage('');
   };
 

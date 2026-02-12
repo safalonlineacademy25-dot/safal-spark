@@ -46,16 +46,32 @@ export default function WhatsAppBroadcastDialog({ trigger, onBroadcastSent }: Wh
   const [category, setCategory] = useState('');
   const [productName, setProductName] = useState('');
   const [productDescription, setProductDescription] = useState('');
-  const [templateName, setTemplateName] = useState('new_product_alert');
+  const [templateName, setTemplateName] = useState('');
   const [recipientCount, setRecipientCount] = useState<number | null>(null);
   const [loadingCount, setLoadingCount] = useState(false);
 
-  // Fetch products from database when dialog opens
+  // Fetch products and template name from database when dialog opens
   useEffect(() => {
     if (open) {
       fetchProducts();
+      fetchBroadcastTemplateName();
     }
   }, [open]);
+
+  const fetchBroadcastTemplateName = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'whatsapp_broadcast_template_name')
+        .maybeSingle();
+      if (!error && data?.value) {
+        setTemplateName(data.value);
+      }
+    } catch (err) {
+      console.error('Error fetching broadcast template name:', err);
+    }
+  };
 
   const fetchProducts = async () => {
     setLoadingProducts(true);
