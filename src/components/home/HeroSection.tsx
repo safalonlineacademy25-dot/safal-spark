@@ -13,7 +13,7 @@ const HeroSection = () => {
   ];
 
   const studentImages = [
-    { src: studentStudy1, label: 'UPSC' },
+    { src: studentStudy1, label: 'MPSC' },
     { src: studentStudy2, label: 'Banking' },
     { src: studentStudy3, label: 'SSC' },
   ];
