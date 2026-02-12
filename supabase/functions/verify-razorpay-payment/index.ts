@@ -379,45 +379,61 @@
  
      // Send series of emails for all products with files
      if (productEmails.length > 0) {
-       deliveryResults.productEmails = [];
-       
-       for (const productEmail of productEmails) {
-         const totalEmails = productEmail.files.length;
-         
-         for (let i = 0; i < productEmail.files.length; i++) {
-           const file = productEmail.files[i];
-           const emailIndex = i + 1;
-           
-           // Add a small delay between emails to avoid rate limiting
-           if (i > 0) {
-             await delay(2000);
-           }
-           
-           const emailResult = await sendDownloadEmail(
-             order_id,
-             order.customer_email,
-             order.customer_name,
-             [{ name: file.name, downloadToken: file.downloadToken }],
-             true,
-             productEmail.productName,
-             emailIndex,
-             totalEmails
-           );
-           
-           deliveryResults.productEmails!.push({
-             productName: productEmail.productName,
-             fileName: file.name,
-             emailIndex,
-             totalEmails,
-             ...emailResult,
-           });
-           
-           if (emailResult.success) {
-             deliveryStatus = 'sent';
-           }
-         }
-       }
-     }
+        deliveryResults.productEmails = [];
+        
+        for (const productEmail of productEmails) {
+          // Separate document files (📄) and audio files (🎧)
+          const documentFiles = productEmail.files.filter(f => f.name.startsWith('📄'));
+          const audioFiles = productEmail.files.filter(f => f.name.startsWith('🎧'));
+          
+          const emailGroups: Array<{
+            files: typeof productEmail.files;
+            label: string;
+          }> = [];
+          
+          if (documentFiles.length > 0) {
+            emailGroups.push({ files: documentFiles, label: 'Documents' });
+          }
+          if (audioFiles.length > 0) {
+            emailGroups.push({ files: audioFiles, label: 'Audio Files' });
+          }
+          
+          const totalGroupEmails = emailGroups.length;
+          
+          for (let i = 0; i < emailGroups.length; i++) {
+            const group = emailGroups[i];
+            const emailIndex = i + 1;
+            
+            if (i > 0) {
+              await delay(2000);
+            }
+            
+            const emailResult = await sendDownloadEmail(
+              order_id,
+              order.customer_email,
+              order.customer_name,
+              group.files.map(f => ({ name: f.name, downloadToken: f.downloadToken })),
+              true,
+              `${productEmail.productName} - ${group.label}`,
+              emailIndex,
+              totalGroupEmails
+            );
+            
+            deliveryResults.productEmails!.push({
+              productName: productEmail.productName,
+              fileType: group.label,
+              fileCount: group.files.length,
+              emailIndex,
+              totalGroupEmails,
+              ...emailResult,
+            });
+            
+            if (emailResult.success) {
+              deliveryStatus = 'sent';
+            }
+          }
+        }
+      }
  
      // Send WhatsApp (only if opted in)
      if (productEmails.length > 0) {
