@@ -147,25 +147,33 @@ const Cart = () => {
     };
   }, []);
 
-  // Handle QR code add parameter
+  // Handle QR code add parameter (supports single ID or comma-separated IDs for combo offers)
   useEffect(() => {
-    const productIdToAdd = searchParams.get('add');
-    if (productIdToAdd && allProducts) {
-      const product = allProducts.find(p => p.id === productIdToAdd);
-      if (product) {
-       // Clear existing cart and add only this product (QR code = direct buy)
-       clearCart();
-       addItem(product);
-       toast({
-         title: 'Ready to checkout',
-         description: `${product.name} has been added to your cart.`,
-       });
+    const addParam = searchParams.get('add');
+    if (addParam && allProducts) {
+      const productIds = addParam.split(',').map(id => id.trim()).filter(Boolean);
+      const productsToAdd = productIds
+        .map(id => allProducts.find(p => p.id === id))
+        .filter((p): p is NonNullable<typeof p> => !!p);
+
+      if (productsToAdd.length > 0) {
+        // Clear existing cart and add selected products (QR code = direct buy)
+        clearCart();
+        for (const product of productsToAdd) {
+          addItem(product);
+        }
+        toast({
+          title: 'Ready to checkout',
+          description: productsToAdd.length === 1
+            ? `${productsToAdd[0].name} has been added to your cart.`
+            : `${productsToAdd.length} products have been added to your cart.`,
+        });
       }
       // Remove the add parameter from URL
       searchParams.delete('add');
       setSearchParams(searchParams, { replace: true });
     }
- }, [searchParams, allProducts, addItem, clearCart, setSearchParams, toast]);
+  }, [searchParams, allProducts, addItem, clearCart, setSearchParams, toast]);
 
   const validateForm = (): boolean => {
     let hasErrors = false;

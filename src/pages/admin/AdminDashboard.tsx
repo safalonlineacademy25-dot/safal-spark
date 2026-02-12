@@ -29,6 +29,7 @@ import {
   Trash2,
   RotateCcw,
   BarChart3,
+  Gift,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -48,6 +49,7 @@ import BroadcastHistoryTab from '@/components/admin/BroadcastHistoryTab';
 import PromotionsTab from '@/components/admin/PromotionsTab';
 import DataPurgingTab from '@/components/admin/DataPurgingTab';
 import RefundsTab from '@/components/admin/RefundsTab';
+import CampaignOffersTab from '@/components/admin/CampaignOffersTab';
 import VisitorStatsTab from '@/components/admin/VisitorStatsTab';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
 import OrdersChart from '@/components/admin/OrdersChart';
@@ -79,7 +81,7 @@ const AdminDashboard = () => {
   const roleLabel = role === 'super_admin' ? 'Super Admin' : role === 'admin' ? 'Admin' : role === 'user' ? 'User' : ''; 
   
   // Determine which data needs to be fetched based on active tab
-  const needsProducts = activeTab === 'dashboard' || activeTab === 'products';
+  const needsProducts = activeTab === 'dashboard' || activeTab === 'products' || activeTab === 'campaigns';
   const needsOrders = activeTab === 'dashboard' || activeTab === 'orders' || activeTab === 'payments' || activeTab === 'email' || activeTab === 'whatsapp';
   const needsCustomers = activeTab === 'customers';
   
@@ -215,6 +217,7 @@ const AdminDashboard = () => {
     { id: 'whatsapp', label: 'WhatsApp Logs', icon: MessageCircle },
     { id: 'broadcasts', label: 'Broadcast History', icon: History },
     { id: 'promotions', label: 'Promotions', icon: Sparkles },
+    { id: 'campaigns', label: 'Combo Offers', icon: Gift },
     { id: 'dbsnapshot', label: 'DB Snapshot', icon: Database },
     ...(isSuperAdmin ? [{ id: 'datapurging', label: 'Data Purging', icon: Trash2 }] : []),
     { id: 'settings', label: 'Settings', icon: Settings },
@@ -1347,6 +1350,12 @@ const AdminDashboard = () => {
             )}
 
             {activeTab === 'visitors' && <VisitorStatsTab />}
+
+            {activeTab === 'campaigns' && (
+              <ErrorBoundary>
+                <CampaignOffersTab products={products} isLoading={productsLoading} />
+              </ErrorBoundary>
+            )}
 
             {activeTab === 'settings' && <SettingsTab />}
           </div>
