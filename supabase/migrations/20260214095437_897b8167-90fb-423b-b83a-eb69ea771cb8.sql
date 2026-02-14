@@ -1,0 +1,1 @@
+UPDATE public.settings SET value = 'pranit_310113_safalsolutions', updated_at = now() WHERE key = 'whatsapp_webhook_verify_token';

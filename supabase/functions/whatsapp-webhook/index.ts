@@ -30,7 +30,7 @@ serve(async (req: Request): Promise<Response> => {
     const challenge = url.searchParams.get("hub.challenge");
 
     const verifyToken = await getVerifyToken();
-    console.log("Webhook verification:", { mode, tokenReceived: token, storedToken: verifyToken, match: token === verifyToken });
+    console.log("Webhook verification request:", { mode, hasToken: !!verifyToken });
 
     if (mode === "subscribe" && token && token === verifyToken) {
       console.log("✅ Webhook verified successfully");
