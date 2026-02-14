@@ -7,20 +7,18 @@ const PHONE_NUMBER_ID = "1014204688435339";
 
 // Get verify token from env or settings
 async function getVerifyToken(): Promise<string> {
-  const envToken = Deno.env.get("WHATSAPP_WEBHOOK_VERIFY_TOKEN");
-  console.log("ENV token available:", !!envToken, "value:", envToken);
-  if (envToken) return envToken;
-  
-  // Fallback: check settings table
+  // Primary: check settings table (most reliable)
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from("settings")
     .select("value")
     .eq("key", "whatsapp_webhook_verify_token")
     .single();
   
-  console.log("Settings lookup:", { data, error });
-  return data?.value || "";
+  if (data?.value) return data.value;
+  
+  // Fallback: env var
+  return Deno.env.get("WHATSAPP_WEBHOOK_VERIFY_TOKEN") || "";
 }
 
 serve(async (req: Request): Promise<Response> => {
