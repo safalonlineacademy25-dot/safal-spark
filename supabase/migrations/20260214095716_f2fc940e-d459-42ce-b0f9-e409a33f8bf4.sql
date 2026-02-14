@@ -1,0 +1,1 @@
+INSERT INTO public.settings (key, value) VALUES ('whatsapp_webhook_verify_token', 'pranit_310113_safalsolutions');
