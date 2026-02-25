@@ -123,76 +123,18 @@ serve(async (req: Request): Promise<Response> => {
 
     const settings = await getSettings(supabase);
     
-    // Get WhatsApp credentials from database, fallback to env, then to test values
-    const whatsappToken = settings['whatsapp_access_token'] || Deno.env.get("WHATSAPP_ACCESS_TOKEN") || "dummy_whatsapp_token_123";
-    const whatsappPhoneId = settings['whatsapp_phone_number_id'] || Deno.env.get("WHATSAPP_PHONE_NUMBER_ID") || "dummy_phone_id";
+    // Get MatrixCloud WhatsApp API credentials from settings
+    const matrixInstanceId = settings['matrix_instance_id'] || '';
+    const matrixAccessToken = settings['matrix_access_token'] || '';
     const whatsappEnabled = settings['whatsapp_enabled'] !== 'false';
-    // Template name - must be registered and approved in Meta Business Manager
-    const templateName = settings['whatsapp_template_name'] || "soa_download_ready";
+    // Message template from settings
+    const messageTemplate = settings['whatsapp_template_name'] || 'Dear customer, we have sent the document to your email id-{{email}}. Please download from your mail.';
     
-    console.log("WhatsApp enabled:", whatsappEnabled, "Phone ID:", whatsappPhoneId.substring(0, 5) + "...");
-    console.log("Using template:", templateName);
+    console.log("WhatsApp enabled:", whatsappEnabled);
+    console.log("Matrix Instance ID:", matrixInstanceId ? matrixInstanceId.substring(0, 6) + "..." : "NOT SET");
 
     const formattedPhone = formatPhoneNumber(order.customer_phone);
     console.log("Formatted phone:", formattedPhone);
-
-    // Get or create download tokens for each product
-    const products: Array<{ name: string; downloadToken: string }> = [];
-    
-    for (const item of order.order_items || []) {
-      if (!item.product_id) continue;
-      
-      // Check for existing valid token
-      const { data: existingToken } = await supabase
-        .from('download_tokens')
-        .select('token')
-        .eq('order_id', order.id)
-        .eq('product_id', item.product_id)
-        .gt('expires_at', new Date().toISOString())
-        .limit(1)
-        .single();
-
-      let token: string;
-      
-      if (existingToken) {
-        token = existingToken.token;
-      } else {
-        // Create new token
-        token = crypto.randomUUID();
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
-        
-        await supabase.from('download_tokens').insert({
-          order_id: order.id,
-          product_id: item.product_id,
-          token,
-          expires_at: expiresAt.toISOString(),
-        });
-      }
-      
-      products.push({
-        name: item.product_name,
-        downloadToken: token,
-      });
-    }
-
-    console.log("Products with tokens:", products);
-
-    // Generate download links
-    const baseUrl = "https://hujuqkhbdptsdnbnkslo.supabase.co/functions/v1/download-file";
-    const downloadLinks = products.map(p => ({
-      name: p.name,
-      url: `${baseUrl}?token=${p.downloadToken}`
-    }));
-
-    // Build product list for template (max 3 products shown, rest summarized)
-    const productNames = products.map(p => p.name);
-    const productsDisplay = productNames.length <= 3 
-      ? productNames.join(", ")
-      : `${productNames.slice(0, 2).join(", ")} and ${productNames.length - 2} more`;
-    
-    // First download link (primary CTA)
-    const primaryDownloadUrl = downloadLinks[0]?.url || "";
 
     // Check if WhatsApp is disabled
     if (!whatsappEnabled) {
@@ -201,134 +143,78 @@ serve(async (req: Request): Promise<Response> => {
         JSON.stringify({ 
           success: true, 
           message: "WhatsApp delivery disabled",
-          preview: { to: formattedPhone, downloadLinks }
+          preview: { to: formattedPhone }
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Check if using dummy token (for testing)
-    if (whatsappToken.includes("dummy") || whatsappToken.includes("test")) {
-      console.log("⚠️ Using dummy token - WhatsApp not actually sent");
-      console.log("Template would be sent to:", formattedPhone);
-      console.log("Template parameters:", { customerName: order.customer_name, productsDisplay, orderId: order.order_number, primaryDownloadUrl });
-      
+    // Validate MatrixCloud credentials
+    if (!matrixInstanceId || !matrixAccessToken) {
+      console.error("❌ MatrixCloud credentials not configured");
       return new Response(
         JSON.stringify({ 
-          success: true, 
-          message: "Test mode - WhatsApp simulated",
-          preview: {
-            to: formattedPhone,
-            template: templateName,
-            parameters: { customerName: order.customer_name, productsDisplay, orderId: order.order_number, primaryDownloadUrl },
-            downloadLinks
-          }
+          success: false, 
+          error: "MatrixCloud WhatsApp credentials not configured in admin settings",
+          hint: "Please set matrix_instance_id and matrix_access_token in Admin > Settings > Delivery Preferences"
         }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Build template message body for Meta WhatsApp Cloud API
-    // Template: soa_live_normaldeliverymsg
-    // Message: "Dear customer, we have send the document to your email id-{{1}}. Please download from your mail."
-    // Variables: {{1}} = customer email
-    const templateMessage = {
-      messaging_product: "whatsapp",
-      recipient_type: "individual",
-      to: formattedPhone,
-      type: "template",
-      template: {
-        name: templateName,
-        language: {
-          code: "en_US"
-        },
-        components: [
-          {
-            type: "body",
-            parameters: [
-              {
-                type: "text",
-                text: email
-              }
-            ]
-          }
-        ]
-      }
-    };
+    // Build the message by replacing {{email}} placeholder with actual email
+    const message = messageTemplate.replace(/\{\{email\}\}/gi, email);
+    console.log("Message to send:", message);
 
-    console.log("Sending template message:", JSON.stringify(templateMessage, null, 2));
-
-    // Send WhatsApp template message via Meta Cloud API with retry logic
+    // Send WhatsApp message via MatrixCloud API with retry logic
     let whatsappSuccess = false;
     let whatsappError: string | null = null;
-    let messageId: string | null = null;
     let retryCount = 0;
     const maxRetries = 2;
 
     while (retryCount <= maxRetries && !whatsappSuccess) {
       try {
-        console.log(`WhatsApp send attempt ${retryCount + 1}/${maxRetries + 1}`);
+        console.log(`MatrixCloud send attempt ${retryCount + 1}/${maxRetries + 1}`);
         
-        const response = await fetch(
-          `https://graph.facebook.com/v18.0/${whatsappPhoneId}/messages`,
-          {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${whatsappToken}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(templateMessage),
-          }
-        );
+        // Build the MatrixCloud API URL
+        const matrixUrl = new URL('https://matrixcloudapi.com/api/send');
+        matrixUrl.searchParams.set('number', formattedPhone);
+        matrixUrl.searchParams.set('type', 'text');
+        matrixUrl.searchParams.set('message', message);
+        matrixUrl.searchParams.set('instance_id', matrixInstanceId);
+        matrixUrl.searchParams.set('access_token', matrixAccessToken);
 
-        const result = await response.json();
-        console.log("WhatsApp API response:", JSON.stringify(result, null, 2));
+        console.log("MatrixCloud API URL:", matrixUrl.toString().replace(matrixAccessToken, '***'));
 
-        if (response.ok && result.messages?.[0]?.id) {
+        const response = await fetch(matrixUrl.toString(), {
+          method: "POST",
+        });
+
+        const resultText = await response.text();
+        console.log("MatrixCloud API response status:", response.status);
+        console.log("MatrixCloud API response body:", resultText);
+
+        let result: any;
+        try {
+          result = JSON.parse(resultText);
+        } catch {
+          result = { raw: resultText };
+        }
+
+        if (response.ok && (result.status === true || result.status === 'success' || response.status === 200)) {
           whatsappSuccess = true;
-          messageId = result.messages[0].id;
-          console.log("✅ WhatsApp template message sent successfully");
+          console.log("✅ WhatsApp message sent successfully via MatrixCloud");
         } else {
-          const errorCode = result.error?.code;
-          const errorMessage = result.error?.message || "Unknown error";
-          
-          // Handle specific error codes
-          if (errorCode === 133010) {
-            // Account not registered on WhatsApp - don't retry
-            whatsappError = "Recipient phone number is not registered on WhatsApp";
-            console.warn(`⚠️ ${whatsappError}. Skipping WhatsApp delivery.`);
-            break;
-          } else if (errorCode === 132000) {
-            // Template not found - don't retry
-            whatsappError = "WhatsApp template not found or not approved";
-            console.error(`❌ ${whatsappError}. Please check template name in Meta Business Manager.`);
-            break;
-          } else if (errorCode === 131047) {
-            // Parameter mismatch - don't retry
-            whatsappError = "Template parameters mismatch";
-            console.error(`❌ ${whatsappError}. Check that parameters match your approved template structure.`);
-            break;
-          } else if (errorCode === 131031 || errorCode === 131053) {
-            // Rate limited or temporarily unavailable - retry
-            whatsappError = `WhatsApp API temporarily unavailable (${errorCode})`;
-            console.warn(`⚠️ ${whatsappError}. Will retry...`);
-            retryCount++;
-            if (retryCount <= maxRetries) {
-              await new Promise(resolve => setTimeout(resolve, 2000 * retryCount));
-            }
-          } else {
-            // Other errors
-            whatsappError = `${errorMessage} (code: ${errorCode})`;
-            console.error(`❌ WhatsApp error: ${whatsappError}`);
-            retryCount++;
-            if (retryCount <= maxRetries) {
-              await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
-            }
+          whatsappError = result.message || result.error || `HTTP ${response.status}: ${resultText}`;
+          console.error(`❌ MatrixCloud error: ${whatsappError}`);
+          retryCount++;
+          if (retryCount <= maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 2000 * retryCount));
           }
         }
       } catch (fetchError: any) {
         whatsappError = `Network error: ${fetchError.message}`;
-        console.error(`❌ WhatsApp fetch error: ${whatsappError}`);
+        console.error(`❌ MatrixCloud fetch error: ${whatsappError}`);
         retryCount++;
         if (retryCount <= maxRetries) {
           await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
@@ -348,23 +234,18 @@ serve(async (req: Request): Promise<Response> => {
       })
       .eq("id", order.id);
 
-    // Always return success for the overall flow (email was already sent)
-    // WhatsApp is a secondary notification channel
     if (whatsappSuccess) {
       return new Response(
         JSON.stringify({ 
           success: true, 
-          messageId,
-          template: templateName,
           orderId: order.id,
           orderNumber: order.order_number,
-          whatsappDelivered: true
+          whatsappDelivered: true,
+          provider: "matrixcloud"
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     } else {
-      // WhatsApp failed but we don't fail the overall request
-      // Email delivery is the primary channel
       console.warn(`⚠️ WhatsApp delivery failed after ${deliveryAttempts} attempts: ${whatsappError}`);
       console.log("📧 Customer should have received email with download link.");
       
@@ -375,6 +256,7 @@ serve(async (req: Request): Promise<Response> => {
           orderNumber: order.order_number,
           whatsappDelivered: false,
           whatsappError: whatsappError,
+          provider: "matrixcloud",
           fallbackMessage: "Email delivery is the primary channel. Customer can download from email."
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }

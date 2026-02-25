@@ -76,6 +76,8 @@ interface DeliverySettings {
   whatsappTemplateName: string;
   whatsappBroadcastTemplateName: string;
   whatsappPromotionTemplateName: string;
+  matrixInstanceId: string;
+  matrixAccessToken: string;
 }
 
 interface PaymentSettings {
@@ -127,6 +129,8 @@ const SettingsTab = () => {
     whatsappTemplateName: '',
     whatsappBroadcastTemplateName: '',
     whatsappPromotionTemplateName: '',
+    matrixInstanceId: '',
+    matrixAccessToken: '',
   });
   const [savingDelivery, setSavingDelivery] = useState(false);
   const [showResendKey, setShowResendKey] = useState(false);
@@ -208,6 +212,8 @@ const SettingsTab = () => {
           whatsappTemplateName: settingsMap['whatsapp_template_name'] || '',
           whatsappBroadcastTemplateName: settingsMap['whatsapp_broadcast_template_name'] || '',
           whatsappPromotionTemplateName: settingsMap['whatsapp_promotion_template_name'] || '',
+          matrixInstanceId: settingsMap['matrix_instance_id'] || '',
+          matrixAccessToken: settingsMap['matrix_access_token'] || '',
         });
 
         // Load signup setting
@@ -437,6 +443,8 @@ const SettingsTab = () => {
         upsertSetting('whatsapp_template_name', deliverySettings.whatsappTemplateName),
         upsertSetting('whatsapp_broadcast_template_name', deliverySettings.whatsappBroadcastTemplateName),
         upsertSetting('whatsapp_promotion_template_name', deliverySettings.whatsappPromotionTemplateName),
+        upsertSetting('matrix_instance_id', deliverySettings.matrixInstanceId),
+        upsertSetting('matrix_access_token', deliverySettings.matrixAccessToken),
       ]);
       
       toast.success('Delivery settings saved to database');
@@ -955,6 +963,46 @@ const SettingsTab = () => {
               }
               disabled={!isSuperAdmin}
             />
+          </div>
+
+          {/* MatrixCloud WhatsApp API Settings */}
+          <div className="space-y-2 pt-2">
+            <Label htmlFor="matrix-instance-id">MatrixCloud Instance ID</Label>
+            <Input
+              id="matrix-instance-id"
+              placeholder="699DD4BFBA0A9"
+              value={deliverySettings.matrixInstanceId}
+              onChange={(e) =>
+                setDeliverySettings((prev) => ({ ...prev, matrixInstanceId: e.target.value }))
+              }
+              disabled={!isSuperAdmin}
+            />
+            <p className="text-xs text-muted-foreground">
+              Instance ID from your MatrixCloud WhatsApp API dashboard.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="matrix-access-token">MatrixCloud Access Token</Label>
+            <div className="relative">
+              <Input
+                id="matrix-access-token"
+                type="password"
+                placeholder="699dcec3189f6"
+                value={deliverySettings.matrixAccessToken}
+                onChange={(e) =>
+                  setDeliverySettings((prev) => ({ ...prev, matrixAccessToken: e.target.value }))
+                }
+                disabled={!isSuperAdmin}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Access token from your{' '}
+              <a href="https://matrixcloudapi.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                MatrixCloud API
+              </a>{' '}
+              dashboard. Used for sending WhatsApp messages after order delivery.
+            </p>
           </div>
 
           {/* WhatsApp Template Name */}
