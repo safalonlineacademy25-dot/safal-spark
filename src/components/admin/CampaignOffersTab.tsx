@@ -9,10 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Product, useAddProduct, ProductInsert } from '@/hooks/useProducts';
 import { useImageUpload } from '@/hooks/useImageUpload';
-import { useComboPackFileUpload } from '@/hooks/useComboPackFiles';
-import { useProductAudioFileUpload } from '@/hooks/useProductAudioFiles';
-import ProductDocumentFilesManager from './ProductDocumentFilesManager';
-import ProductAudioFilesManager from './ProductAudioFilesManager';
+import { supabase } from '@/integrations/supabase/client';
 import EditProductDialog from './EditProductDialog';
 import DeleteProductDialog from './DeleteProductDialog';
 import ProductQRCodeDialog from './ProductQRCodeDialog';
@@ -38,15 +35,12 @@ const CampaignOffersTab = ({ products, isLoading, isSuperAdmin = false }: Campai
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState('');
-  const [pendingDocumentFiles, setPendingDocumentFiles] = useState<Array<{ file: File; order: number }>>([]);
-  const [pendingAudioFiles, setPendingAudioFiles] = useState<Array<{ file: File; order: number }>>([]);
+  const [isCopyingFiles, setIsCopyingFiles] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const addProduct = useAddProduct();
   const { uploadImage, isUploading: isImageUploading, cancelUpload: cancelImageUpload } = useImageUpload();
-  const { uploadFile: uploadDocumentFile, isUploading: isDocumentUploading } = useComboPackFileUpload();
-  const { uploadFile: uploadAudioFile, isUploading: isAudioUploading } = useProductAudioFileUpload();
 
   // Existing combo-pack products
   const comboProducts = useMemo(
@@ -134,8 +128,6 @@ const CampaignOffersTab = ({ products, isLoading, isSuperAdmin = false }: Campai
     setImagePreview(null);
     setSelectedImageFile(null);
     setImageUrl('');
-    setPendingDocumentFiles([]);
-    setPendingAudioFiles([]);
   };
 
   const handleCreateCombo = async () => {
@@ -187,23 +179,56 @@ const CampaignOffersTab = ({ products, isLoading, isSuperAdmin = false }: Campai
     try {
       const newProduct = await addProduct.mutateAsync(product);
 
-      // Upload pending document files
-      if (pendingDocumentFiles.length > 0 && newProduct?.id) {
-        for (const { file, order } of pendingDocumentFiles) {
-          await uploadDocumentFile(file, newProduct.id, order);
+      // Auto-copy files from selected products into the new combo product
+      if (newProduct?.id) {
+        setIsCopyingFiles(true);
+        let fileOrder = 0;
+
+        for (const selectedProduct of selectedProducts) {
+          // Copy document files
+          const { data: docFiles } = await supabase
+            .from('combo_pack_files')
+            .select('*')
+            .eq('product_id', selectedProduct.id)
+            .order('file_order', { ascending: true });
+
+          if (docFiles && docFiles.length > 0) {
+            for (const docFile of docFiles) {
+              await supabase.from('combo_pack_files').insert({
+                product_id: newProduct.id,
+                file_name: docFile.file_name,
+                file_url: docFile.file_url,
+                file_order: fileOrder++,
+              });
+            }
+          }
+
+          // Copy audio files
+          const { data: audioFiles } = await supabase
+            .from('product_audio_files')
+            .select('*')
+            .eq('product_id', selectedProduct.id)
+            .order('file_order', { ascending: true });
+
+          if (audioFiles && audioFiles.length > 0) {
+            for (const audioFile of audioFiles) {
+              await supabase.from('product_audio_files').insert({
+                product_id: newProduct.id,
+                file_name: audioFile.file_name,
+                file_url: audioFile.file_url,
+                file_order: fileOrder++,
+              });
+            }
+          }
         }
+
+        setIsCopyingFiles(false);
       }
 
-      // Upload pending audio files
-      if (pendingAudioFiles.length > 0 && newProduct?.id) {
-        for (const { file, order } of pendingAudioFiles) {
-          await uploadAudioFile(file, newProduct.id, order);
-        }
-      }
-
-      toast.success('Combo offer product created successfully!');
+      toast.success('Combo offer created! Files from selected products have been linked automatically.');
       resetForm();
     } catch (error) {
+      setIsCopyingFiles(false);
       // Error handled in mutation
     }
   };
@@ -216,7 +241,7 @@ const CampaignOffersTab = ({ products, isLoading, isSuperAdmin = false }: Campai
     );
   }
 
-  const isPending = addProduct.isPending || isImageUploading || isDocumentUploading || isAudioUploading;
+  const isPending = addProduct.isPending || isImageUploading || isCopyingFiles;
 
   return (
     <div className="space-y-8">
@@ -536,21 +561,11 @@ const CampaignOffersTab = ({ products, isLoading, isSuperAdmin = false }: Campai
                   />
                 </div>
 
-                {/* Document Files */}
-                <ProductDocumentFilesManager
-                  productId={null}
-                  isNewProduct={true}
-                  pendingFiles={pendingDocumentFiles}
-                  onFilesChange={setPendingDocumentFiles}
-                />
-
-                {/* Audio Files */}
-                <ProductAudioFilesManager
-                  productId={null}
-                  isNewProduct={true}
-                  pendingFiles={pendingAudioFiles}
-                  onFilesChange={setPendingAudioFiles}
-                />
+                {/* Auto-copied files info */}
+                <div className="bg-muted/50 rounded-lg border border-border p-3 text-xs text-muted-foreground">
+                  <p className="font-medium text-foreground mb-1">📁 Files (auto-included)</p>
+                  <p>All document and audio files from the selected products will be automatically included in this combo. No need to upload separately.</p>
+                </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="combo-features">Features (one per line)</Label>
