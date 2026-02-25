@@ -127,8 +127,8 @@ serve(async (req: Request): Promise<Response> => {
     const matrixInstanceId = settings['matrix_instance_id'] || '';
     const matrixAccessToken = settings['matrix_access_token'] || '';
     const whatsappEnabled = settings['whatsapp_enabled'] !== 'false';
-    // Message template from settings
-    const messageTemplate = settings['whatsapp_template_name'] || 'Dear customer, we have sent the document to your email id-{{email}}. Please download from your mail.';
+    // Message template from settings (plain text, no placeholders needed)
+    const messageTemplate = settings['whatsapp_template_name'] || 'Dear customer, we have sent the document to your email. Please download from your mail.';
     
     console.log("WhatsApp enabled:", whatsappEnabled);
     console.log("Matrix Instance ID:", matrixInstanceId ? matrixInstanceId.substring(0, 6) + "..." : "NOT SET");
@@ -162,8 +162,8 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // Build the message by replacing {{email}} placeholder with actual email
-    const message = messageTemplate.replace(/\{\{email\}\}/gi, email);
+    // Use the message template as-is (no placeholder replacement needed)
+    const message = messageTemplate;
     console.log("Message to send:", message);
 
     // Send WhatsApp message via MatrixCloud API with retry logic
