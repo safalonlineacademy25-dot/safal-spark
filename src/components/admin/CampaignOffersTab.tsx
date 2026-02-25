@@ -1,11 +1,18 @@
 import { useState, useRef, useMemo } from 'react';
-import { QRCodeSVG } from 'qrcode.react';
-import { QrCode, Download, Copy, Check, Package, Search } from 'lucide-react';
+import { Package, Search, Loader2, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Product } from '@/hooks/useProducts';
+import { Product, useAddProduct, ProductInsert } from '@/hooks/useProducts';
+import { useImageUpload } from '@/hooks/useImageUpload';
+import { useComboPackFileUpload } from '@/hooks/useComboPackFiles';
+import { useProductAudioFileUpload } from '@/hooks/useProductAudioFiles';
+import ProductDocumentFilesManager from './ProductDocumentFilesManager';
+import ProductAudioFilesManager from './ProductAudioFilesManager';
 
 interface CampaignOffersTabProps {
   products: Product[] | undefined;
@@ -14,13 +21,30 @@ interface CampaignOffersTabProps {
 
 const CampaignOffersTab = ({ products, isLoading }: CampaignOffersTabProps) => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [copied, setCopied] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const qrRef = useRef<HTMLDivElement>(null);
 
-  // Only active products
+  // Combo product form state
+  const [comboName, setComboName] = useState('');
+  const [comboDescription, setComboDescription] = useState('');
+  const [comboPrice, setComboPrice] = useState<number>(0);
+  const [comboBadge, setComboBadge] = useState('');
+  const [comboFeatures, setComboFeatures] = useState('');
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [imageUrl, setImageUrl] = useState('');
+  const [pendingDocumentFiles, setPendingDocumentFiles] = useState<Array<{ file: File; order: number }>>([]);
+  const [pendingAudioFiles, setPendingAudioFiles] = useState<Array<{ file: File; order: number }>>([]);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const addProduct = useAddProduct();
+  const { uploadImage, isUploading: isImageUploading, cancelUpload: cancelImageUpload } = useImageUpload();
+  const { uploadFile: uploadDocumentFile, isUploading: isDocumentUploading } = useComboPackFileUpload();
+  const { uploadFile: uploadAudioFile, isUploading: isAudioUploading } = useProductAudioFileUpload();
+
+  // Only active products (exclude combo-pack products from selection)
   const activeProducts = useMemo(
-    () => (products || []).filter((p) => p.is_active),
+    () => (products || []).filter((p) => p.is_active && p.category !== 'combo-pack'),
     [products]
   );
 
@@ -65,52 +89,110 @@ const CampaignOffersTab = ({ products, isLoading }: CampaignOffersTabProps) => {
     });
   };
 
-  // Generate the combo URL with comma-separated IDs
-  const comboUrl = useMemo(() => {
-    if (selectedIds.size === 0) return '';
-    const ids = Array.from(selectedIds).join(',');
-    return `${window.location.origin}/cart?add=${ids}`;
-  }, [selectedIds]);
+  const selectedProducts = activeProducts.filter((p) => selectedIds.has(p.id));
+  const totalOriginalPrice = selectedProducts.reduce((s, p) => s + p.price, 0);
 
-  const handleCopyLink = async () => {
-    if (!comboUrl) return;
-    try {
-      await navigator.clipboard.writeText(comboUrl);
-      setCopied(true);
-      toast.success('Link copied to clipboard');
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error('Failed to copy link');
-    }
+  // Image handlers
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSelectedImageFile(file);
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreview(previewUrl);
   };
 
-  const handleDownloadQR = () => {
-    if (!qrRef.current) return;
-    const svg = qrRef.current.querySelector('svg');
-    if (!svg) return;
+  const removeImage = () => {
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
+    setSelectedImageFile(null);
+    setImageUrl('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
-    const svgData = new XMLSerializer().serializeToString(svg);
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
+  const resetForm = () => {
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setSelectedIds(new Set());
+    setComboName('');
+    setComboDescription('');
+    setComboPrice(0);
+    setComboBadge('');
+    setComboFeatures('');
+    setImagePreview(null);
+    setSelectedImageFile(null);
+    setImageUrl('');
+    setPendingDocumentFiles([]);
+    setPendingAudioFiles([]);
+  };
 
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx?.drawImage(img, 0, 0);
-      const pngUrl = canvas.toDataURL('image/png');
-      const link = document.createElement('a');
-      link.download = `combo-offer-qr-${Date.now()}.png`;
-      link.href = pngUrl;
-      link.click();
-      toast.success('QR code downloaded');
+  const handleCreateCombo = async () => {
+    if (selectedIds.size < 2) {
+      toast.error('Please select at least 2 products for a combo offer');
+      return;
+    }
+    if (!comboName.trim()) {
+      toast.error('Please enter a combo product name');
+      return;
+    }
+    if (!comboPrice || comboPrice <= 0) {
+      toast.error('Please enter a valid combo price');
+      return;
+    }
+
+    let finalImageUrl = imageUrl || null;
+
+    // Upload image if selected
+    if (selectedImageFile && !imageUrl) {
+      const url = await uploadImage(selectedImageFile);
+      if (url) {
+        finalImageUrl = url;
+      } else {
+        return; // Upload failed
+      }
+    }
+
+    // Build description with included products
+    const includedProductNames = selectedProducts.map((p) => p.name).join(', ');
+    const fullDescription = comboDescription
+      ? `${comboDescription}\n\nIncludes: ${includedProductNames}`
+      : `Combo pack includes: ${includedProductNames}`;
+
+    const product: ProductInsert = {
+      name: comboName.trim(),
+      category: 'combo-pack',
+      price: comboPrice,
+      original_price: totalOriginalPrice > comboPrice ? totalOriginalPrice : null,
+      description: fullDescription,
+      image_url: finalImageUrl,
+      file_url: null,
+      audio_url: null,
+      badge: comboBadge && comboBadge.trim().length > 0 ? comboBadge.trim() : null,
+      is_active: true,
+      features: comboFeatures ? comboFeatures.split('\n').filter((f) => f.trim()) : [],
     };
 
-    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
-  };
+    try {
+      const newProduct = await addProduct.mutateAsync(product);
 
-  const selectedProducts = activeProducts.filter((p) => selectedIds.has(p.id));
-  const totalPrice = selectedProducts.reduce((s, p) => s + p.price, 0);
+      // Upload pending document files
+      if (pendingDocumentFiles.length > 0 && newProduct?.id) {
+        for (const { file, order } of pendingDocumentFiles) {
+          await uploadDocumentFile(file, newProduct.id, order);
+        }
+      }
+
+      // Upload pending audio files
+      if (pendingAudioFiles.length > 0 && newProduct?.id) {
+        for (const { file, order } of pendingAudioFiles) {
+          await uploadAudioFile(file, newProduct.id, order);
+        }
+      }
+
+      toast.success('Combo offer product created successfully!');
+      resetForm();
+    } catch (error) {
+      // Error handled in mutation
+    }
+  };
 
   if (isLoading) {
     return (
@@ -120,13 +202,15 @@ const CampaignOffersTab = ({ products, isLoading }: CampaignOffersTabProps) => {
     );
   }
 
+  const isPending = addProduct.isPending || isImageUploading || isDocumentUploading || isAudioUploading;
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-bold text-foreground">Special Campaign / Combo Offers</h2>
+        <h2 className="text-xl font-bold text-foreground">Create Combo Offer</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Select multiple products to create a single QR code & link. When scanned, the customer's cart will be cleared and only the selected products will be added.
+          Select products, set a discounted combo price, upload a label image, and create it as a new combo product.
         </p>
       </div>
 
@@ -153,7 +237,6 @@ const CampaignOffersTab = ({ products, isLoading }: CampaignOffersTabProps) => {
               const someSelected = prods.some((p) => selectedIds.has(p.id));
               return (
                 <div key={category} className="bg-card rounded-lg border border-border overflow-hidden">
-                  {/* Category header */}
                   <div
                     className="flex items-center gap-3 px-4 py-3 bg-muted/50 border-b border-border cursor-pointer hover:bg-muted transition-colors"
                     onClick={() => toggleCategory(prods)}
@@ -168,7 +251,6 @@ const CampaignOffersTab = ({ products, isLoading }: CampaignOffersTabProps) => {
                       {prods.filter((p) => selectedIds.has(p.id)).length}/{prods.length} selected
                     </span>
                   </div>
-                  {/* Products */}
                   <div className="divide-y divide-border">
                     {prods.map((product) => (
                       <label
@@ -192,7 +274,7 @@ const CampaignOffersTab = ({ products, isLoading }: CampaignOffersTabProps) => {
           )}
         </div>
 
-        {/* QR Code & Summary Panel */}
+        {/* Combo Product Form */}
         <div className="space-y-4">
           {/* Selected summary */}
           <div className="bg-card rounded-lg border border-border p-4 space-y-3">
@@ -201,7 +283,7 @@ const CampaignOffersTab = ({ products, isLoading }: CampaignOffersTabProps) => {
               Selected Products ({selectedIds.size})
             </h3>
             {selectedProducts.length === 0 ? (
-              <p className="text-xs text-muted-foreground">No products selected yet.</p>
+              <p className="text-xs text-muted-foreground">Select at least 2 products to create a combo.</p>
             ) : (
               <>
                 <ul className="space-y-1 max-h-48 overflow-y-auto">
@@ -213,58 +295,195 @@ const CampaignOffersTab = ({ products, isLoading }: CampaignOffersTabProps) => {
                   ))}
                 </ul>
                 <div className="border-t border-border pt-2 flex justify-between text-sm font-bold text-foreground">
-                  <span>Total</span>
-                  <span>₹{totalPrice}</span>
+                  <span>Total (Original)</span>
+                  <span>₹{totalOriginalPrice}</span>
                 </div>
               </>
             )}
           </div>
 
-          {/* QR Code */}
-          {selectedIds.size > 0 && (
+          {/* Combo Details Form */}
+          {selectedIds.size >= 2 && (
             <div className="bg-card rounded-lg border border-border p-4 space-y-4">
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <QrCode className="h-4 w-4" />
-                QR Code & Link
-              </h3>
+              <h3 className="text-sm font-semibold text-foreground">Combo Product Details</h3>
 
-              <div ref={qrRef} className="flex justify-center p-4 bg-white rounded-xl">
-                <QRCodeSVG value={comboUrl} size={180} level="H" includeMargin bgColor="#ffffff" fgColor="#000000" />
+              <div className="space-y-2">
+                <Label htmlFor="combo-name">Combo Name *</Label>
+                <Input
+                  id="combo-name"
+                  value={comboName}
+                  onChange={(e) => setComboName(e.target.value)}
+                  placeholder="e.g., Ultimate Study Bundle"
+                />
               </div>
 
-              {/* URL */}
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="text-xs text-muted-foreground font-mono break-all">{comboUrl}</p>
+              <div className="space-y-2">
+                <Label htmlFor="combo-desc">Description</Label>
+                <Textarea
+                  id="combo-desc"
+                  value={comboDescription}
+                  onChange={(e) => setComboDescription(e.target.value)}
+                  placeholder="Brief description of the combo offer"
+                  rows={2}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="combo-price">Combo Price (₹) *</Label>
+                  <Input
+                    id="combo-price"
+                    type="number"
+                    min="0"
+                    value={comboPrice || ''}
+                    onChange={(e) => setComboPrice(Number(e.target.value))}
+                    placeholder={`Discount from ₹${totalOriginalPrice}`}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Original Price</Label>
+                  <div className="flex items-center h-10 px-3 rounded-md border border-input bg-muted text-sm text-muted-foreground line-through">
+                    ₹{totalOriginalPrice}
+                  </div>
+                </div>
+              </div>
+
+              {comboPrice > 0 && comboPrice < totalOriginalPrice && (
+                <div className="bg-primary/10 text-primary text-xs font-medium px-3 py-2 rounded-md text-center">
+                  💰 Discount: ₹{totalOriginalPrice - comboPrice} ({Math.round(((totalOriginalPrice - comboPrice) / totalOriginalPrice) * 100)}% off)
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="combo-badge">Badge</Label>
+                <Select
+                  value={comboBadge || 'none'}
+                  onValueChange={(value) => setComboBadge(value === 'none' ? '' : value)}
+                >
+                  <SelectTrigger id="combo-badge">
+                    <SelectValue placeholder="None" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    <SelectItem value="best-value">Best Value</SelectItem>
+                    <SelectItem value="popular">Popular</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Image Upload */}
+              <div className="space-y-2">
+                <Label>Product Label / Image</Label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
+
+                {imagePreview || imageUrl ? (
+                  <div className="relative w-full h-32 rounded-lg border border-border overflow-hidden">
+                    <img
+                      src={imagePreview || imageUrl}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={removeImage}
+                      className="absolute top-2 right-2 p-1 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                    {isImageUploading && (
+                      <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isImageUploading}
+                    className="w-full h-32 rounded-lg border-2 border-dashed border-border hover:border-primary/50 transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground"
+                  >
+                    {isImageUploading ? (
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    ) : (
+                      <>
+                        <Upload className="h-6 w-6" />
+                        <span className="text-xs">Upload combo label</span>
+                      </>
+                    )}
+                  </button>
+                )}
+                <Input
+                  value={imageUrl}
+                  onChange={(e) => {
+                    setImageUrl(e.target.value);
+                    setImagePreview(null);
+                  }}
+                  placeholder="Or paste image URL..."
+                  className="text-xs"
+                />
+              </div>
+
+              {/* Document Files */}
+              <ProductDocumentFilesManager
+                productId={null}
+                isNewProduct={true}
+                pendingFiles={pendingDocumentFiles}
+                onFilesChange={setPendingDocumentFiles}
+              />
+
+              {/* Audio Files */}
+              <ProductAudioFilesManager
+                productId={null}
+                isNewProduct={true}
+                pendingFiles={pendingAudioFiles}
+                onFilesChange={setPendingAudioFiles}
+              />
+
+              <div className="space-y-2">
+                <Label htmlFor="combo-features">Features (one per line)</Label>
+                <Textarea
+                  id="combo-features"
+                  value={comboFeatures}
+                  onChange={(e) => setComboFeatures(e.target.value)}
+                  placeholder="All-in-one bundle&#10;Huge savings&#10;Complete preparation"
+                  rows={3}
+                />
               </div>
 
               {/* Actions */}
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="flex-1" onClick={handleCopyLink}>
-                  {copied ? (
-                    <>
-                      <Check className="mr-1.5 h-3.5 w-3.5" />
-                      Copied!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="mr-1.5 h-3.5 w-3.5" />
-                      Copy Link
-                    </>
-                  )}
+              <div className="flex gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={resetForm}
+                  disabled={isPending}
+                >
+                  Clear All
                 </Button>
-                <Button size="sm" className="flex-1" onClick={handleDownloadQR}>
-                  <Download className="mr-1.5 h-3.5 w-3.5" />
-                  Download QR
+                <Button
+                  size="sm"
+                  className="flex-1"
+                  onClick={handleCreateCombo}
+                  disabled={isPending}
+                >
+                  {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Create Combo Product
                 </Button>
               </div>
             </div>
           )}
 
           {/* Clear selection */}
-          {selectedIds.size > 0 && (
-            <Button variant="ghost" size="sm" className="w-full text-muted-foreground" onClick={() => setSelectedIds(new Set())}>
-              Clear Selection
-            </Button>
+          {selectedIds.size > 0 && selectedIds.size < 2 && (
+            <p className="text-xs text-muted-foreground text-center">Select one more product to enable combo creation.</p>
           )}
         </div>
       </div>

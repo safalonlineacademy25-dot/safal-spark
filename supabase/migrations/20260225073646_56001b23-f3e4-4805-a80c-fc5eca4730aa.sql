@@ -1,0 +1,2 @@
+ALTER TABLE public.products DROP CONSTRAINT products_category_check;
+ALTER TABLE public.products ADD CONSTRAINT products_category_check CHECK (category = ANY (ARRAY['notes'::text, 'mock-papers'::text, 'pune-university'::text, 'mumbai-university'::text, 'engineering'::text, 'iit'::text, 'audio-notes'::text, 'others'::text, 'combo-pack'::text]));
