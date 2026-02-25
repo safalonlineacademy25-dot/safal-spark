@@ -129,6 +129,7 @@ serve(async (req: Request): Promise<Response> => {
     const whatsappEnabled = settings['whatsapp_enabled'] !== 'false';
     // Message template from settings (plain text, no placeholders needed)
     const messageTemplate = settings['whatsapp_template_name'] || 'Dear customer, we have sent the document to your email. Please download from your mail.';
+    const whatsappMediaUrl = settings['whatsapp_media_url'] || '';
     
     console.log("WhatsApp enabled:", whatsappEnabled);
     console.log("Matrix Instance ID:", matrixInstanceId ? matrixInstanceId.substring(0, 6) + "..." : "NOT SET");
@@ -179,10 +180,24 @@ serve(async (req: Request): Promise<Response> => {
         // Build the MatrixCloud API URL
         const matrixUrl = new URL('https://matrixcloudapi.com/api/send');
         matrixUrl.searchParams.set('number', formattedPhone);
-        matrixUrl.searchParams.set('type', 'text');
-        matrixUrl.searchParams.set('message', message);
         matrixUrl.searchParams.set('instance_id', matrixInstanceId);
         matrixUrl.searchParams.set('access_token', matrixAccessToken);
+
+        // Send as media message if media URL is configured, otherwise text
+        if (whatsappMediaUrl) {
+          matrixUrl.searchParams.set('type', 'media');
+          matrixUrl.searchParams.set('message', message);
+          matrixUrl.searchParams.set('media_url', whatsappMediaUrl);
+          // Extract filename from URL
+          const urlParts = whatsappMediaUrl.split('/');
+          const filename = urlParts[urlParts.length - 1] || 'media_file.jpg';
+          matrixUrl.searchParams.set('filename', filename);
+          console.log("Sending as MEDIA message with media_url:", whatsappMediaUrl);
+        } else {
+          matrixUrl.searchParams.set('type', 'text');
+          matrixUrl.searchParams.set('message', message);
+          console.log("Sending as TEXT message (no media URL configured)");
+        }
 
         console.log("MatrixCloud API URL:", matrixUrl.toString().replace(matrixAccessToken, '***'));
 
