@@ -471,20 +471,23 @@ const SettingsTab = () => {
 
     setSavingDelivery(true);
     try {
-      await Promise.all([
-        upsertSetting('email_enabled', deliverySettings.emailEnabled.toString()),
-        upsertSetting('whatsapp_enabled', deliverySettings.whatsappEnabled.toString()),
-        upsertSetting('resend_api_key', deliverySettings.resendApiKey),
-        upsertSetting('resend_webhook_secret', deliverySettings.resendWebhookSecret),
-        upsertSetting('whatsapp_access_token', deliverySettings.whatsappAccessToken),
-        upsertSetting('whatsapp_phone_number_id', deliverySettings.whatsappPhoneNumberId),
-        upsertSetting('whatsapp_template_name', deliverySettings.whatsappTemplateName),
-        upsertSetting('whatsapp_broadcast_template_name', deliverySettings.whatsappBroadcastTemplateName),
-        upsertSetting('whatsapp_promotion_template_name', deliverySettings.whatsappPromotionTemplateName),
-        upsertSetting('matrix_instance_id', deliverySettings.matrixInstanceId),
-        upsertSetting('matrix_access_token', deliverySettings.matrixAccessToken),
-        upsertSetting('whatsapp_media_url', deliverySettings.whatsappMediaUrl),
-      ]);
+      const settingsToSave = [
+        { key: 'email_enabled', value: deliverySettings.emailEnabled.toString() },
+        { key: 'whatsapp_enabled', value: deliverySettings.whatsappEnabled.toString() },
+        { key: 'resend_api_key', value: deliverySettings.resendApiKey },
+        { key: 'resend_webhook_secret', value: deliverySettings.resendWebhookSecret },
+        { key: 'whatsapp_access_token', value: deliverySettings.whatsappAccessToken },
+        { key: 'whatsapp_phone_number_id', value: deliverySettings.whatsappPhoneNumberId },
+        { key: 'whatsapp_template_name', value: deliverySettings.whatsappTemplateName },
+        { key: 'whatsapp_broadcast_template_name', value: deliverySettings.whatsappBroadcastTemplateName },
+        { key: 'whatsapp_promotion_template_name', value: deliverySettings.whatsappPromotionTemplateName },
+        { key: 'matrix_instance_id', value: deliverySettings.matrixInstanceId },
+        { key: 'matrix_access_token', value: deliverySettings.matrixAccessToken },
+        { key: 'whatsapp_media_url', value: deliverySettings.whatsappMediaUrl },
+      ];
+      for (const setting of settingsToSave) {
+        await upsertSetting(setting.key, setting.value);
+      }
       
       toast.success('Delivery settings saved to database');
     } catch (error: any) {
