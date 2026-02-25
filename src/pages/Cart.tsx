@@ -162,12 +162,7 @@ const Cart = () => {
         for (const product of productsToAdd) {
           addItem(product);
         }
-        toast({
-          title: 'Ready to checkout',
-          description: productsToAdd.length === 1
-            ? `${productsToAdd[0].name} has been added to your cart.`
-            : `${productsToAdd.length} products have been added to your cart.`,
-        });
+        // Silent add - no toast to avoid confusing customers
       }
       // Remove the add parameter from URL
       searchParams.delete('add');
