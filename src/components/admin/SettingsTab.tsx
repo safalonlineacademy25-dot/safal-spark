@@ -78,6 +78,7 @@ interface DeliverySettings {
   whatsappPromotionTemplateName: string;
   matrixInstanceId: string;
   matrixAccessToken: string;
+  whatsappMediaUrl: string;
 }
 
 interface PaymentSettings {
@@ -131,6 +132,7 @@ const SettingsTab = () => {
     whatsappPromotionTemplateName: '',
     matrixInstanceId: '',
     matrixAccessToken: '',
+    whatsappMediaUrl: '',
   });
   const [savingDelivery, setSavingDelivery] = useState(false);
   const [showResendKey, setShowResendKey] = useState(false);
@@ -214,6 +216,7 @@ const SettingsTab = () => {
           whatsappPromotionTemplateName: settingsMap['whatsapp_promotion_template_name'] || '',
           matrixInstanceId: settingsMap['matrix_instance_id'] || '',
           matrixAccessToken: settingsMap['matrix_access_token'] || '',
+          whatsappMediaUrl: settingsMap['whatsapp_media_url'] || '',
         });
 
         // Load signup setting
@@ -445,6 +448,7 @@ const SettingsTab = () => {
         upsertSetting('whatsapp_promotion_template_name', deliverySettings.whatsappPromotionTemplateName),
         upsertSetting('matrix_instance_id', deliverySettings.matrixInstanceId),
         upsertSetting('matrix_access_token', deliverySettings.matrixAccessToken),
+        upsertSetting('whatsapp_media_url', deliverySettings.whatsappMediaUrl),
       ]);
       
       toast.success('Delivery settings saved to database');
@@ -1002,6 +1006,23 @@ const SettingsTab = () => {
                 MatrixCloud API
               </a>{' '}
               dashboard. Used for sending WhatsApp messages after order delivery.
+            </p>
+          </div>
+
+          {/* WhatsApp Media URL */}
+          <div className="space-y-2">
+            <Label htmlFor="whatsapp-media-url">WhatsApp Media URL</Label>
+            <Input
+              id="whatsapp-media-url"
+              placeholder="https://your-supabase-url/storage/v1/object/public/product-images/media.jpg"
+              value={deliverySettings.whatsappMediaUrl}
+              onChange={(e) =>
+                setDeliverySettings((prev) => ({ ...prev, whatsappMediaUrl: e.target.value }))
+              }
+              disabled={!isSuperAdmin}
+            />
+            <p className="text-xs text-muted-foreground">
+              Public URL of the media file (image/PDF) to send with WhatsApp messages. Upload the file to Supabase Storage (product-images bucket) and paste the public URL here.
             </p>
           </div>
 
