@@ -1353,7 +1353,7 @@ const AdminDashboard = () => {
 
             {activeTab === 'campaigns' && (
               <ErrorBoundary>
-                <CampaignOffersTab products={products} isLoading={productsLoading} />
+                <CampaignOffersTab products={products} isLoading={productsLoading} isSuperAdmin={isSuperAdmin} />
               </ErrorBoundary>
             )}
 
