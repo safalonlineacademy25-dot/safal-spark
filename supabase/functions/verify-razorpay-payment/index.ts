@@ -242,7 +242,7 @@
      }
  
      console.log("Payment verified, order updated:", order.id, "Status:", order.status);
- 
+
      const { data: orderItems, error: itemsError } = await supabase
        .from('order_items')
        .select('product_id, product_name')
@@ -251,6 +251,28 @@
      if (itemsError) {
        console.error("Error fetching order items:", itemsError);
      }
+
+     // Fire-and-forget Telegram notification (non-blocking)
+     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+     fetch(`${supabaseUrl}/functions/v1/send-telegram-notification`, {
+       method: 'POST',
+       headers: {
+         'Content-Type': 'application/json',
+         'Authorization': `Bearer ${serviceKey}`,
+       },
+       body: JSON.stringify({
+         type: 'new_order',
+         data: {
+           order_number: order.order_number,
+           total_amount: order.total_amount,
+           customer_email: order.customer_email,
+           customer_name: order.customer_name,
+           items_count: orderItems?.length || 0,
+           currency: order.currency || 'INR',
+         },
+       }),
+     }).catch(err => console.error('Telegram notification failed (non-blocking):', err));
  
      // For each order item, gather document and audio files
      const productEmails: Array<{

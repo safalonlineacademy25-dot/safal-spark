@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   Crown,
   KeyRound,
+  Send,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -80,6 +81,9 @@ interface DeliverySettings {
   matrixInstanceId: string;
   matrixAccessToken: string;
   whatsappMediaUrl: string;
+  telegramBotToken: string;
+  telegramChatId: string;
+  telegramEnabled: boolean;
 }
 
 interface PaymentSettings {
@@ -134,6 +138,9 @@ const SettingsTab = () => {
     matrixInstanceId: '',
     matrixAccessToken: '',
     whatsappMediaUrl: '',
+    telegramBotToken: '',
+    telegramChatId: '',
+    telegramEnabled: false,
   });
   const [savingDelivery, setSavingDelivery] = useState(false);
   const [showResendKey, setShowResendKey] = useState(false);
@@ -252,6 +259,9 @@ const SettingsTab = () => {
           matrixInstanceId: settingsMap['matrix_instance_id'] || '',
           matrixAccessToken: settingsMap['matrix_access_token'] || '',
           whatsappMediaUrl: settingsMap['whatsapp_media_url'] || '',
+          telegramBotToken: settingsMap['telegram_bot_token'] || '',
+          telegramChatId: settingsMap['telegram_chat_id'] || '',
+          telegramEnabled: settingsMap['telegram_enabled'] === 'true',
         });
 
         // Load signup setting
@@ -484,6 +494,9 @@ const SettingsTab = () => {
         { key: 'matrix_instance_id', value: deliverySettings.matrixInstanceId },
         { key: 'matrix_access_token', value: deliverySettings.matrixAccessToken },
         { key: 'whatsapp_media_url', value: deliverySettings.whatsappMediaUrl },
+        { key: 'telegram_enabled', value: deliverySettings.telegramEnabled.toString() },
+        { key: 'telegram_bot_token', value: deliverySettings.telegramBotToken },
+        { key: 'telegram_chat_id', value: deliverySettings.telegramChatId },
       ];
       for (const setting of settingsToSave) {
         await upsertSetting(setting.key, setting.value);
@@ -1136,6 +1149,84 @@ const SettingsTab = () => {
               <strong>Note:</strong> Settings are securely stored in the database and used by edge functions for email and WhatsApp delivery.
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Telegram Notifications */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Send className="h-5 w-5" />
+            Telegram Notifications
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Enable Telegram Notifications</Label>
+              <p className="text-xs text-muted-foreground">
+                Receive instant order alerts and daily visit summaries on Telegram.
+              </p>
+            </div>
+            <Switch
+              checked={deliverySettings.telegramEnabled}
+              onCheckedChange={(checked) =>
+                setDeliverySettings((prev) => ({ ...prev, telegramEnabled: checked }))
+              }
+              disabled={!isSuperAdmin}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="telegram-bot-token">Bot Token</Label>
+            <Input
+              id="telegram-bot-token"
+              type="password"
+              placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
+              value={deliverySettings.telegramBotToken}
+              onChange={(e) =>
+                setDeliverySettings((prev) => ({ ...prev, telegramBotToken: e.target.value }))
+              }
+              disabled={!isSuperAdmin}
+            />
+            <p className="text-xs text-muted-foreground">
+              Get this from <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">@BotFather</a> on Telegram.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="telegram-chat-id">Chat ID</Label>
+            <Input
+              id="telegram-chat-id"
+              placeholder="123456789"
+              value={deliverySettings.telegramChatId}
+              onChange={(e) =>
+                setDeliverySettings((prev) => ({ ...prev, telegramChatId: e.target.value }))
+              }
+              disabled={!isSuperAdmin}
+            />
+            <p className="text-xs text-muted-foreground">
+              Start a chat with your bot, then visit{' '}
+              <code className="text-xs bg-muted px-1 py-0.5 rounded">https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</code>{' '}
+              to find your Chat ID.
+            </p>
+          </div>
+
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50 text-sm">
+            <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+            <p className="text-muted-foreground">
+              You'll receive instant notifications for new orders and a daily summary of site visits at 9 PM IST. Telegram notifications are non-blocking and won't affect order processing.
+            </p>
+          </div>
+
+          <Button onClick={handleSaveDeliverySettings} disabled={savingDelivery || !isSuperAdmin}>
+            {savingDelivery ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
+            {isSuperAdmin ? 'Save Telegram Settings' : 'View Only'}
+          </Button>
 
           <Button onClick={handleSaveDeliverySettings} disabled={savingDelivery || !isSuperAdmin}>
             {savingDelivery ? (
