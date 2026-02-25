@@ -44,3 +44,9 @@ verify_jwt = false
 
 [functions.whatsapp-webhook]
 verify_jwt = false
+
+[functions.send-telegram-notification]
+verify_jwt = false
+
+[functions.daily-visit-summary]
+verify_jwt = false
