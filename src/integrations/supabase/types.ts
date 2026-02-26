@@ -648,6 +648,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      cleanup_expired_download_tokens: {
+        Args: { _days_after_expiry?: number }
+        Returns: number
+      }
       cleanup_rate_limits: {
         Args: { _older_than_hours?: number }
         Returns: number
