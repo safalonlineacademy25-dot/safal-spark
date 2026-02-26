@@ -105,9 +105,10 @@ serve(async (req: Request): Promise<Response> => {
       matrixUrl.searchParams.set('number', testPhone);
       matrixUrl.searchParams.set('instance_id', matrixInstanceId);
       matrixUrl.searchParams.set('access_token', matrixAccessToken);
+      const whatsappMediaUrl = settings['whatsapp_media_url'] || 'https://safal-spark.lovable.app/favicon.ico';
       matrixUrl.searchParams.set('type', 'media');
-      matrixUrl.searchParams.set('message', `Greetings from SOA, we have sent product link to your email id - ${customerEmail}`);
-      matrixUrl.searchParams.set('media_url', 'https://safal-spark.lovable.app/favicon.ico');
+      matrixUrl.searchParams.set('message', `Dear Customer,\n\nThank you for choosing *Safal Online Academy*!\n\nYour purchased product links have been successfully sent to your registered email address: *${customerEmail}*\n\nPlease check your inbox (and spam/junk folder) for the download links. If you face any issues, feel free to reach out to us at support@safalonlinesolutions.com.\n\nWarm regards,\nTeam Safal Online Academy`);
+      matrixUrl.searchParams.set('media_url', whatsappMediaUrl);
 
       console.log("MatrixCloud test URL:", matrixUrl.toString().replace(matrixAccessToken, '***'));
 
@@ -125,7 +126,7 @@ serve(async (req: Request): Promise<Response> => {
           test: true,
           phone: testPhone,
           email: customerEmail,
-          messageSent: `Greetings from SOA, we have sent product link to your email id - ${customerEmail}`,
+          messageSent: `Corporate greeting with product download notification sent to ${customerEmail}`,
           response: result
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
