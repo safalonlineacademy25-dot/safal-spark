@@ -652,6 +652,18 @@ export type Database = {
         Args: { _days_after_expiry?: number }
         Returns: number
       }
+      cleanup_old_broadcast_logs: {
+        Args: { _older_than_days?: number }
+        Returns: number
+      }
+      cleanup_old_email_delivery_logs: {
+        Args: { _older_than_days?: number }
+        Returns: number
+      }
+      cleanup_old_promotion_logs: {
+        Args: { _older_than_days?: number }
+        Returns: number
+      }
       cleanup_rate_limits: {
         Args: { _older_than_hours?: number }
         Returns: number
