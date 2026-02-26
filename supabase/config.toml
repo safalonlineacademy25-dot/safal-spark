@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.daily-visit-summary]
 verify_jwt = false
+
+[functions.process-order-delivery]
+verify_jwt = false
