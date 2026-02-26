@@ -30,6 +30,7 @@ import {
   RotateCcw,
   BarChart3,
   Gift,
+  Send,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -44,6 +45,8 @@ import OrderDetailsDialog from '@/components/admin/OrderDetailsDialog';
 import ProductQRCodeDialog from '@/components/admin/ProductQRCodeDialog';
 import DBSnapshotTab from '@/components/admin/DBSnapshotTab';
 import SettingsTab from '@/components/admin/SettingsTab';
+import WhatsAppSettingsTab from '@/components/admin/WhatsAppSettingsTab';
+import TelegramSettingsTab from '@/components/admin/TelegramSettingsTab';
 import PaginationControls from '@/components/admin/PaginationControls';
 import BroadcastHistoryTab from '@/components/admin/BroadcastHistoryTab';
 import PromotionsTab from '@/components/admin/PromotionsTab';
@@ -221,6 +224,8 @@ const AdminDashboard = () => {
     { id: 'dbsnapshot', label: 'DB Snapshot', icon: Database },
     ...(isSuperAdmin ? [{ id: 'datapurging', label: 'Data Purging', icon: Trash2 }] : []),
     { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'whatsapp-settings', label: 'WhatsApp Settings', icon: MessageCircle },
+    { id: 'telegram-settings', label: 'Telegram Settings', icon: Send },
   ];
 
   // Calculate real stats from database
@@ -1358,6 +1363,8 @@ const AdminDashboard = () => {
             )}
 
             {activeTab === 'settings' && <SettingsTab />}
+            {activeTab === 'whatsapp-settings' && <WhatsAppSettingsTab />}
+            {activeTab === 'telegram-settings' && <TelegramSettingsTab />}
           </div>
         </main>
       </div>
