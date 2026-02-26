@@ -76,7 +76,64 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { email, phone: phoneOverride }: WhatsAppDownloadRequest = await req.json();
+    const body = await req.json();
+    
+    // Create Supabase client
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const settings = await getSettings(supabase);
+    
+    // Get MatrixCloud WhatsApp API credentials from settings
+    const matrixInstanceId = settings['matrix_instance_id'] || '';
+    const matrixAccessToken = settings['matrix_access_token'] || '';
+
+    // === TEST MODE: Send a media message with button directly ===
+    if (body.test_matrix_media) {
+      console.log("🧪 TEST MODE: Sending media message with button via MatrixCloud");
+      
+      const testPhone = formatPhoneNumber(body.phone || '8805184939');
+      
+      if (!matrixInstanceId || !matrixAccessToken) {
+        return new Response(
+          JSON.stringify({ success: false, error: "MatrixCloud credentials not configured" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Build MatrixCloud media message with button
+      const matrixUrl = new URL('https://matrixcloudapi.com/api/send');
+      matrixUrl.searchParams.set('number', testPhone);
+      matrixUrl.searchParams.set('instance_id', matrixInstanceId);
+      matrixUrl.searchParams.set('access_token', matrixAccessToken);
+      matrixUrl.searchParams.set('type', 'mediatemplate');
+      matrixUrl.searchParams.set('message', 'Greetings from SOA, Please visit our website for more details.');
+      matrixUrl.searchParams.set('media_url', 'https://safal-spark.lovable.app/placeholder.svg');
+      matrixUrl.searchParams.set('buttons', JSON.stringify([
+        { type: "url", text: "Visit Website", url: "https://safal-spark.lovable.app" }
+      ]));
+
+      console.log("MatrixCloud test URL:", matrixUrl.toString().replace(matrixAccessToken, '***'));
+
+      const response = await fetch(matrixUrl.toString(), { method: "POST" });
+      const resultText = await response.text();
+      console.log("MatrixCloud test response status:", response.status);
+      console.log("MatrixCloud test response body:", resultText);
+
+      let result: any;
+      try { result = JSON.parse(resultText); } catch { result = { raw: resultText }; }
+
+      return new Response(
+        JSON.stringify({ 
+          success: response.ok && result.status !== 'error' && result.status !== false,
+          test: true,
+          phone: testPhone,
+          response: result
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // === NORMAL MODE ===
+    const { email, phone: phoneOverride }: WhatsAppDownloadRequest = body;
 
     if (!email) {
       return new Response(
@@ -86,9 +143,6 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     console.log("Looking up order for email:", email);
-
-    // Create Supabase client
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     // Find the most recent paid order for this email
     const { data: order, error: orderError } = await supabase
@@ -122,13 +176,7 @@ serve(async (req: Request): Promise<Response> => {
     console.log("Found order:", order.order_number);
     console.log("Customer phone:", order.customer_phone);
 
-    const settings = await getSettings(supabase);
-    
-    // Get MatrixCloud WhatsApp API credentials from settings
-    const matrixInstanceId = settings['matrix_instance_id'] || '';
-    const matrixAccessToken = settings['matrix_access_token'] || '';
     const whatsappEnabled = settings['whatsapp_enabled'] !== 'false';
-    // Template name from WhatsApp settings
     const templateName = settings['whatsapp_template_name'] || '';
     
     console.log("WhatsApp enabled:", whatsappEnabled);
