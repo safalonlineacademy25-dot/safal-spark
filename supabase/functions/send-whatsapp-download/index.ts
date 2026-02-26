@@ -127,12 +127,12 @@ serve(async (req: Request): Promise<Response> => {
     const matrixInstanceId = settings['matrix_instance_id'] || '';
     const matrixAccessToken = settings['matrix_access_token'] || '';
     const whatsappEnabled = settings['whatsapp_enabled'] !== 'false';
-    // Message template from settings (plain text, no placeholders needed)
-    const messageTemplate = settings['whatsapp_template_name'] || 'Dear customer, we have sent the document to your email. Please download from your mail.';
-    const whatsappMediaUrl = settings['whatsapp_media_url'] || '';
+    // Template name from WhatsApp settings
+    const templateName = settings['whatsapp_template_name'] || '';
     
     console.log("WhatsApp enabled:", whatsappEnabled);
     console.log("Matrix Instance ID:", matrixInstanceId ? matrixInstanceId.substring(0, 6) + "..." : "NOT SET");
+    console.log("Template name:", templateName);
 
     const formattedPhone = formatPhoneNumber(order.customer_phone);
     console.log("Formatted phone:", formattedPhone);
@@ -163,9 +163,19 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // Use the message template as-is (no placeholder replacement needed)
-    const message = messageTemplate;
-    console.log("Message to send:", message);
+    if (!templateName) {
+      console.error("❌ WhatsApp template name not configured");
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "WhatsApp template name not configured in admin settings",
+          hint: "Please set the WhatsApp Template Name in Admin > WhatsApp Settings"
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("Sending template message:", templateName);
 
     // Send WhatsApp message via MatrixCloud API with retry logic
     let whatsappSuccess = false;
@@ -177,27 +187,15 @@ serve(async (req: Request): Promise<Response> => {
       try {
         console.log(`MatrixCloud send attempt ${retryCount + 1}/${maxRetries + 1}`);
         
-        // Build the MatrixCloud API URL
+        // Build the MatrixCloud API URL for template message
         const matrixUrl = new URL('https://matrixcloudapi.com/api/send');
         matrixUrl.searchParams.set('number', formattedPhone);
         matrixUrl.searchParams.set('instance_id', matrixInstanceId);
         matrixUrl.searchParams.set('access_token', matrixAccessToken);
+        matrixUrl.searchParams.set('type', 'template');
+        matrixUrl.searchParams.set('template_name', templateName);
 
-        // Send as media message if media URL is configured, otherwise text
-        if (whatsappMediaUrl) {
-          matrixUrl.searchParams.set('type', 'media');
-          matrixUrl.searchParams.set('message', message);
-          matrixUrl.searchParams.set('media_url', whatsappMediaUrl);
-          // Extract filename from URL
-          const urlParts = whatsappMediaUrl.split('/');
-          const filename = urlParts[urlParts.length - 1] || 'media_file.jpg';
-          matrixUrl.searchParams.set('filename', filename);
-          console.log("Sending as MEDIA message with media_url:", whatsappMediaUrl);
-        } else {
-          matrixUrl.searchParams.set('type', 'text');
-          matrixUrl.searchParams.set('message', message);
-          console.log("Sending as TEXT message (no media URL configured)");
-        }
+        console.log("Sending as TEMPLATE message with template_name:", templateName);
 
         console.log("MatrixCloud API URL:", matrixUrl.toString().replace(matrixAccessToken, '***'));
 
