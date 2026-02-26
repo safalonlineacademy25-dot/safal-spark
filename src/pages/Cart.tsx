@@ -548,8 +548,8 @@ const Cart = () => {
                     )}
 
                     <div>
-                      <label className="text-sm font-medium text-foreground mb-1 block">
-                        Email Address *
+                      <label className="text-[11px] font-semibold uppercase tracking-widest text-primary/70 mb-1.5 block">
+                        Email Address <span className="text-destructive">*</span>
                       </label>
                       <input
                         type="email"
@@ -571,8 +571,8 @@ placeholder="Please enter your email here"
                       )}
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-foreground mb-1 block">
-                        Phone Number *
+                      <label className="text-[11px] font-semibold uppercase tracking-widest text-primary/70 mb-1.5 block">
+                        Phone Number <span className="text-destructive">*</span>
                       </label>
                       <input
                         type="tel"
@@ -676,8 +676,8 @@ placeholder="Please enter your mobile here"
                   )}
 
                   <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">
-                      Email Address *
+                    <label className="text-[11px] font-semibold uppercase tracking-widest text-primary/70 mb-1.5 block">
+                      Email Address <span className="text-destructive">*</span>
                     </label>
                     <input
                       type="email"
@@ -699,8 +699,8 @@ placeholder="Please enter your mobile here"
                     )}
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">
-                      Phone Number *
+                    <label className="text-[11px] font-semibold uppercase tracking-widest text-primary/70 mb-1.5 block">
+                      Phone Number <span className="text-destructive">*</span>
                     </label>
                     <input
                       type="tel"
