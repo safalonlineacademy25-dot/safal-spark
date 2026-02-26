@@ -53,3 +53,6 @@ verify_jwt = false
 
 [functions.process-order-delivery]
 verify_jwt = false
+
+[functions.export-schema]
+verify_jwt = false

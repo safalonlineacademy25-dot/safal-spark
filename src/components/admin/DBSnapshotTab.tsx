@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Database,
@@ -9,6 +10,7 @@ import {
   FileArchive,
   FileDown,
   FileJson,
+  FileCode2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -141,6 +143,7 @@ interface DBSnapshotTabProps {
 }
 
 const DBSnapshotTab = ({ isActive = false, isSuperAdmin = false }: DBSnapshotTabProps) => {
+  const [exportingSchema, setExportingSchema] = useState(false);
   const queryClient = useQueryClient();
   const {
     data: tables = [],
@@ -250,6 +253,41 @@ const DBSnapshotTab = ({ isActive = false, isSuperAdmin = false }: DBSnapshotTab
     URL.revokeObjectURL(url);
   };
 
+  const exportSchemaSQL = async () => {
+    setExportingSchema(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) {
+        toast.error('You must be logged in to export schema');
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('export-schema', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (error) throw error;
+      if (!data?.sql) throw new Error('No schema data returned');
+
+      const blob = new Blob([data.sql], { type: 'application/sql' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `schema-export-${format(new Date(), 'yyyy-MM-dd-HHmmss')}.sql`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success('Schema SQL exported successfully');
+    } catch (err: any) {
+      console.error('Schema export error:', err);
+      toast.error(err.message || 'Failed to export schema');
+    } finally {
+      setExportingSchema(false);
+    }
+  };
+
   const refreshAll = async () => {
     await Promise.all([refetchTables(), refetchBuckets()]);
   };
@@ -265,6 +303,16 @@ const DBSnapshotTab = ({ isActive = false, isSuperAdmin = false }: DBSnapshotTab
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportSchemaSQL}
+            disabled={exportingSchema}
+            className="gap-1.5"
+          >
+            {exportingSchema ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileCode2 className="h-4 w-4" />}
+            Schema SQL
+          </Button>
           <Button
             variant="outline"
             size="sm"
