@@ -1,7 +1,7 @@
 import { Link, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
-import { CheckCircle, Mail, MessageCircle, Download, ArrowRight, Home } from 'lucide-react';
+import { CheckCircle, Mail, MessageCircle, Download, ArrowRight, Home, Phone } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ const OrderSuccess = () => {
   const [searchParams] = useSearchParams();
   const orderNumber = searchParams.get('order') || '';
   const email = searchParams.get('email') || '';
+  const phone = searchParams.get('phone') || '';
 
   return (
     <>
@@ -57,6 +58,40 @@ const OrderSuccess = () => {
                 )}
               </motion.div>
 
+              {/* Customer Info Card */}
+              {(email || phone) && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.35 }}
+                  className="bg-primary/5 rounded-xl border border-primary/15 p-4 mb-4"
+                >
+                  <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+                    Your Details
+                  </h2>
+                  <div className="space-y-2">
+                    {email && (
+                      <div className="flex items-center gap-3 bg-card rounded-lg px-4 py-3 border border-border">
+                        <Mail className="h-4 w-4 text-primary shrink-0" />
+                        <div className="text-left">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Email Address</p>
+                          <p className="text-sm font-semibold text-foreground tracking-wide">{email}</p>
+                        </div>
+                      </div>
+                    )}
+                    {phone && (
+                      <div className="flex items-center gap-3 bg-card rounded-lg px-4 py-3 border border-border">
+                        <Phone className="h-4 w-4 text-primary shrink-0" />
+                        <div className="text-left">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Phone Number</p>
+                          <p className="text-sm font-semibold text-foreground tracking-wide">{phone}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
               {/* Order Details Card */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -79,12 +114,7 @@ const OrderSuccess = () => {
                         Check your email
                       </h3>
                       <p className="text-xs text-muted-foreground">
-                        Download links sent to{' '}
-                        {email ? (
-                          <span className="font-medium text-foreground">{email}</span>
-                        ) : (
-                          'your email'
-                        )}
+                        Download links have been sent to your registered email
                       </p>
                     </div>
                   </div>

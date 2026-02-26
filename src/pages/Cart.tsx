@@ -252,7 +252,7 @@ const Cart = () => {
           );
 
           clearCart();
-          navigate(`/order-success?order=${verifyData.order_number}&email=${encodeURIComponent(email)}`);
+          navigate(`/order-success?order=${verifyData.order_number}&email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}`);
         } catch (error: any) {
           toast({
             title: 'Payment verification failed',
