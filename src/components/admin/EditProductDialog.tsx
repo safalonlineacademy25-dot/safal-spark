@@ -170,9 +170,11 @@ const EditProductDialog = ({ product, children }: EditProductDialogProps) => {
                   <SelectItem value="notes">Competitive Exam Notes</SelectItem>
                   <SelectItem value="mock-papers">Mock Papers</SelectItem>
                   <SelectItem value="pune-university">Pune University Notes</SelectItem>
+                  <SelectItem value="mumbai-university">Mumbai University Notes</SelectItem>
                   <SelectItem value="engineering">Engineering Notes</SelectItem>
                   <SelectItem value="iit">IIT Notes</SelectItem>
                   <SelectItem value="audio-notes">Audio Notes</SelectItem>
+                  <SelectItem value="combo-pack">Combo Pack</SelectItem>
                   <SelectItem value="others">Others</SelectItem>
                 </SelectContent>
               </Select>
