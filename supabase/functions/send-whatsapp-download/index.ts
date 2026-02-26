@@ -86,11 +86,12 @@ serve(async (req: Request): Promise<Response> => {
     const matrixInstanceId = settings['matrix_instance_id'] || '';
     const matrixAccessToken = settings['matrix_access_token'] || '';
 
-    // === TEST MODE: Send a media message with button directly ===
+    // === TEST MODE: Send a media message directly ===
     if (body.test_matrix_media) {
-      console.log("🧪 TEST MODE: Sending media message with button via MatrixCloud");
+      console.log("🧪 TEST MODE: Sending media message via MatrixCloud");
       
       const testPhone = formatPhoneNumber(body.phone || '8805184939');
+      const customerEmail = body.email || 'customer@example.com';
       
       if (!matrixInstanceId || !matrixAccessToken) {
         return new Response(
@@ -99,17 +100,14 @@ serve(async (req: Request): Promise<Response> => {
         );
       }
 
-      // Build MatrixCloud media message with button
+      // Build MatrixCloud media message with logo and greeting
       const matrixUrl = new URL('https://matrixcloudapi.com/api/send');
       matrixUrl.searchParams.set('number', testPhone);
       matrixUrl.searchParams.set('instance_id', matrixInstanceId);
       matrixUrl.searchParams.set('access_token', matrixAccessToken);
-      matrixUrl.searchParams.set('type', 'mediatemplate');
-      matrixUrl.searchParams.set('message', 'Greetings from SOA, Please visit our website for more details.');
-      matrixUrl.searchParams.set('media_url', 'https://safal-spark.lovable.app/placeholder.svg');
-      matrixUrl.searchParams.set('buttons', JSON.stringify([
-        { type: "url", text: "Visit Website", url: "https://safal-spark.lovable.app" }
-      ]));
+      matrixUrl.searchParams.set('type', 'media');
+      matrixUrl.searchParams.set('message', `Greetings from SOA, we have sent product link to your email id - ${customerEmail}`);
+      matrixUrl.searchParams.set('media_url', 'https://safal-spark.lovable.app/favicon.ico');
 
       console.log("MatrixCloud test URL:", matrixUrl.toString().replace(matrixAccessToken, '***'));
 
@@ -126,6 +124,8 @@ serve(async (req: Request): Promise<Response> => {
           success: response.ok && result.status !== 'error' && result.status !== false,
           test: true,
           phone: testPhone,
+          email: customerEmail,
+          messageSent: `Greetings from SOA, we have sent product link to your email id - ${customerEmail}`,
           response: result
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
