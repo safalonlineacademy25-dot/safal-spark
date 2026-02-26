@@ -666,6 +666,7 @@ export type Database = {
           schedule: string
         }[]
       }
+      get_database_size: { Args: never; Returns: number }
       get_public_setting: { Args: { setting_key: string }; Returns: string }
       get_user_role: { Args: { _user_id: string }; Returns: string }
       has_admin_access: { Args: { _user_id: string }; Returns: boolean }

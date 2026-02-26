@@ -15,7 +15,9 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
+  Gauge,
 } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -192,9 +194,35 @@ const DBSnapshotTab = ({ isActive = false, isSuperAdmin = false }: DBSnapshotTab
     enabled: isActive,
   });
 
+  const {
+    data: dbSizeBytes = 0,
+    isLoading: dbSizeLoading,
+  } = useQuery<number>({
+    queryKey: ['db-snapshot', 'db-size'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_database_size' as any);
+      if (error) throw error;
+      return (data as number) || 0;
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: isActive,
+  });
+
   const totalRows = tables.reduce((sum, t) => sum + t.rowCount, 0);
   const totalFiles = buckets.reduce((sum, b) => sum + b.fileCount, 0);
   const totalStorage = buckets.reduce((sum, b) => sum + b.totalSize, 0);
+
+  // Supabase Free Plan Limits
+  const FREE_PLAN = {
+    database: 500 * 1024 * 1024, // 500 MB
+    storage: 1 * 1024 * 1024 * 1024, // 1 GB
+    bandwidth: 5 * 1024 * 1024 * 1024, // 5 GB
+    edgeFunctionInvocations: 500000,
+    authUsers: 50000,
+  };
+
+  const dbUsagePercent = Math.min((dbSizeBytes / FREE_PLAN.database) * 100, 100);
+  const storageUsagePercent = Math.min((totalStorage / FREE_PLAN.storage) * 100, 100);
 
   const lastUpdatedAt = Math.max(tablesUpdatedAt || 0, bucketsUpdatedAt || 0);
   const lastUpdated = lastUpdatedAt ? new Date(lastUpdatedAt) : null;
@@ -445,6 +473,76 @@ const DBSnapshotTab = ({ isActive = false, isSuperAdmin = false }: DBSnapshotTab
             <span className="text-sm text-muted-foreground">Storage Used</span>
           </div>
           <p className="text-2xl font-bold text-foreground">{bucketsLoading ? '...' : formatBytes(totalStorage)}</p>
+        </div>
+      </div>
+
+      {/* Free Plan Quota Usage */}
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
+        <div className="p-4 border-b border-border bg-muted/30">
+          <h3 className="font-semibold text-foreground flex items-center gap-2">
+            <Gauge className="h-4 w-4" />
+            Supabase Free Plan Usage
+          </h3>
+          <p className="text-xs text-muted-foreground mt-1">Estimated usage against free tier limits</p>
+        </div>
+
+        <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-5">
+          {/* Database Size */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Database className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium text-foreground">Database</span>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {dbSizeLoading ? '...' : formatBytes(dbSizeBytes)} / 500 MB
+              </span>
+            </div>
+            <Progress value={dbSizeLoading ? 0 : dbUsagePercent} className="h-2.5" />
+            <p className="text-xs text-muted-foreground">
+              {dbSizeLoading ? '...' : `${dbUsagePercent.toFixed(1)}% used`}
+              {!dbSizeLoading && dbUsagePercent > 80 && (
+                <span className="text-destructive font-medium ml-1">⚠ Running low</span>
+              )}
+            </p>
+          </div>
+
+          {/* Storage (Buckets) */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <HardDrive className="h-4 w-4 text-secondary" />
+                <span className="text-sm font-medium text-foreground">File Storage</span>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {bucketsLoading ? '...' : formatBytes(totalStorage)} / 1 GB
+              </span>
+            </div>
+            <Progress value={bucketsLoading ? 0 : storageUsagePercent} className="h-2.5" />
+            <p className="text-xs text-muted-foreground">
+              {bucketsLoading ? '...' : `${storageUsagePercent.toFixed(1)}% used`}
+              {!bucketsLoading && storageUsagePercent > 80 && (
+                <span className="text-destructive font-medium ml-1">⚠ Running low</span>
+              )}
+            </p>
+          </div>
+
+          {/* Other Limits Info */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <FileCode2 className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium text-foreground">Edge Functions</span>
+            </div>
+            <p className="text-xs text-muted-foreground">500K invocations/month • 19 functions deployed</p>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Table2 className="h-4 w-4 text-secondary" />
+              <span className="text-sm font-medium text-foreground">Other Limits</span>
+            </div>
+            <p className="text-xs text-muted-foreground">50K auth users • 5 GB bandwidth/month • 50 MB max upload</p>
+          </div>
         </div>
       </div>
 
