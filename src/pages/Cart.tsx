@@ -598,8 +598,9 @@ placeholder="Please enter your mobile here"
                   </div>
 
                   {whatsappEnabled && (
-                    <div className="p-3 rounded-lg bg-muted/50 mb-4">
-                      <p className="text-xs text-muted-foreground">
+                    <div className="p-3 rounded-lg bg-green-50 border border-green-200 mb-4 flex items-center gap-2">
+                      <span className="text-green-600 text-base">📱</span>
+                      <p className="text-sm font-semibold text-green-700">
                         Order delivery notification will send on WhatsApp
                       </p>
                     </div>
@@ -724,8 +725,9 @@ placeholder="Please enter your mobile here"
                   </div>
 
                   {whatsappEnabled && (
-                    <div className="p-2.5 rounded-lg bg-muted/50">
-                      <p className="text-xs text-muted-foreground">
+                    <div className="p-2.5 rounded-lg bg-green-50 border border-green-200 flex items-center gap-2">
+                      <span className="text-green-600 text-base">📱</span>
+                      <p className="text-sm font-semibold text-green-700">
                         Order delivery notification will send on WhatsApp
                       </p>
                     </div>
