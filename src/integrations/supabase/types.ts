@@ -657,6 +657,15 @@ export type Database = {
         Returns: number
       }
       generate_order_number: { Args: never; Returns: string }
+      get_cron_jobs: {
+        Args: never
+        Returns: {
+          description: string
+          is_active: boolean
+          job_name: string
+          schedule: string
+        }[]
+      }
       get_public_setting: { Args: { setting_key: string }; Returns: string }
       get_user_role: { Args: { _user_id: string }; Returns: string }
       has_admin_access: { Args: { _user_id: string }; Returns: boolean }

@@ -12,6 +12,9 @@ import {
   FileJson,
   FileCode2,
   DatabaseBackup,
+  Clock,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -172,6 +175,20 @@ const DBSnapshotTab = ({ isActive = false, isSuperAdmin = false }: DBSnapshotTab
     queryFn: fetchBucketStatsAll,
     staleTime: 30 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
+    enabled: isActive,
+  });
+
+  const {
+    data: cronJobs = [],
+    isLoading: cronLoading,
+  } = useQuery<{ job_name: string; schedule: string; description: string; is_active: boolean }[]>({
+    queryKey: ['db-snapshot', 'cron-jobs'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_cron_jobs' as any);
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+    staleTime: 10 * 60 * 1000,
     enabled: isActive,
   });
 
@@ -492,6 +509,54 @@ const DBSnapshotTab = ({ isActive = false, isSuperAdmin = false }: DBSnapshotTab
                   </div>
                 </div>
 
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Scheduled Cron Jobs */}
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
+        <div className="p-4 border-b border-border bg-muted/30">
+          <h3 className="font-semibold text-foreground flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Scheduled Maintenance Jobs
+          </h3>
+        </div>
+
+        {cronLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : cronJobs.length === 0 ? (
+          <div className="p-6 text-center text-sm text-muted-foreground">No cron jobs configured</div>
+        ) : (
+          <div className="divide-y divide-border">
+            {cronJobs.map((job, index) => (
+              <motion.div
+                key={job.job_name}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                className="p-4 flex items-center gap-4 hover:bg-muted/30"
+              >
+                <div className="flex-shrink-0">
+                  {job.is_active ? (
+                    <CheckCircle2 className="h-5 w-5 text-secondary" />
+                  ) : (
+                    <XCircle className="h-5 w-5 text-destructive" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-foreground text-sm font-mono">{job.job_name}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{job.description}</p>
+                </div>
+                <div className="flex-shrink-0 text-right">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-mono bg-muted px-2.5 py-1 rounded-md text-muted-foreground">
+                    <Clock className="h-3 w-3" />
+                    {job.schedule}
+                  </span>
+                </div>
               </motion.div>
             ))}
           </div>
