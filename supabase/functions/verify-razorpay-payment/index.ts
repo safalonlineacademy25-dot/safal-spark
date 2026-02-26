@@ -252,10 +252,10 @@
        console.error("Error fetching order items:", itemsError);
      }
 
-     // Fire-and-forget Telegram notification (non-blocking)
-     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-     fetch(`${supabaseUrl}/functions/v1/send-telegram-notification`, {
+    // Fire-and-forget Telegram notification (non-blocking)
+      const telegramSupabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      fetch(`${telegramSupabaseUrl}/functions/v1/send-telegram-notification`, {
        method: 'POST',
        headers: {
          'Content-Type': 'application/json',
