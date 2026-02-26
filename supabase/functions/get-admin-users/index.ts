@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -6,7 +6,6 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -24,15 +23,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Extract the token
     const token = authHeader.replace('Bearer ', '');
 
-    // Create client with anon key to verify the user's JWT
     const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    // Get the current user using the token
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
 
     if (userError || !user) {
@@ -43,10 +39,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create admin client with service role key to bypass RLS
     const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-    // Check if user has admin access (admin or super_admin)
     const { data: hasAccess, error: accessError } = await adminClient.rpc('has_admin_access', {
       _user_id: user.id,
     });
@@ -59,7 +53,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch admin user roles (both admin and super_admin)
+    // Fetch admin user roles
     const { data: adminRoles, error: rolesError } = await adminClient
       .from('user_roles')
       .select('id, user_id, role, created_at')
@@ -70,31 +64,34 @@ Deno.serve(async (req) => {
       throw rolesError;
     }
 
-    // Fetch user emails for each admin
-    const adminUsers = await Promise.all(
-      (adminRoles || []).map(async (role) => {
-        const { data: userData, error: userFetchError } = await adminClient.auth.admin.getUserById(role.user_id);
-        
-        if (userFetchError) {
-          console.error(`Error fetching user ${role.user_id}:`, userFetchError);
-          return {
-            id: role.id,
-            user_id: role.user_id,
-            email: role.user_id, // Fallback to user_id
-            role: role.role,
-            created_at: role.created_at,
-          };
-        }
+    // Batch fetch all admin user emails using listUsers instead of individual getUserById calls
+    const userIds = (adminRoles || []).map(r => r.user_id);
+    const emailMap: Record<string, string> = {};
 
-        return {
-          id: role.id,
-          user_id: role.user_id,
-          email: userData.user?.email || role.user_id,
-          role: role.role,
-          created_at: role.created_at,
-        };
-      })
-    );
+    if (userIds.length > 0) {
+      // Fetch all users at once - listUsers with pagination
+      const { data: listData, error: listError } = await adminClient.auth.admin.listUsers({
+        perPage: 1000,
+      });
+
+      if (!listError && listData?.users) {
+        for (const u of listData.users) {
+          if (userIds.includes(u.id)) {
+            emailMap[u.id] = u.email || u.id;
+          }
+        }
+      } else {
+        console.error('Error listing users:', listError);
+      }
+    }
+
+    const adminUsers = (adminRoles || []).map((role) => ({
+      id: role.id,
+      user_id: role.user_id,
+      email: emailMap[role.user_id] || role.user_id,
+      role: role.role,
+      created_at: role.created_at,
+    }));
 
     console.log(`Fetched ${adminUsers.length} admin users`);
 
