@@ -548,7 +548,7 @@ const Cart = () => {
                     )}
 
                     <div>
-                      <label className="text-[11px] font-semibold uppercase tracking-widest text-primary/70 mb-1.5 block">
+                      <label className="text-[11px] font-bold uppercase tracking-widest text-foreground mb-1.5 block">
                         Email Address <span className="text-destructive">*</span>
                       </label>
                       <input
@@ -571,7 +571,7 @@ placeholder="Please enter your email here"
                       )}
                     </div>
                     <div>
-                      <label className="text-[11px] font-semibold uppercase tracking-widest text-primary/70 mb-1.5 block">
+                      <label className="text-[11px] font-bold uppercase tracking-widest text-foreground mb-1.5 block">
                         Phone Number <span className="text-destructive">*</span>
                       </label>
                       <input
@@ -676,7 +676,7 @@ placeholder="Please enter your mobile here"
                   )}
 
                   <div>
-                    <label className="text-[11px] font-semibold uppercase tracking-widest text-primary/70 mb-1.5 block">
+                    <label className="text-[11px] font-bold uppercase tracking-widest text-foreground mb-1.5 block">
                       Email Address <span className="text-destructive">*</span>
                     </label>
                     <input
@@ -699,7 +699,7 @@ placeholder="Please enter your mobile here"
                     )}
                   </div>
                   <div>
-                    <label className="text-[11px] font-semibold uppercase tracking-widest text-primary/70 mb-1.5 block">
+                    <label className="text-[11px] font-bold uppercase tracking-widest text-foreground mb-1.5 block">
                       Phone Number <span className="text-destructive">*</span>
                     </label>
                     <input
