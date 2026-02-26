@@ -11,6 +11,7 @@ import {
   FileDown,
   FileJson,
   FileCode2,
+  DatabaseBackup,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -144,6 +145,7 @@ interface DBSnapshotTabProps {
 
 const DBSnapshotTab = ({ isActive = false, isSuperAdmin = false }: DBSnapshotTabProps) => {
   const [exportingSchema, setExportingSchema] = useState(false);
+  const [exportingDump, setExportingDump] = useState(false);
   const queryClient = useQueryClient();
   const {
     data: tables = [],
@@ -279,12 +281,48 @@ const DBSnapshotTab = ({ isActive = false, isSuperAdmin = false }: DBSnapshotTab
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      toast.success('Schema SQL exported successfully');
+      toast.success('Schema SQL exported successfully (includes seed data + edge function registry)');
     } catch (err: any) {
       console.error('Schema export error:', err);
       toast.error(err.message || 'Failed to export schema');
     } finally {
       setExportingSchema(false);
+    }
+  };
+
+  const exportDataDump = async () => {
+    setExportingDump(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) {
+        toast.error('You must be logged in to export data');
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('export-schema', {
+        headers: { Authorization: `Bearer ${token}` },
+        body: { mode: 'data-dump' },
+      });
+
+      if (error) throw error;
+      if (!data?.sql) throw new Error('No data returned');
+
+      const blob = new Blob([data.sql], { type: 'application/sql' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `data-dump-${format(new Date(), 'yyyy-MM-dd-HHmmss')}.sql`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success('Data dump exported successfully');
+    } catch (err: any) {
+      console.error('Data dump error:', err);
+      toast.error(err.message || 'Failed to export data dump');
+    } finally {
+      setExportingDump(false);
     }
   };
 
@@ -303,6 +341,16 @@ const DBSnapshotTab = ({ isActive = false, isSuperAdmin = false }: DBSnapshotTab
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportDataDump}
+            disabled={exportingDump}
+            className="gap-1.5"
+          >
+            {exportingDump ? <Loader2 className="h-4 w-4 animate-spin" /> : <DatabaseBackup className="h-4 w-4" />}
+            Data Dump
+          </Button>
           <Button
             variant="outline"
             size="sm"
