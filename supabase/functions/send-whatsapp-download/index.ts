@@ -46,6 +46,7 @@ async function getSettings(supabase: any): Promise<Record<string, string>> {
 
 interface WhatsAppDownloadRequest {
   email: string;
+  phone?: string; // Optional override for testing
 }
 
 function formatPhoneNumber(phone: string): string {
@@ -75,7 +76,7 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { email }: WhatsAppDownloadRequest = await req.json();
+    const { email, phone: phoneOverride }: WhatsAppDownloadRequest = await req.json();
 
     if (!email) {
       return new Response(
@@ -134,8 +135,8 @@ serve(async (req: Request): Promise<Response> => {
     console.log("Matrix Instance ID:", matrixInstanceId ? matrixInstanceId.substring(0, 6) + "..." : "NOT SET");
     console.log("Template name:", templateName);
 
-    const formattedPhone = formatPhoneNumber(order.customer_phone);
-    console.log("Formatted phone:", formattedPhone);
+    const formattedPhone = formatPhoneNumber(phoneOverride || order.customer_phone);
+    console.log("Formatted phone:", formattedPhone, phoneOverride ? "(overridden)" : "(from order)");
 
     // Check if WhatsApp is disabled
     if (!whatsappEnabled) {
@@ -194,6 +195,7 @@ serve(async (req: Request): Promise<Response> => {
         matrixUrl.searchParams.set('access_token', matrixAccessToken);
         matrixUrl.searchParams.set('type', 'template');
         matrixUrl.searchParams.set('template_name', templateName);
+        matrixUrl.searchParams.set('message', templateName); // Required by MatrixCloud API even for templates
 
         console.log("Sending as TEMPLATE message with template_name:", templateName);
 
@@ -214,7 +216,7 @@ serve(async (req: Request): Promise<Response> => {
           result = { raw: resultText };
         }
 
-        if (response.ok && (result.status === true || result.status === 'success' || response.status === 200)) {
+        if (response.ok && result.status !== 'error' && result.status !== false) {
           whatsappSuccess = true;
           console.log("✅ WhatsApp message sent successfully via MatrixCloud");
         } else {
