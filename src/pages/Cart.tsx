@@ -548,7 +548,7 @@ const Cart = () => {
                     )}
 
                     <div>
-                      <label className="text-[11px] font-bold uppercase tracking-widest text-foreground mb-1.5 block">
+                      <label className="text-[11px] font-bold uppercase tracking-widest text-foreground mb-1.5 block" style={{ textShadow: '0 1px 0 hsl(var(--muted)), 0 2px 3px rgba(0,0,0,0.1)' }}>
                         Email Address <span className="text-destructive">*</span>
                       </label>
                       <input
@@ -571,7 +571,7 @@ placeholder="Please enter your email here"
                       )}
                     </div>
                     <div>
-                      <label className="text-[11px] font-bold uppercase tracking-widest text-foreground mb-1.5 block">
+                      <label className="text-[11px] font-bold uppercase tracking-widest text-foreground mb-1.5 block" style={{ textShadow: '0 1px 0 hsl(var(--muted)), 0 2px 3px rgba(0,0,0,0.1)' }}>
                         Phone Number <span className="text-destructive">*</span>
                       </label>
                       <input
@@ -676,7 +676,7 @@ placeholder="Please enter your mobile here"
                   )}
 
                   <div>
-                    <label className="text-[11px] font-bold uppercase tracking-widest text-foreground mb-1.5 block">
+                    <label className="text-[11px] font-bold uppercase tracking-widest text-foreground mb-1.5 block" style={{ textShadow: '0 1px 0 hsl(var(--muted)), 0 2px 3px rgba(0,0,0,0.1)' }}>
                       Email Address <span className="text-destructive">*</span>
                     </label>
                     <input
@@ -699,7 +699,7 @@ placeholder="Please enter your mobile here"
                     )}
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold uppercase tracking-widest text-foreground mb-1.5 block">
+                    <label className="text-[11px] font-bold uppercase tracking-widest text-foreground mb-1.5 block" style={{ textShadow: '0 1px 0 hsl(var(--muted)), 0 2px 3px rgba(0,0,0,0.1)' }}>
                       Phone Number <span className="text-destructive">*</span>
                     </label>
                     <input
