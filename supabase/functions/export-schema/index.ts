@@ -6,6 +6,40 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+// Edge function source code registry - maps function names to their purposes
+const EDGE_FUNCTIONS = [
+  { name: 'create-razorpay-order', description: 'Creates Razorpay payment orders' },
+  { name: 'verify-razorpay-payment', description: 'Verifies Razorpay payment signatures and updates order status' },
+  { name: 'process-order-delivery', description: 'Processes order deliveries, generates download tokens, sends emails/WhatsApp' },
+  { name: 'send-download-email', description: 'Sends download links via email using Resend API' },
+  { name: 'send-whatsapp-download', description: 'Sends download links via WhatsApp using MatrixCloud API' },
+  { name: 'download-file', description: 'Validates download tokens and serves file downloads' },
+  { name: 'track-visit', description: 'Tracks website visitor counts' },
+  { name: 'broadcast-whatsapp', description: 'Broadcasts WhatsApp messages to customers by product category' },
+  { name: 'send-promotion', description: 'Sends promotional WhatsApp messages to opted-in customers' },
+  { name: 'process-refund', description: 'Processes payment refunds via Razorpay API' },
+  { name: 'resend-webhook', description: 'Handles Resend email webhooks for delivery status' },
+  { name: 'whatsapp-webhook', description: 'Handles WhatsApp webhook events for delivery status' },
+  { name: 'send-telegram-notification', description: 'Sends notifications to Telegram chat' },
+  { name: 'daily-visit-summary', description: 'Calculates daily visitor/order summaries for Telegram' },
+  { name: 'get-admin-users', description: 'Retrieves list of admin users' },
+  { name: 'add-admin-user', description: 'Adds or updates admin user roles' },
+  { name: 'reset-admin-password', description: 'Resets admin user passwords (super_admin only)' },
+  { name: 'purge-data', description: 'Purges oldest records from specified tables (super_admin only)' },
+  { name: 'export-schema', description: 'Exports database schema as SQL' },
+];
+
+// Tables that contain mandatory config/seed data
+const SEED_TABLES = ['settings', 'user_roles'];
+
+// All tables for data dump
+const ALL_DATA_TABLES = [
+  'products', 'orders', 'order_items', 'customers', 'download_tokens',
+  'user_roles', 'combo_pack_files', 'product_audio_files',
+  'email_delivery_logs', 'broadcast_logs', 'promotion_logs',
+  'refunds', 'settings', 'visitor_stats', 'rate_limits',
+];
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -49,14 +83,77 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fetch table definitions
-    const { data: columns } = await supabase
-      .from("information_schema.columns" as any)
-      .select("*")
-      .eq("table_schema", "public");
+    // Parse request body to determine export mode
+    let exportMode = 'schema'; // default: schema only
+    try {
+      const body = await req.json();
+      if (body?.mode) exportMode = body.mode;
+    } catch {
+      // no body = default schema mode
+    }
 
-    // Use raw SQL via rpc for schema info since information_schema isn't accessible via SDK
-    // We'll build the schema from multiple queries
+    const dbUrl = Deno.env.get("SUPABASE_DB_URL")!;
+    const { default: postgres } = await import("https://deno.land/x/postgresjs@v3.4.5/mod.js");
+    const sql = postgres(dbUrl);
+
+    if (exportMode === 'data-dump') {
+      // Export all table data as INSERT statements
+      let output = '';
+      output += '-- ============================================\n';
+      output += '-- Full Data Dump\n';
+      output += `-- Exported at: ${new Date().toISOString()}\n`;
+      output += '-- Project: Safal Online Solutions\n';
+      output += '-- ============================================\n\n';
+      output += '-- NOTE: Import schema first, then run this file.\n';
+      output += '-- Tables are ordered to respect foreign key dependencies.\n\n';
+
+      // Order tables to handle FK dependencies
+      const orderedTables = [
+        'settings', 'visitor_stats', 'rate_limits',
+        'products', 'combo_pack_files', 'product_audio_files',
+        'customers', 'user_roles',
+        'orders', 'order_items', 'download_tokens',
+        'email_delivery_logs', 'broadcast_logs', 'promotion_logs', 'refunds',
+      ];
+
+      for (const tableName of orderedTables) {
+        const rows = await sql.unsafe(`SELECT * FROM public.${tableName} ORDER BY created_at ASC NULLS FIRST`);
+        
+        if (rows.length === 0) {
+          output += `-- Table: ${tableName} (empty)\n\n`;
+          continue;
+        }
+
+        output += `-- =====================\n`;
+        output += `-- ${tableName} (${rows.length} rows)\n`;
+        output += `-- =====================\n\n`;
+
+        const columns = Object.keys(rows[0]);
+        
+        for (const row of rows) {
+          const values = columns.map(col => {
+            const val = row[col];
+            if (val === null) return 'NULL';
+            if (typeof val === 'boolean') return val ? 'true' : 'false';
+            if (typeof val === 'number') return String(val);
+            if (typeof val === 'object') return `'${JSON.stringify(val).replace(/'/g, "''")}'::jsonb`;
+            if (Array.isArray(val)) return `ARRAY[${val.map((v: any) => `'${String(v).replace(/'/g, "''")}'`).join(',')}]::text[]`;
+            return `'${String(val).replace(/'/g, "''")}'`;
+          });
+          
+          output += `INSERT INTO public.${tableName} (${columns.join(', ')}) VALUES (${values.join(', ')}) ON CONFLICT DO NOTHING;\n`;
+        }
+        output += '\n';
+      }
+
+      await sql.end();
+
+      return new Response(JSON.stringify({ sql: output }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Schema export mode (default) — now includes seed data + edge function registry
 
     const sqlQueries = {
       tables: `
@@ -126,14 +223,8 @@ Deno.serve(async (req) => {
       `,
     };
 
-    // Execute all queries using the database connection
-    const dbUrl = Deno.env.get("SUPABASE_DB_URL")!;
-    
-    // Use postgres connection
-    const { default: postgres } = await import("https://deno.land/x/postgresjs@v3.4.5/mod.js");
-    const sql = postgres(dbUrl);
-
-    const [tables, columnsList, constraints, indexes, rlsPolicies, rlsEnabled, functions, enums, triggers] = await Promise.all([
+    // Fetch schema data + seed data in parallel
+    const [tables, columnsList, constraints, indexes, rlsPolicies, rlsEnabled, functions, enums, triggers, settingsData, userRolesData] = await Promise.all([
       sql.unsafe(sqlQueries.tables),
       sql.unsafe(sqlQueries.columns),
       sql.unsafe(sqlQueries.constraints),
@@ -143,6 +234,8 @@ Deno.serve(async (req) => {
       sql.unsafe(sqlQueries.functions),
       sql.unsafe(sqlQueries.enums),
       sql.unsafe(sqlQueries.triggers),
+      sql.unsafe(`SELECT * FROM public.settings ORDER BY key`),
+      sql.unsafe(`SELECT * FROM public.user_roles ORDER BY created_at`),
     ]);
 
     await sql.end();
@@ -150,9 +243,12 @@ Deno.serve(async (req) => {
     // Build the SQL output
     let output = '';
     output += '-- ============================================\n';
-    output += '-- Database Schema Export\n';
+    output += '-- Complete Database Schema + Seed Data Export\n';
     output += `-- Exported at: ${new Date().toISOString()}\n`;
     output += '-- Project: Safal Online Solutions\n';
+    output += '-- Includes: Schema, RLS, Functions, Triggers,\n';
+    output += '--           Seed Data (settings, user_roles),\n';
+    output += '--           Edge Function Registry\n';
     output += '-- ============================================\n\n';
 
     // Enums
@@ -173,7 +269,6 @@ Deno.serve(async (req) => {
 
     const tableNames = tables.map((t: any) => t.table_name);
     
-    // Group columns, constraints by table
     for (const tableName of tableNames) {
       const tableCols = columnsList.filter((c: any) => c.table_name === tableName);
       const tablePks = constraints.filter((c: any) => c.table_name === tableName && c.constraint_type === 'PRIMARY KEY');
@@ -185,7 +280,6 @@ Deno.serve(async (req) => {
       const colDefs: string[] = [];
       for (const col of tableCols) {
         let colType = col.udt_name;
-        // Map common types
         if (colType === 'int4') colType = 'integer';
         else if (colType === 'int8') colType = 'bigint';
         else if (colType === 'bool') colType = 'boolean';
@@ -200,13 +294,11 @@ Deno.serve(async (req) => {
         colDefs.push(def);
       }
 
-      // Primary key
       if (tablePks.length > 0) {
         const pkCols = [...new Set(tablePks.map((pk: any) => pk.column_name))];
         colDefs.push(`  PRIMARY KEY (${pkCols.join(', ')})`);
       }
 
-      // Unique constraints
       const uniqueGroups = new Map<string, string[]>();
       for (const u of tableUniques) {
         if (!uniqueGroups.has(u.constraint_name)) uniqueGroups.set(u.constraint_name, []);
@@ -219,7 +311,6 @@ Deno.serve(async (req) => {
       output += colDefs.join(',\n');
       output += '\n);\n\n';
 
-      // Foreign keys as ALTER TABLE
       const fkGroups = new Map<string, any>();
       for (const fk of tableFks) {
         if (!fkGroups.has(fk.constraint_name)) fkGroups.set(fk.constraint_name, fk);
@@ -254,7 +345,7 @@ Deno.serve(async (req) => {
       output += ';\n\n';
     }
 
-    // Indexes (non-primary key)
+    // Indexes
     const nonPkIndexes = indexes.filter((i: any) => !i.indexname.endsWith('_pkey'));
     if (nonPkIndexes.length > 0) {
       output += '-- =====================\n';
@@ -288,6 +379,77 @@ Deno.serve(async (req) => {
         output += `  ${trig.action_statement};\n\n`;
       }
     }
+
+    // ==================
+    // SEED DATA
+    // ==================
+    output += '-- =====================\n';
+    output += '-- SEED DATA: settings\n';
+    output += `-- (${settingsData.length} rows)\n`;
+    output += '-- =====================\n\n';
+
+    for (const row of settingsData) {
+      const val = row.value === null ? 'NULL' : `'${String(row.value).replace(/'/g, "''")}'`;
+      output += `INSERT INTO public.settings (id, key, value, created_at, updated_at)\n`;
+      output += `  VALUES ('${row.id}', '${row.key}', ${val}, '${row.created_at}', '${row.updated_at}')\n`;
+      output += `  ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;\n\n`;
+    }
+
+    output += '-- =====================\n';
+    output += '-- SEED DATA: user_roles\n';
+    output += `-- (${userRolesData.length} rows)\n`;
+    output += '-- =====================\n\n';
+    output += '-- NOTE: user_id references auth.users — you must recreate users first.\n\n';
+
+    for (const row of userRolesData) {
+      output += `INSERT INTO public.user_roles (id, user_id, role, created_at)\n`;
+      output += `  VALUES ('${row.id}', '${row.user_id}', '${row.role}', '${row.created_at}')\n`;
+      output += `  ON CONFLICT DO NOTHING;\n\n`;
+    }
+
+    // ==================
+    // EDGE FUNCTIONS REGISTRY
+    // ==================
+    output += '-- =====================\n';
+    output += '-- EDGE FUNCTIONS REGISTRY\n';
+    output += '-- =====================\n';
+    output += '-- These are Supabase Edge Functions (Deno) deployed with this project.\n';
+    output += '-- Source code is in: supabase/functions/<name>/index.ts\n';
+    output += '-- They are NOT stored in the database but are essential for the backend.\n\n';
+
+    for (const fn of EDGE_FUNCTIONS) {
+      output += `-- Function: ${fn.name}\n`;
+      output += `--   Description: ${fn.description}\n`;
+      output += `--   Path: supabase/functions/${fn.name}/index.ts\n\n`;
+    }
+
+    output += '-- =====================\n';
+    output += '-- EDGE FUNCTIONS CONFIG (supabase/config.toml)\n';
+    output += '-- =====================\n';
+    output += '-- All edge functions require verify_jwt = false\n';
+    output += '-- (JWT validation is handled in the function code)\n\n';
+
+    for (const fn of EDGE_FUNCTIONS) {
+      output += `-- [functions.${fn.name}]\n`;
+      output += `-- verify_jwt = false\n\n`;
+    }
+
+    // Required secrets
+    output += '-- =====================\n';
+    output += '-- REQUIRED SECRETS (Edge Function env vars)\n';
+    output += '-- =====================\n';
+    output += '-- These must be configured in Supabase Dashboard > Settings > Edge Functions:\n';
+    output += '--   SUPABASE_URL\n';
+    output += '--   SUPABASE_ANON_KEY\n';
+    output += '--   SUPABASE_SERVICE_ROLE_KEY\n';
+    output += '--   SUPABASE_DB_URL\n';
+    output += '--   RESEND_WEBHOOK_SECRET\n';
+    output += '--   WHATSAPP_WEBHOOK_VERIFY_TOKEN\n';
+    output += '-- Additional secrets configured via settings table:\n';
+    output += '--   razorpay_key_id, razorpay_key_secret (in settings table)\n';
+    output += '--   whatsapp_api_key, whatsapp_phone_id (in settings table)\n';
+    output += '--   resend_api_key (in settings table)\n';
+    output += '--   telegram_bot_token, telegram_chat_id (in settings table)\n\n';
 
     return new Response(JSON.stringify({ sql: output }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
