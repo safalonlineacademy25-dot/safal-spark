@@ -198,11 +198,12 @@ const AdminDashboard = () => {
 
   const handleLogout = async () => {
     try {
-      // Navigate first to avoid any state updates during signout
-      navigate('/admin');
       await signOut();
+      navigate('/admin', { replace: true });
     } catch (error) {
       console.error('Logout error:', error);
+      // Force navigate even on error
+      navigate('/admin', { replace: true });
       // Force navigate even on error
       navigate('/admin');
     }
