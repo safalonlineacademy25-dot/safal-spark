@@ -86,52 +86,6 @@ serve(async (req: Request): Promise<Response> => {
     const matrixInstanceId = settings['matrix_instance_id'] || '';
     const matrixAccessToken = settings['matrix_access_token'] || '';
 
-    // === TEST MODE: Send a media message directly ===
-    if (body.test_matrix_media) {
-      console.log("🧪 TEST MODE: Sending media message via MatrixCloud");
-      
-      const testPhone = formatPhoneNumber(body.phone || '8805184939');
-      const customerEmail = body.email || 'customer@example.com';
-      
-      if (!matrixInstanceId || !matrixAccessToken) {
-        return new Response(
-          JSON.stringify({ success: false, error: "MatrixCloud credentials not configured" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      // Build MatrixCloud media message with logo and greeting
-      const matrixUrl = new URL('https://matrixcloudapi.com/api/send');
-      matrixUrl.searchParams.set('number', testPhone);
-      matrixUrl.searchParams.set('instance_id', matrixInstanceId);
-      matrixUrl.searchParams.set('access_token', matrixAccessToken);
-      const whatsappMediaUrl = settings['whatsapp_media_url'] || 'https://safal-spark.lovable.app/favicon.ico';
-      matrixUrl.searchParams.set('type', 'media');
-      matrixUrl.searchParams.set('message', `Dear Customer,\n\nThank you for choosing *Safal Online Academy*!\n\nYour purchased product links have been successfully sent to your registered email address: *${customerEmail}*\n\nPlease check your inbox (and spam/junk folder) for the download links. If you face any issues, feel free to reach out to us at support@safalonlinesolutions.com.\n\nWarm regards,\nTeam Safal Online Academy`);
-      matrixUrl.searchParams.set('media_url', whatsappMediaUrl);
-
-      console.log("MatrixCloud test URL:", matrixUrl.toString().replace(matrixAccessToken, '***'));
-
-      const response = await fetch(matrixUrl.toString(), { method: "POST" });
-      const resultText = await response.text();
-      console.log("MatrixCloud test response status:", response.status);
-      console.log("MatrixCloud test response body:", resultText);
-
-      let result: any;
-      try { result = JSON.parse(resultText); } catch { result = { raw: resultText }; }
-
-      return new Response(
-        JSON.stringify({ 
-          success: response.ok && result.status !== 'error' && result.status !== false,
-          test: true,
-          phone: testPhone,
-          email: customerEmail,
-          messageSent: `Corporate greeting with product download notification sent to ${customerEmail}`,
-          response: result
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
 
     // === NORMAL MODE ===
     const { email, phone: phoneOverride }: WhatsAppDownloadRequest = body;
@@ -175,14 +129,12 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     console.log("Found order:", order.order_number);
-    console.log("Customer phone:", order.customer_phone);
 
     const whatsappEnabled = settings['whatsapp_enabled'] !== 'false';
-    const templateName = settings['whatsapp_template_name'] || '';
+    const whatsappMediaUrl = settings['whatsapp_media_url'] || 'https://safal-spark.lovable.app/favicon.ico';
     
     console.log("WhatsApp enabled:", whatsappEnabled);
     console.log("Matrix Instance ID:", matrixInstanceId ? matrixInstanceId.substring(0, 6) + "..." : "NOT SET");
-    console.log("Template name:", templateName);
 
     const formattedPhone = formatPhoneNumber(phoneOverride || order.customer_phone);
     console.log("Formatted phone:", formattedPhone, phoneOverride ? "(overridden)" : "(from order)");
@@ -213,22 +165,12 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    if (!templateName) {
-      console.error("❌ WhatsApp template name not configured");
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "WhatsApp template name not configured in admin settings",
-          hint: "Please set the WhatsApp Template Name in Admin > WhatsApp Settings"
-        }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // Build corporate greeting message
+    const greetingMessage = `Dear ${order.customer_name || 'Customer'},\n\nThank you for choosing *Safal Online Academy*!\n\nYour purchased product links have been successfully sent to your registered email address: *${order.customer_email}*\n\nPlease check your inbox (and spam/junk folder) for the download links. If you face any issues, feel free to reach out to us at support@safalonlinesolutions.com.\n\nWarm regards,\nTeam Safal Online Academy`;
 
-    console.log("Sending template message via MatrixCloud:", templateName);
+    console.log("Sending media greeting via MatrixCloud to:", formattedPhone);
 
-    // Send WhatsApp message via MatrixCloud API with retry logic
-    // NOTE: The exact template parameters may need adjustment per MatrixCloud team guidance
+    // Send WhatsApp media message via MatrixCloud API with retry logic
     let whatsappSuccess = false;
     let whatsappError: string | null = null;
     let retryCount = 0;
@@ -238,35 +180,27 @@ serve(async (req: Request): Promise<Response> => {
       try {
         console.log(`MatrixCloud send attempt ${retryCount + 1}/${maxRetries + 1}`);
         
-        // Build the MatrixCloud API URL for template message
         const matrixUrl = new URL('https://matrixcloudapi.com/api/send');
         matrixUrl.searchParams.set('number', formattedPhone);
         matrixUrl.searchParams.set('instance_id', matrixInstanceId);
         matrixUrl.searchParams.set('access_token', matrixAccessToken);
-        matrixUrl.searchParams.set('type', 'template');
-        matrixUrl.searchParams.set('template_name', templateName);
-        matrixUrl.searchParams.set('message', templateName);
+        matrixUrl.searchParams.set('type', 'media');
+        matrixUrl.searchParams.set('message', greetingMessage);
+        matrixUrl.searchParams.set('media_url', whatsappMediaUrl);
 
         console.log("MatrixCloud API URL:", matrixUrl.toString().replace(matrixAccessToken, '***'));
 
-        const response = await fetch(matrixUrl.toString(), {
-          method: "POST",
-        });
-
+        const response = await fetch(matrixUrl.toString(), { method: "POST" });
         const resultText = await response.text();
         console.log("MatrixCloud API response status:", response.status);
         console.log("MatrixCloud API response body:", resultText);
 
         let result: any;
-        try {
-          result = JSON.parse(resultText);
-        } catch {
-          result = { raw: resultText };
-        }
+        try { result = JSON.parse(resultText); } catch { result = { raw: resultText }; }
 
         if (response.ok && result.status !== 'error' && result.status !== false) {
           whatsappSuccess = true;
-          console.log("✅ WhatsApp message sent successfully via MatrixCloud");
+          console.log("✅ WhatsApp media greeting sent successfully");
         } else {
           whatsappError = result.message || result.error || `HTTP ${response.status}: ${resultText}`;
           console.error(`❌ MatrixCloud error: ${whatsappError}`);
@@ -285,15 +219,13 @@ serve(async (req: Request): Promise<Response> => {
       }
     }
 
-    // Update order delivery status based on WhatsApp result
+    // Update order delivery status
     const deliveryStatus = whatsappSuccess ? "sent" : "failed";
-    const deliveryAttempts = retryCount + 1;
-
     await supabase
       .from("orders")
       .update({ 
         delivery_status: deliveryStatus,
-        delivery_attempts: deliveryAttempts
+        delivery_attempts: retryCount + 1
       })
       .eq("id", order.id);
 
@@ -304,14 +236,13 @@ serve(async (req: Request): Promise<Response> => {
           orderId: order.id,
           orderNumber: order.order_number,
           whatsappDelivered: true,
-           provider: "matrixcloud"
+          provider: "matrixcloud",
+          messageType: "media_greeting"
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     } else {
-      console.warn(`⚠️ WhatsApp delivery failed after ${deliveryAttempts} attempts: ${whatsappError}`);
-      console.log("📧 Customer should have received email with download link.");
-      
+      console.warn(`⚠️ WhatsApp delivery failed after ${retryCount + 1} attempts: ${whatsappError}`);
       return new Response(
         JSON.stringify({ 
           success: true,
