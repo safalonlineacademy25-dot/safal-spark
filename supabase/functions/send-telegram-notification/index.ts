@@ -52,7 +52,7 @@ serve(async (req) => {
         `📧 Email: ${customer_email}\n` +
         `📦 Items: ${items_count}`;
     } else if (type === 'daily_summary') {
-      const { today_visits, weekly_visits, total_visits_30d, avg_daily, today_orders, today_revenue, date } = data;
+      const { today_visits, weekly_visits, total_visits_30d, avg_daily, today_orders, today_revenue, date, cron_jobs } = data;
       message = `📊 *Daily Summary — ${date}*\n\n` +
         `👁 *Visitor Stats*\n` +
         `• Today: ${today_visits}\n` +
@@ -62,6 +62,15 @@ serve(async (req) => {
         `🛒 *Today's Orders*\n` +
         `• Orders: ${today_orders}\n` +
         `• Revenue: INR ${today_revenue}`;
+
+      // Append cron job summary if available
+      if (cron_jobs && Array.isArray(cron_jobs) && cron_jobs.length > 0) {
+        message += `\n\n⚙️ *Maintenance Tasks*`;
+        for (const job of cron_jobs) {
+          const statusIcon = job.is_active ? '✅' : '❌';
+          message += `\n${statusIcon} \`${job.job_name}\` — ${job.description}`;
+        }
+      }
     } else {
       message = data?.message || 'Notification from Safal Spark';
     }
