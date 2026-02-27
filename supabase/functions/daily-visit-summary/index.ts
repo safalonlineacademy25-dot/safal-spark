@@ -68,6 +68,12 @@ serve(async (req) => {
     const todayOrderCount = ordersList.length;
     const todayRevenue = ordersList.reduce((sum, o) => sum + Number(o.total_amount), 0);
 
+    // Fetch cron job statuses
+    const { data: cronJobs, error: cronError } = await supabase.rpc('get_cron_jobs');
+    if (cronError) {
+      console.error('Error fetching cron jobs:', cronError);
+    }
+
     // Send Telegram notification
     const telegramPayload = {
       type: 'daily_summary',
@@ -79,6 +85,7 @@ serve(async (req) => {
         today_orders: todayOrderCount,
         today_revenue: todayRevenue,
         date: todayStr,
+        cron_jobs: cronJobs || [],
       },
     };
 
