@@ -70,9 +70,12 @@ serve(async (req) => {
 
     // Fetch cron job statuses
     const { data: cronJobs, error: cronError } = await supabase.rpc('get_cron_jobs');
-    if (cronError) {
-      console.error('Error fetching cron jobs:', cronError);
-    }
+    if (cronError) console.error('Error fetching cron jobs:', cronError);
+
+    // Fetch database size
+    const { data: dbSizeBytes, error: dbSizeError } = await supabase.rpc('get_database_size');
+    if (dbSizeError) console.error('Error fetching db size:', dbSizeError);
+    const dbSizeMB = dbSizeBytes ? (Number(dbSizeBytes) / (1024 * 1024)).toFixed(1) : null;
 
     // Send Telegram notification
     const telegramPayload = {
@@ -86,6 +89,7 @@ serve(async (req) => {
         today_revenue: todayRevenue,
         date: todayStr,
         cron_jobs: cronJobs || [],
+        db_size_mb: dbSizeMB,
       },
     };
 
