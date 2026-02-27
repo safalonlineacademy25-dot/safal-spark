@@ -1307,7 +1307,7 @@ const AdminDashboard = () => {
                                   {order.created_at ? format(new Date(order.created_at), 'MMM d, h:mm a') : 'N/A'}
                                 </td>
                                 <td className="p-4">
-                                  {(order.delivery_status === 'failed' || order.delivery_status === 'pending') && (
+                                  {(order.status === 'paid' || order.status === 'completed') && (
                                     <Button
                                       variant="outline"
                                       size="sm"
