@@ -283,20 +283,33 @@ const AdminDashboard = () => {
     // First try to get existing tokens
     const { data: existingTokens, error: tokensError } = await supabase
       .from('download_tokens')
-      .select('token, product_id, products:product_id(name)')
+      .select('token, product_id, expires_at, products:product_id(name)')
       .eq('order_id', orderId);
 
     if (tokensError) throw tokensError;
 
-    // If tokens exist, return them
-    if (existingTokens && existingTokens.length > 0) {
-      return existingTokens.map((t: any) => ({
+    // Check if tokens exist and are still valid (not expired)
+    const now = new Date();
+    const validTokens = existingTokens?.filter((t: any) => 
+      !t.expires_at || new Date(t.expires_at) > now
+    );
+
+    if (validTokens && validTokens.length > 0) {
+      return validTokens.map((t: any) => ({
         name: t.products?.name || 'Product',
         downloadToken: t.token,
       }));
     }
 
-    // No tokens exist - create them from order_items
+    // Tokens are expired or don't exist - delete old expired ones and create fresh tokens
+    if (existingTokens && existingTokens.length > 0) {
+      await supabase
+        .from('download_tokens')
+        .delete()
+        .eq('order_id', orderId);
+    }
+
+    // Create new tokens from order_items
     const { data: orderItems, error: itemsError } = await supabase
       .from('order_items')
       .select('product_id, product_name')
@@ -308,10 +321,9 @@ const AdminDashboard = () => {
       throw new Error('No products found for this order');
     }
 
-    // Create download tokens for each product
     const newTokens = [];
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
+    expiresAt.setDate(expiresAt.getDate() + 7); // Fresh 7 days expiry
 
     for (const item of orderItems) {
       if (!item.product_id) continue;
