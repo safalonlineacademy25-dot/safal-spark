@@ -52,7 +52,7 @@ serve(async (req) => {
         `📧 Email: ${customer_email}\n` +
         `📦 Items: ${items_count}`;
     } else if (type === 'daily_summary') {
-      const { today_visits, weekly_visits, total_visits_30d, avg_daily, today_orders, today_revenue, date, cron_jobs } = data;
+      const { today_visits, weekly_visits, total_visits_30d, avg_daily, today_orders, today_revenue, date, cron_jobs, db_size_mb } = data;
       message = `📊 *Daily Summary — ${date}*\n\n` +
         `👁 *Visitor Stats*\n` +
         `• Today: ${today_visits}\n` +
@@ -62,6 +62,13 @@ serve(async (req) => {
         `🛒 *Today's Orders*\n` +
         `• Orders: ${today_orders}\n` +
         `• Revenue: INR ${today_revenue}`;
+
+      // Append database size
+      if (db_size_mb) {
+        const usagePercent = ((Number(db_size_mb) / 500) * 100).toFixed(1);
+        const warn = Number(usagePercent) > 80 ? ' ⚠️' : '';
+        message += `\n\n💾 *Database*\n• Size: ${db_size_mb} MB / 500 MB (${usagePercent}%)${warn}`;
+      }
 
       // Append cron job summary if available
       if (cron_jobs && Array.isArray(cron_jobs) && cron_jobs.length > 0) {
