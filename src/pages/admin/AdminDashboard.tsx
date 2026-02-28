@@ -354,28 +354,43 @@ const AdminDashboard = () => {
     return newTokens;
   };
 
-  // Resend email delivery
+  // Resend email delivery - uses process-order-delivery which handles
+  // per-product emails for combo packs with proper counters
   const handleResendEmail = async (orderId: string) => {
     setResendingEmail(orderId);
     try {
       const order = orders?.find(o => o.id === orderId);
       if (!order) throw new Error('Order not found');
 
-      const products = await getOrCreateDownloadTokens(orderId);
+      // Delete existing expired tokens so process-order-delivery creates fresh ones
+      const now = new Date();
+      const { data: existingTokens } = await supabase
+        .from('download_tokens')
+        .select('id, expires_at')
+        .eq('order_id', orderId);
 
-      const { data, error } = await supabase.functions.invoke('send-download-email', {
-        body: {
-          orderId,
-          customerEmail: order.customer_email,
-          customerName: order.customer_name,
-          products,
-        },
+      if (existingTokens && existingTokens.length > 0) {
+        const expiredTokens = existingTokens.filter((t: any) => 
+          t.expires_at && new Date(t.expires_at) <= now
+        );
+        if (expiredTokens.length > 0) {
+          // Delete all tokens for this order so fresh ones are generated
+          await supabase
+            .from('download_tokens')
+            .delete()
+            .eq('order_id', orderId);
+        }
+      }
+
+      // Call process-order-delivery which handles per-product emails for combos
+      const { data, error } = await supabase.functions.invoke('process-order-delivery', {
+        body: { order_id: orderId },
       });
 
       if (error) throw error;
 
       toast.success('Email resent successfully', {
-        description: `Download link sent to ${order.customer_email}`,
+        description: `Download links sent to ${order.customer_email}${data?.emails_sent > 1 ? ` (${data.emails_sent} emails)` : ''}`,
       });
       refetchOrders();
     } catch (error: any) {

@@ -199,6 +199,8 @@ const CampaignOffersTab = ({ products, isLoading, isSuperAdmin = false }: Campai
                 file_name: docFile.file_name,
                 file_url: docFile.file_url,
                 file_order: fileOrder++,
+                source_product_id: selectedProduct.id,
+                source_product_name: selectedProduct.name,
               });
             }
           }
@@ -217,6 +219,8 @@ const CampaignOffersTab = ({ products, isLoading, isSuperAdmin = false }: Campai
                 file_name: audioFile.file_name,
                 file_url: audioFile.file_url,
                 file_order: fileOrder++,
+                source_product_id: selectedProduct.id,
+                source_product_name: selectedProduct.name,
               });
             }
           }
