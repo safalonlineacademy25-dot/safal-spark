@@ -136,9 +136,10 @@ serve(async (req) => {
     }).catch(err => console.error('Telegram notification failed:', err));
 
     // Build product file lists and create download tokens
-    const productEmails: Array<{
-      productName: string;
-      files: Array<{ name: string; downloadToken: string; fileOrder: number }>;
+    // Structure: Array of email groups, each group = one email to send
+    const emailsToSend: Array<{
+      emailLabel: string;
+      files: Array<{ name: string; downloadToken: string }>;
     }> = [];
 
     if (orderItems && orderItems.length > 0) {
@@ -159,7 +160,7 @@ serve(async (req) => {
         // Get document files
         const { data: documentFiles, error: documentFilesError } = await supabase
           .from('combo_pack_files')
-          .select('*')
+          .select('*, source_product_id, source_product_name')
           .eq('product_id', item.product_id)
           .order('file_order', { ascending: true });
 
@@ -170,7 +171,7 @@ serve(async (req) => {
         // Get audio files
         const { data: audioFiles, error: audioFilesError } = await supabase
           .from('product_audio_files')
-          .select('*')
+          .select('*, source_product_id, source_product_name')
           .eq('product_id', item.product_id)
           .order('file_order', { ascending: true });
 
@@ -178,123 +179,176 @@ serve(async (req) => {
           console.error("Error fetching audio files:", audioFilesError);
         }
 
-        const productFileTokens: Array<{ name: string; downloadToken: string; fileOrder: number }> = [];
-        const documentFilesCount = documentFiles?.length || 0;
+        const isComboProduct = product.category === 'combo-pack';
+        console.log(`Product ${product.name}: ${documentFiles?.length || 0} documents, ${audioFiles?.length || 0} audio files, isCombo: ${isComboProduct}`);
 
-        console.log(`Product ${product.name}: ${documentFilesCount} documents, ${audioFiles?.length || 0} audio files`);
+        if (isComboProduct) {
+          // For combo packs: group files by source_product_id/source_product_name
+          // and send one email per original product
+          const sourceProductGroups: Map<string, {
+            sourceProductName: string;
+            docFiles: typeof documentFiles;
+            audioFilesArr: typeof audioFiles;
+          }> = new Map();
 
-        // Create download tokens for document files
-        if (documentFiles && documentFilesCount > 0) {
-          for (const docFile of documentFiles) {
-            const token = crypto.randomUUID();
-            const { error: tokenError } = await supabase
-              .from('download_tokens')
-              .insert({
+          // Group document files by source product
+          if (documentFiles) {
+            for (const docFile of documentFiles) {
+              const sourceKey = docFile.source_product_id || 'unknown';
+              const sourceName = docFile.source_product_name || product.name;
+              if (!sourceProductGroups.has(sourceKey)) {
+                sourceProductGroups.set(sourceKey, { sourceProductName: sourceName, docFiles: [], audioFilesArr: [] });
+              }
+              sourceProductGroups.get(sourceKey)!.docFiles!.push(docFile);
+            }
+          }
+
+          // Group audio files by source product
+          if (audioFiles) {
+            for (const audioFile of audioFiles) {
+              const sourceKey = audioFile.source_product_id || 'unknown';
+              const sourceName = audioFile.source_product_name || product.name;
+              if (!sourceProductGroups.has(sourceKey)) {
+                sourceProductGroups.set(sourceKey, { sourceProductName: sourceName, docFiles: [], audioFilesArr: [] });
+              }
+              sourceProductGroups.get(sourceKey)!.audioFilesArr!.push(audioFile);
+            }
+          }
+
+          // For each source product, create tokens and build email entry
+          for (const [_sourceKey, group] of sourceProductGroups) {
+            const fileTokens: Array<{ name: string; downloadToken: string }> = [];
+
+            // Document tokens
+            for (const docFile of (group.docFiles || [])) {
+              const token = crypto.randomUUID();
+              const { error: tokenError } = await supabase.from('download_tokens').insert({
                 order_id: order_id,
                 product_id: item.product_id,
                 token: token,
                 expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
                 download_count: 0,
               });
-            if (tokenError) {
-              console.error("Error creating document download token:", tokenError);
-              continue;
+              if (tokenError) {
+                console.error("Error creating download token:", tokenError);
+                continue;
+              }
+              fileTokens.push({ name: `📄 ${docFile.file_name}`, downloadToken: token });
             }
-            productFileTokens.push({
-              name: `📄 ${docFile.file_name}`,
-              downloadToken: token,
-              fileOrder: docFile.file_order,
-            });
-          }
-        }
 
-        // Create download tokens for audio files
-        if (audioFiles && audioFiles.length > 0) {
-          for (let i = 0; i < audioFiles.length; i++) {
-            const audioFile = audioFiles[i];
-            const token = crypto.randomUUID();
-            const { error: tokenError } = await supabase
-              .from('download_tokens')
-              .insert({
+            // Audio tokens
+            for (const audioFile of (group.audioFilesArr || [])) {
+              const token = crypto.randomUUID();
+              const { error: tokenError } = await supabase.from('download_tokens').insert({
                 order_id: order_id,
                 product_id: item.product_id,
                 token: token,
                 expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
                 download_count: 0,
               });
-            if (tokenError) {
-              console.error("Error creating audio download token:", tokenError);
-              continue;
+              if (tokenError) {
+                console.error("Error creating download token:", tokenError);
+                continue;
+              }
+              fileTokens.push({ name: `🎧 ${audioFile.file_name}`, downloadToken: token });
             }
-            productFileTokens.push({
-              name: `🎧 ${audioFile.file_name}`,
-              downloadToken: token,
-              fileOrder: documentFilesCount + i,
-            });
-          }
-        }
 
-        if (productFileTokens.length > 0) {
-          productEmails.push({
-            productName: product.name,
-            files: productFileTokens,
-          });
+            if (fileTokens.length > 0) {
+              emailsToSend.push({
+                emailLabel: group.sourceProductName,
+                files: fileTokens,
+              });
+            }
+          }
         } else {
-          console.warn(`No deliverable files found for product ${product.name}`);
+          // Non-combo: standard per-product email grouping (documents + audio together)
+          const fileTokens: Array<{ name: string; downloadToken: string }> = [];
+
+          if (documentFiles && documentFiles.length > 0) {
+            for (const docFile of documentFiles) {
+              const token = crypto.randomUUID();
+              const { error: tokenError } = await supabase.from('download_tokens').insert({
+                order_id: order_id,
+                product_id: item.product_id,
+                token: token,
+                expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                download_count: 0,
+              });
+              if (tokenError) {
+                console.error("Error creating download token:", tokenError);
+                continue;
+              }
+              fileTokens.push({ name: `📄 ${docFile.file_name}`, downloadToken: token });
+            }
+          }
+
+          if (audioFiles && audioFiles.length > 0) {
+            for (const audioFile of audioFiles) {
+              const token = crypto.randomUUID();
+              const { error: tokenError } = await supabase.from('download_tokens').insert({
+                order_id: order_id,
+                product_id: item.product_id,
+                token: token,
+                expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                download_count: 0,
+              });
+              if (tokenError) {
+                console.error("Error creating download token:", tokenError);
+                continue;
+              }
+              fileTokens.push({ name: `🎧 ${audioFile.file_name}`, downloadToken: token });
+            }
+          }
+
+          if (fileTokens.length > 0) {
+            emailsToSend.push({
+              emailLabel: product.name,
+              files: fileTokens,
+            });
+          }
         }
       }
     }
 
-    console.log("Products with files:", productEmails.length);
+    console.log("Total emails to send:", emailsToSend.length);
 
-    // Send download links via email
+    // Send download links via email - one email per product (with counter)
     let deliveryStatus = 'pending';
     const deliveryResults: { whatsapp?: any; productEmails?: any[] } = {};
+    const totalEmails = emailsToSend.length;
 
-    if (productEmails.length > 0) {
+    if (totalEmails > 0) {
       deliveryResults.productEmails = [];
 
-      for (const productEmail of productEmails) {
-        const documentFiles = productEmail.files.filter(f => f.name.startsWith('📄'));
-        const audioFiles = productEmail.files.filter(f => f.name.startsWith('🎧'));
+      for (let i = 0; i < emailsToSend.length; i++) {
+        const emailEntry = emailsToSend[i];
+        if (i > 0) await delay(2000);
 
-        const emailGroups: Array<{ files: typeof productEmail.files; label: string }> = [];
-        if (documentFiles.length > 0) emailGroups.push({ files: documentFiles, label: 'Documents' });
-        if (audioFiles.length > 0) emailGroups.push({ files: audioFiles, label: 'Audio Files' });
+        const emailResult = await sendDownloadEmail(
+          order_id,
+          order.customer_email,
+          order.customer_name,
+          emailEntry.files,
+          totalEmails > 1, // isMultiFileEmail - use combo template if multiple emails
+          emailEntry.emailLabel,
+          i + 1,
+          totalEmails
+        );
 
-        const totalGroupEmails = emailGroups.length;
+        deliveryResults.productEmails!.push({
+          productName: emailEntry.emailLabel,
+          fileCount: emailEntry.files.length,
+          emailIndex: i + 1,
+          totalEmails,
+          ...emailResult,
+        });
 
-        for (let i = 0; i < emailGroups.length; i++) {
-          const group = emailGroups[i];
-          if (i > 0) await delay(2000);
-
-          const emailResult = await sendDownloadEmail(
-            order_id,
-            order.customer_email,
-            order.customer_name,
-            group.files.map(f => ({ name: f.name, downloadToken: f.downloadToken })),
-            true,
-            `${productEmail.productName} - ${group.label}`,
-            i + 1,
-            totalGroupEmails
-          );
-
-          deliveryResults.productEmails!.push({
-            productName: productEmail.productName,
-            fileType: group.label,
-            fileCount: group.files.length,
-            emailIndex: i + 1,
-            totalGroupEmails,
-            ...emailResult,
-          });
-
-          if (emailResult.success) deliveryStatus = 'sent';
-        }
+        if (emailResult.success) deliveryStatus = 'sent';
       }
     }
 
     // Send WhatsApp
-    if (productEmails.length > 0) {
+    if (totalEmails > 0) {
       const whatsappResult = await sendWhatsAppDownload(
         order.customer_email,
         order.whatsapp_optin || false
@@ -307,7 +361,7 @@ serve(async (req) => {
 
       if (hasSuccessfulDelivery) {
         deliveryStatus = 'sent';
-      } else if (!hasSuccessfulDelivery && productEmails.length > 0) {
+      } else if (!hasSuccessfulDelivery) {
         deliveryStatus = 'failed';
       }
 
@@ -324,10 +378,10 @@ serve(async (req) => {
       }
     }
 
-    console.log("Delivery completed for order:", order_id, "Status:", deliveryStatus);
+    console.log("Delivery completed for order:", order_id, "Status:", deliveryStatus, "Emails sent:", totalEmails);
 
     return new Response(
-      JSON.stringify({ success: true, delivery_status: deliveryStatus }),
+      JSON.stringify({ success: true, delivery_status: deliveryStatus, emails_sent: totalEmails }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error: unknown) {

@@ -67,6 +67,8 @@ export type Database = {
           file_url: string
           id: string
           product_id: string
+          source_product_id: string | null
+          source_product_name: string | null
         }
         Insert: {
           created_at?: string
@@ -75,6 +77,8 @@ export type Database = {
           file_url: string
           id?: string
           product_id: string
+          source_product_id?: string | null
+          source_product_name?: string | null
         }
         Update: {
           created_at?: string
@@ -83,11 +87,20 @@ export type Database = {
           file_url?: string
           id?: string
           product_id?: string
+          source_product_id?: string | null
+          source_product_name?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "combo_pack_files_product_id_fkey"
             columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "combo_pack_files_source_product_id_fkey"
+            columns: ["source_product_id"]
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
@@ -350,6 +363,8 @@ export type Database = {
           file_url: string
           id: string
           product_id: string
+          source_product_id: string | null
+          source_product_name: string | null
         }
         Insert: {
           created_at?: string
@@ -358,6 +373,8 @@ export type Database = {
           file_url: string
           id?: string
           product_id: string
+          source_product_id?: string | null
+          source_product_name?: string | null
         }
         Update: {
           created_at?: string
@@ -366,11 +383,20 @@ export type Database = {
           file_url?: string
           id?: string
           product_id?: string
+          source_product_id?: string | null
+          source_product_name?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "product_audio_files_product_id_fkey"
             columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_audio_files_source_product_id_fkey"
+            columns: ["source_product_id"]
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
