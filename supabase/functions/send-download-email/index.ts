@@ -275,7 +275,7 @@ serve(async (req: Request): Promise<Response> => {
           <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
             <strong>${link.name}</strong>
             <br />
-            <a href="${link.url}" style="color: #2563eb; text-decoration: none;">
+            <a href="${link.url}" style="display: inline-block; margin-top: 8px; padding: 10px 20px; background-color: #2563eb; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px;">
               Download Now →
             </a>
           </td>
