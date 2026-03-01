@@ -1,7 +1,7 @@
 import { Link, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
-import { CheckCircle, Mail, MessageCircle, Download, ArrowRight, Home, Phone } from 'lucide-react';
+import { CheckCircle, Mail, MessageCircle, Download, ArrowRight, Home } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
@@ -34,9 +34,9 @@ const OrderSuccess = () => {
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-                className="w-16 h-16 mx-auto mb-4 rounded-full bg-secondary/10 flex items-center justify-center"
+                className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-3 md:mb-4 rounded-full bg-secondary/10 flex items-center justify-center"
               >
-                <CheckCircle className="h-10 w-10 text-secondary" />
+                <CheckCircle className="h-8 w-8 md:h-10 md:w-10 text-secondary" />
               </motion.div>
 
               {/* Success Message */}
@@ -45,105 +45,71 @@ const OrderSuccess = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
               >
-                <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
+                <h1 className="text-xl md:text-3xl font-bold text-foreground mb-1 md:mb-2">
                   Payment Successful! 🎉
                 </h1>
-                <p className="text-base text-muted-foreground mb-1">
+                <p className="text-sm md:text-base text-muted-foreground mb-1">
                   Thank you for your purchase
                 </p>
                 {orderNumber && (
-                  <p className="text-xs font-medium text-primary mb-4">
+                  <p className="text-xs font-medium text-primary mb-3 md:mb-4">
                     Order ID: {orderNumber}
                   </p>
                 )}
               </motion.div>
-
-              {/* Customer Info Card */}
-              {(email || phone) && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.35 }}
-                  className="bg-primary/5 rounded-xl border border-primary/15 p-4 mb-4"
-                >
-                  <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-                    Your Details
-                  </h2>
-                  <div className="space-y-2">
-                    {email && (
-                      <div className="flex items-center gap-3 bg-card rounded-lg px-4 py-3 border border-border">
-                        <Mail className="h-4 w-4 text-primary shrink-0" />
-                        <div className="text-left">
-                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Email Address</p>
-                          <p className="text-sm font-semibold text-foreground tracking-wide">{email}</p>
-                        </div>
-                      </div>
-                    )}
-                    {phone && (
-                      <div className="flex items-center gap-3 bg-card rounded-lg px-4 py-3 border border-border">
-                        <Phone className="h-4 w-4 text-primary shrink-0" />
-                        <div className="text-left">
-                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Phone Number</p>
-                          <p className="text-sm font-semibold text-foreground tracking-wide">{phone}</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
-              )}
 
               {/* Order Details Card */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="bg-card rounded-xl border border-border p-4 mb-4 text-left"
+                className="bg-card rounded-xl border border-border p-3 md:p-4 mb-3 md:mb-4 text-left"
               >
-                <h2 className="text-base font-semibold text-foreground mb-3 text-center">
+                <h2 className="text-sm md:text-base font-semibold text-foreground mb-2 md:mb-3 text-center">
                   What happens next?
                 </h2>
 
-                <div className="space-y-2">
+                <div className="space-y-1.5 md:space-y-2">
                   {/* Email Delivery */}
-                  <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <Mail className="h-4 w-4 text-primary" />
+                  <div className="flex items-start gap-2 md:gap-3 p-2 md:p-3 rounded-lg bg-muted/50">
+                    <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <Mail className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-medium text-foreground">
+                      <h3 className="text-xs md:text-sm font-medium text-foreground">
                         Check your email
                       </h3>
-                      <p className="text-xs text-muted-foreground">
-                        Download links have been sent to your registered email
+                      <p className="text-[11px] md:text-xs text-muted-foreground">
+                        Download links sent to your registered email
                       </p>
                     </div>
                   </div>
 
                   {/* WhatsApp Delivery */}
-                  <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
-                    <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center shrink-0">
-                      <MessageCircle className="h-4 w-4 text-secondary" />
+                  <div className="flex items-start gap-2 md:gap-3 p-2 md:p-3 rounded-lg bg-muted/50">
+                    <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-secondary/10 flex items-center justify-center shrink-0">
+                      <MessageCircle className="h-3.5 w-3.5 md:h-4 md:w-4 text-secondary" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-medium text-foreground">
+                      <h3 className="text-xs md:text-sm font-medium text-foreground">
                         WhatsApp notification
                       </h3>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-[11px] md:text-xs text-muted-foreground">
                         If opted in, you'll also get links on WhatsApp
                       </p>
                     </div>
                   </div>
 
                   {/* Download Info */}
-                  <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
-                    <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
-                      <Download className="h-4 w-4 text-accent-foreground" />
+                  <div className="flex items-start gap-2 md:gap-3 p-2 md:p-3 rounded-lg bg-muted/50">
+                    <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
+                      <Download className="h-3.5 w-3.5 md:h-4 md:w-4 text-accent-foreground" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-medium text-foreground">
+                      <h3 className="text-xs md:text-sm font-medium text-foreground">
                         Download your files
                       </h3>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-[11px] md:text-xs text-muted-foreground">
                         Valid for <strong>7 days</strong>, up to <strong>3 downloads</strong>
                       </p>
                     </div>
