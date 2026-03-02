@@ -78,6 +78,14 @@ serve(async (req) => {
           message += `\n${statusIcon} \`${job.job_name}\` — ${job.description}`;
         }
       }
+    } else if (type === 'delivery_failed') {
+      const { order_number, customer_email, failed_parts, total_emails, successful_emails } = data;
+      message = `🚨 *Email Delivery Failed!*\n\n` +
+        `📋 Order: \`${order_number}\`\n` +
+        `📧 Customer: ${customer_email}\n` +
+        `❌ Failed: ${failed_parts}\n` +
+        `✅ Sent: ${successful_emails}/${total_emails}\n\n` +
+        `⚠️ Refund entry created. Please check admin dashboard.`;
     } else {
       message = data?.message || 'Notification from Safal Spark';
     }

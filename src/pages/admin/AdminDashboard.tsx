@@ -1207,17 +1207,19 @@ const AdminDashboard = () => {
                                         ? 'bg-secondary/10 text-secondary'
                                         : order.delivery_status === 'failed'
                                         ? 'bg-destructive/10 text-destructive'
+                                        : order.delivery_status === 'partial_failure'
+                                        ? 'bg-orange-500/10 text-orange-600'
                                         : 'bg-yellow-500/10 text-yellow-600'
                                     }`}
                                   >
-                                    {order.delivery_status || 'pending'}
+                                    {order.delivery_status === 'partial_failure' ? 'Partial Failure' : (order.delivery_status || 'pending')}
                                   </span>
                                 </td>
                                 <td className="p-4 text-sm text-muted-foreground">
                                   {order.created_at ? format(new Date(order.created_at), 'MMM d, h:mm a') : 'N/A'}
                                 </td>
                                 <td className="p-4">
-                                  {(order.delivery_status === 'failed' || order.delivery_status === 'pending') && (
+                                  {(order.delivery_status === 'failed' || order.delivery_status === 'pending' || order.delivery_status === 'partial_failure') && (
                                     <Button
                                       variant="outline"
                                       size="sm"
@@ -1315,10 +1317,12 @@ const AdminDashboard = () => {
                                         ? 'bg-secondary/10 text-secondary'
                                         : order.delivery_status === 'failed'
                                         ? 'bg-destructive/10 text-destructive'
+                                        : order.delivery_status === 'partial_failure'
+                                        ? 'bg-orange-500/10 text-orange-600'
                                         : 'bg-yellow-500/10 text-yellow-600'
                                     }`}
                                   >
-                                    {order.delivery_status || 'pending'}
+                                    {order.delivery_status === 'partial_failure' ? 'Partial Failure' : (order.delivery_status || 'pending')}
                                   </span>
                                 </td>
                                 <td className="p-4 text-sm text-muted-foreground">
