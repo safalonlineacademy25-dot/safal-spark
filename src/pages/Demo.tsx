@@ -2,8 +2,7 @@ import { Helmet } from "react-helmet-async";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Play, Pause, Volume2, CheckCircle, Loader2 } from "lucide-react";
-import { useRef, useState } from "react";
-import { toast } from "sonner";
+import { useRef, useState, useCallback, createContext, useContext } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -15,7 +14,21 @@ interface DemoFile {
   file_name: string;
   display_order: number;
   is_active: boolean;
+  signed_url?: string;
 }
+
+// Global audio manager to ensure only one plays at a time
+interface AudioManagerContextType {
+  registerPlayer: (id: string, pause: () => void) => void;
+  notifyPlaying: (id: string) => void;
+}
+
+const AudioManagerContext = createContext<AudioManagerContextType>({
+  registerPlayer: () => {},
+  notifyPlaying: () => {},
+});
+
+const useAudioManager = () => useContext(AudioManagerContext);
 
 const DemoAudioPlayer = ({ demo }: { demo: DemoFile }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -23,20 +36,40 @@ const DemoAudioPlayer = ({ demo }: { demo: DemoFile }) => {
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const { registerPlayer, notifyPlaying } = useAudioManager();
 
-  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-  const audioSrc = demo.file_url.startsWith('http')
-    ? demo.file_url
-    : `https://${projectId}.supabase.co/storage/v1/object/public/product-files/${demo.file_url}`;
+  // Register this player's pause function
+  const pauseRef = useRef(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
+  });
 
-  const togglePlay = () => {
+  // Register on mount
+  useState(() => {
+    registerPlayer(demo.id, pauseRef.current);
+  });
+
+  const togglePlay = async () => {
     if (!audioRef.current) return;
     if (isPlaying) {
       audioRef.current.pause();
+      setIsPlaying(false);
     } else {
-      audioRef.current.play();
+      // Notify manager to pause other players
+      notifyPlaying(demo.id);
+      try {
+        setIsLoading(true);
+        await audioRef.current.play();
+        setIsPlaying(true);
+      } catch (err) {
+        console.error('Playback failed:', err);
+      } finally {
+        setIsLoading(false);
+      }
     }
-    setIsPlaying(!isPlaying);
   };
 
   const handleTimeUpdate = () => {
@@ -69,7 +102,7 @@ const DemoAudioPlayer = ({ demo }: { demo: DemoFile }) => {
     <div className="rounded-2xl border border-border bg-card shadow-lg p-6 md:p-8">
       <audio
         ref={audioRef}
-        src={audioSrc}
+        src={demo.signed_url || ''}
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={handleEnded}
@@ -109,9 +142,16 @@ const DemoAudioPlayer = ({ demo }: { demo: DemoFile }) => {
       <div className="flex items-center justify-center">
         <button
           onClick={togglePlay}
-          className="w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:opacity-90 transition-opacity shadow-md"
+          disabled={isLoading}
+          className="w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:opacity-90 transition-opacity shadow-md disabled:opacity-50"
         >
-          {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
+          {isLoading ? (
+            <Loader2 className="w-6 h-6 animate-spin" />
+          ) : isPlaying ? (
+            <Pause className="w-6 h-6" />
+          ) : (
+            <Play className="w-6 h-6 ml-0.5" />
+          )}
         </button>
       </div>
     </div>
@@ -119,6 +159,18 @@ const DemoAudioPlayer = ({ demo }: { demo: DemoFile }) => {
 };
 
 const Demo = () => {
+  const playersRef = useRef<Map<string, () => void>>(new Map());
+
+  const registerPlayer = useCallback((id: string, pause: () => void) => {
+    playersRef.current.set(id, pause);
+  }, []);
+
+  const notifyPlaying = useCallback((id: string) => {
+    playersRef.current.forEach((pause, playerId) => {
+      if (playerId !== id) pause();
+    });
+  }, []);
+
   const { data: demoFiles, isLoading } = useQuery({
     queryKey: ['demo-files'],
     queryFn: async () => {
@@ -128,24 +180,26 @@ const Demo = () => {
         .eq('is_active', true)
         .order('display_order', { ascending: true });
       if (error) throw error;
-      return data as DemoFile[];
+      const files = data as DemoFile[];
+
+      // Generate signed URLs for all demo files (valid for 1 hour)
+      const filesWithUrls = await Promise.all(
+        files.map(async (file) => {
+          if (file.file_url.startsWith('http')) {
+            return { ...file, signed_url: file.file_url };
+          }
+          const { data: signedData } = await supabase.storage
+            .from('product-files')
+            .createSignedUrl(file.file_url, 3600);
+          return { ...file, signed_url: signedData?.signedUrl || '' };
+        })
+      );
+      return filesWithUrls;
     },
   });
 
-  const handleShare = async () => {
-    const url = window.location.href;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: "Demo Audio - Safal Online Academy", url });
-      } catch {}
-    } else {
-      await navigator.clipboard.writeText(url);
-      toast.success("Link copied to clipboard!");
-    }
-  };
-
   return (
-    <>
+    <AudioManagerContext.Provider value={{ registerPlayer, notifyPlaying }}>
       <Helmet>
         <title>Demo Audio | Safal Online Academy</title>
         <meta name="description" content="Listen to our demo audio previews. Safal Online Academy." />
@@ -189,7 +243,7 @@ const Demo = () => {
         </div>
       </main>
       <Footer />
-    </>
+    </AudioManagerContext.Provider>
   );
 };
 
