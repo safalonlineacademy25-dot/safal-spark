@@ -37,11 +37,14 @@ const OrderDetailsDialog = ({ order }: OrderDetailsDialogProps) => {
   const getDeliveryStatusColor = (status: string | null) => {
     switch (status) {
       case 'delivered':
+      case 'sent':
         return 'bg-secondary/10 text-secondary';
       case 'pending':
         return 'bg-yellow-500/10 text-yellow-600';
       case 'failed':
         return 'bg-destructive/10 text-destructive';
+      case 'partial_failure':
+        return 'bg-orange-500/10 text-orange-600';
       default:
         return 'bg-muted text-muted-foreground';
     }

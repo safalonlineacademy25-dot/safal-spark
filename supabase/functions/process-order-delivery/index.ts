@@ -9,11 +9,14 @@ const corsHeaders = {
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
+const MAX_EMAIL_RETRIES = 3;
+const RETRY_DELAY_MS = 3000;
+
 function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function sendDownloadEmail(
+async function sendDownloadEmailWithRetry(
   orderId: string,
   customerEmail: string,
   customerName: string | null,
@@ -22,33 +25,55 @@ async function sendDownloadEmail(
   productName?: string,
   emailIndex?: number,
   totalEmails?: number
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    console.log("Sending download email to:", customerEmail, "isMultiFile:", isMultiFileEmail);
-    const response = await fetch(`${supabaseUrl}/functions/v1/send-download-email`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-      },
-      body: JSON.stringify({
-        orderId,
-        customerEmail,
-        customerName,
-        products,
-        isComboPackEmail: isMultiFileEmail,
-        comboPackName: productName,
-        emailIndex,
-        totalEmails,
-      }),
-    });
-    const result = await response.json();
-    console.log("Email delivery result:", result);
-    return { success: result.success, error: result.error };
-  } catch (error: any) {
-    console.error("Error calling send-download-email:", error);
-    return { success: false, error: error.message };
+): Promise<{ success: boolean; error?: string; attempts: number }> {
+  let lastError = '';
+  
+  for (let attempt = 1; attempt <= MAX_EMAIL_RETRIES; attempt++) {
+    try {
+      console.log(`[Attempt ${attempt}/${MAX_EMAIL_RETRIES}] Sending email ${emailIndex || 1}/${totalEmails || 1} to: ${customerEmail}`);
+      
+      const response = await fetch(`${supabaseUrl}/functions/v1/send-download-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+        },
+        body: JSON.stringify({
+          orderId,
+          customerEmail,
+          customerName,
+          products,
+          isComboPackEmail: isMultiFileEmail,
+          comboPackName: productName,
+          emailIndex,
+          totalEmails,
+        }),
+      });
+      
+      const result = await response.json();
+      console.log(`[Attempt ${attempt}] Email delivery result:`, result);
+      
+      if (result.success) {
+        return { success: true, attempts: attempt };
+      }
+      
+      lastError = result.error || 'Unknown error from send-download-email';
+      console.error(`[Attempt ${attempt}] Email failed: ${lastError}`);
+      
+    } catch (error: any) {
+      lastError = error.message || 'Network/fetch error';
+      console.error(`[Attempt ${attempt}] Email fetch error: ${lastError}`);
+    }
+    
+    // Wait before retrying (except on last attempt)
+    if (attempt < MAX_EMAIL_RETRIES) {
+      console.log(`Waiting ${RETRY_DELAY_MS}ms before retry...`);
+      await delay(RETRY_DELAY_MS);
+    }
   }
+  
+  console.error(`All ${MAX_EMAIL_RETRIES} attempts failed for email ${emailIndex || 1}/${totalEmails || 1} to ${customerEmail}. Last error: ${lastError}`);
+  return { success: false, error: lastError, attempts: MAX_EMAIL_RETRIES };
 }
 
 async function sendWhatsAppDownload(
@@ -75,6 +100,52 @@ async function sendWhatsAppDownload(
   } catch (error: any) {
     console.error("Error calling send-whatsapp-download:", error);
     return { success: false, error: error.message };
+  }
+}
+
+// Create a refund entry for partially failed deliveries
+async function createRefundForFailedDelivery(
+  supabase: any,
+  orderId: string,
+  customerEmail: string,
+  failedParts: string[]
+): Promise<void> {
+  try {
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .select('id, razorpay_payment_id, total_amount, status')
+      .eq('id', orderId)
+      .single();
+
+    if (orderError || !order) {
+      console.error("Could not fetch order for refund:", orderError);
+      return;
+    }
+
+    if ((order.status === 'paid' || order.status === 'completed') && order.razorpay_payment_id) {
+      // Check if refund already exists
+      const { data: existingRefund } = await supabase
+        .from('refunds')
+        .select('id')
+        .eq('order_id', orderId)
+        .single();
+
+      if (!existingRefund) {
+        const failedPartsStr = failedParts.join(', ');
+        console.log(`Creating refund entry for partially failed delivery. Failed parts: ${failedPartsStr}`);
+        await supabase.from('refunds').insert({
+          order_id: orderId,
+          razorpay_payment_id: order.razorpay_payment_id,
+          amount: order.total_amount,
+          currency: 'INR',
+          reason: 'email_delivery_failed',
+          failed_email: customerEmail,
+          status: 'eligible',
+        });
+      }
+    }
+  } catch (err) {
+    console.error("Error creating refund for failed delivery:", err);
   }
 }
 
@@ -136,7 +207,6 @@ serve(async (req) => {
     }).catch(err => console.error('Telegram notification failed:', err));
 
     // Build product file lists and create download tokens
-    // Structure: Array of email groups, each group = one email to send
     const emailsToSend: Array<{
       emailLabel: string;
       files: Array<{ name: string; downloadToken: string }>;
@@ -184,14 +254,12 @@ serve(async (req) => {
 
         if (isComboProduct) {
           // For combo packs: group files by source_product_id/source_product_name
-          // and send one email per original product
           const sourceProductGroups: Map<string, {
             sourceProductName: string;
             docFiles: typeof documentFiles;
             audioFilesArr: typeof audioFiles;
           }> = new Map();
 
-          // Group document files by source product
           if (documentFiles) {
             for (const docFile of documentFiles) {
               const sourceKey = docFile.source_product_id || 'unknown';
@@ -203,7 +271,6 @@ serve(async (req) => {
             }
           }
 
-          // Group audio files by source product
           if (audioFiles) {
             for (const audioFile of audioFiles) {
               const sourceKey = audioFile.source_product_id || 'unknown';
@@ -215,11 +282,9 @@ serve(async (req) => {
             }
           }
 
-          // For each source product, create tokens and build email entry
           for (const [_sourceKey, group] of sourceProductGroups) {
             const fileTokens: Array<{ name: string; downloadToken: string }> = [];
 
-            // Document tokens
             for (const docFile of (group.docFiles || [])) {
               const token = crypto.randomUUID();
               const { error: tokenError } = await supabase.from('download_tokens').insert({
@@ -236,7 +301,6 @@ serve(async (req) => {
               fileTokens.push({ name: `📄 ${docFile.file_name}`, downloadToken: token });
             }
 
-            // Audio tokens
             for (const audioFile of (group.audioFilesArr || [])) {
               const token = crypto.randomUUID();
               const { error: tokenError } = await supabase.from('download_tokens').insert({
@@ -261,7 +325,7 @@ serve(async (req) => {
             }
           }
         } else {
-          // Non-combo: standard per-product email grouping (documents + audio together)
+          // Non-combo: standard per-product email
           const fileTokens: Array<{ name: string; downloadToken: string }> = [];
 
           if (documentFiles && documentFiles.length > 0) {
@@ -312,10 +376,11 @@ serve(async (req) => {
 
     console.log("Total emails to send:", emailsToSend.length);
 
-    // Send download links via email - one email per product (with counter)
+    // Send download links via email with retry logic
     let deliveryStatus = 'pending';
     const deliveryResults: { whatsapp?: any; productEmails?: any[] } = {};
     const totalEmails = emailsToSend.length;
+    const failedParts: string[] = [];
 
     if (totalEmails > 0) {
       deliveryResults.productEmails = [];
@@ -324,12 +389,12 @@ serve(async (req) => {
         const emailEntry = emailsToSend[i];
         if (i > 0) await delay(2000);
 
-        const emailResult = await sendDownloadEmail(
+        const emailResult = await sendDownloadEmailWithRetry(
           order_id,
           order.customer_email,
           order.customer_name,
           emailEntry.files,
-          totalEmails > 1, // isMultiFileEmail - use combo template if multiple emails
+          totalEmails > 1,
           emailEntry.emailLabel,
           i + 1,
           totalEmails
@@ -343,7 +408,11 @@ serve(async (req) => {
           ...emailResult,
         });
 
-        if (emailResult.success) deliveryStatus = 'sent';
+        if (emailResult.success) {
+          deliveryStatus = 'sent';
+        } else {
+          failedParts.push(`Part ${i + 1} (${emailEntry.emailLabel})`);
+        }
       }
     }
 
@@ -355,14 +424,14 @@ serve(async (req) => {
       );
       deliveryResults.whatsapp = whatsappResult;
 
-      const hasSuccessfulDelivery =
-        deliveryResults.productEmails?.some((e: any) => e.success) ||
-        (order.whatsapp_optin && whatsappResult.success);
+      // Determine final delivery status
+      const allEmailsFailed = deliveryResults.productEmails?.every((e: any) => !e.success);
+      const someEmailsFailed = failedParts.length > 0;
 
-      if (hasSuccessfulDelivery) {
-        deliveryStatus = 'sent';
-      } else if (!hasSuccessfulDelivery) {
+      if (allEmailsFailed) {
         deliveryStatus = 'failed';
+      } else if (someEmailsFailed) {
+        deliveryStatus = 'partial_failure';
       }
 
       const { error: deliveryUpdateError } = await supabase
@@ -376,12 +445,36 @@ serve(async (req) => {
       if (deliveryUpdateError) {
         console.error("Error updating delivery status:", deliveryUpdateError);
       }
+
+      // If any emails failed after all retries, create refund entry and send Telegram alert
+      if (failedParts.length > 0) {
+        await createRefundForFailedDelivery(supabase, order_id, order.customer_email, failedParts);
+
+        // Send Telegram alert about failed delivery
+        fetch(`${supabaseUrl}/functions/v1/send-telegram-notification`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+          },
+          body: JSON.stringify({
+            type: 'delivery_failed',
+            data: {
+              order_number: order.order_number,
+              customer_email: order.customer_email,
+              failed_parts: failedParts.join(', '),
+              total_emails: totalEmails,
+              successful_emails: totalEmails - failedParts.length,
+            },
+          }),
+        }).catch(err => console.error('Telegram failure alert failed:', err));
+      }
     }
 
-    console.log("Delivery completed for order:", order_id, "Status:", deliveryStatus, "Emails sent:", totalEmails);
+    console.log("Delivery completed for order:", order_id, "Status:", deliveryStatus, "Emails sent:", totalEmails, "Failed parts:", failedParts);
 
     return new Response(
-      JSON.stringify({ success: true, delivery_status: deliveryStatus, emails_sent: totalEmails }),
+      JSON.stringify({ success: true, delivery_status: deliveryStatus, emails_sent: totalEmails, failed_parts: failedParts }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error: unknown) {
