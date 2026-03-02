@@ -1,11 +1,24 @@
-import { motion } from 'framer-motion';
-import { Shield, IndianRupee, Download, Award, Users, BookOpen } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Shield, IndianRupee, Download, Award, Sparkles, BookOpen, Headphones, FileText } from 'lucide-react';
 import { staggerContainer, staggerItem } from '@/hooks/useScrollAnimation';
+import { useState, useEffect } from 'react';
 import studentStudy1 from '@/assets/student-study-1.jpg';
 import studentStudy2 from '@/assets/student-study-2.jpg';
 import studentStudy3 from '@/assets/student-study-3.jpg';
 
+const ROTATING_WORDS = ['MPSC', 'Banking', 'SSC', 'Talathi', 'Police Bharti'];
+const EXAM_ICONS = [BookOpen, FileText, Headphones, Sparkles, Award];
+
 const HeroSection = () => {
+  const [wordIndex, setWordIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setWordIndex((prev) => (prev + 1) % ROTATING_WORDS.length);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, []);
+
   const trustPoints = [
     { icon: Download, text: 'Instant PDF Access' },
     { icon: Shield, text: 'Secure Payments' },
@@ -18,55 +31,136 @@ const HeroSection = () => {
     { src: studentStudy3, label: 'SSC' },
   ];
 
+  const stats = [
+    { value: '1,000+', label: 'Students' },
+    { value: '50+', label: 'Study Notes' },
+    { value: '4.8★', label: 'Rating' },
+  ];
+
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary/95 to-primary/90">
-      {/* Premium Background Pattern */}
+    <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary/95 to-primary/90 min-h-[420px] md:min-h-[480px]">
+      
+      {/* Animated Gradient Orbs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          className="absolute -top-20 -right-20 w-72 h-72 md:w-96 md:h-96 rounded-full"
+          style={{ background: 'radial-gradient(circle, hsl(160 84% 39% / 0.15) 0%, transparent 70%)' }}
+          animate={{
+            x: [0, 30, -20, 0],
+            y: [0, -20, 15, 0],
+            scale: [1, 1.1, 0.95, 1],
+          }}
+          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.div
+          className="absolute -bottom-32 -left-20 w-80 h-80 md:w-[28rem] md:h-[28rem] rounded-full"
+          style={{ background: 'radial-gradient(circle, hsl(221 83% 70% / 0.12) 0%, transparent 70%)' }}
+          animate={{
+            x: [0, -25, 20, 0],
+            y: [0, 25, -15, 0],
+            scale: [1, 0.95, 1.1, 1],
+          }}
+          transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-60 h-60 rounded-full"
+          style={{ background: 'radial-gradient(circle, hsl(160 84% 50% / 0.08) 0%, transparent 70%)' }}
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [0.5, 0.8, 0.5],
+          }}
+          transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      </div>
+
+      {/* Floating Particles */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(6)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-white/20"
+            style={{
+              left: `${15 + i * 15}%`,
+              top: `${20 + (i % 3) * 25}%`,
+            }}
+            animate={{
+              y: [-20, 20, -20],
+              x: [-10, 10, -10],
+              opacity: [0.2, 0.6, 0.2],
+            }}
+            transition={{
+              duration: 4 + i * 0.5,
+              repeat: Infinity,
+              ease: 'easeInOut',
+              delay: i * 0.4,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Subtle Grid Pattern */}
       <div className="absolute inset-0 opacity-[0.03]">
         <div className="absolute inset-0" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h40v40H0z' fill='none'/%3E%3Cpath d='M0 20h40M20 0v40' stroke='%23fff' stroke-width='0.5'/%3E%3C/svg%3E")`,
         }} />
       </div>
-      
-      {/* Gradient Overlay for depth */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-primary/50" />
 
       <div className="relative container-custom">
-        <div className="py-4 md:py-6">
+        <div className="py-6 md:py-10">
           <motion.div 
             className="max-w-6xl mx-auto w-full"
             variants={staggerContainer} 
             initial="hidden" 
             animate="visible"
           >
-            {/* Compact Corporate Layout */}
             <div className="flex flex-col items-center text-center">
               
-              {/* Trust Badge - Top */}
+              {/* Animated Trust Badge */}
               <motion.div 
                 variants={staggerItem} 
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 mb-3"
+                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 mb-4"
+                whileHover={{ scale: 1.05, borderColor: 'rgba(255,255,255,0.4)' }}
               >
-                <Award className="h-3 w-3 text-secondary" />
+                <motion.div
+                  animate={{ rotate: [0, 15, -15, 0] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-secondary" />
+                </motion.div>
                 <span className="text-xs font-semibold text-primary-foreground tracking-wide">
                   Trusted by 1,000+ Students Across India
                 </span>
               </motion.div>
 
-              {/* Main Headline - Prominent */}
+              {/* Main Headline with Rotating Word */}
               <motion.h1 
                 variants={staggerItem} 
-                className="text-2xl sm:text-3xl md:text-4xl font-black text-primary-foreground leading-[1.1] mb-4 tracking-tight"
+                className="text-2xl sm:text-3xl md:text-5xl font-black text-primary-foreground leading-[1.1] mb-2 tracking-tight"
               >
-                <span className="block">Crack Competitive Exams</span>
-                <span className="block mt-1 bg-gradient-to-r from-secondary via-emerald-300 to-secondary bg-clip-text text-transparent">
-                  with Smart, Exam-Ready Notes
+                <span className="block">Crack Your</span>
+                <span className="block h-[1.2em] mt-1 relative overflow-hidden">
+                  <AnimatePresence mode="wait">
+                    <motion.span
+                      key={wordIndex}
+                      className="inline-block bg-gradient-to-r from-secondary via-emerald-300 to-secondary bg-clip-text text-transparent"
+                      initial={{ y: 40, opacity: 0, rotateX: -45 }}
+                      animate={{ y: 0, opacity: 1, rotateX: 0 }}
+                      exit={{ y: -40, opacity: 0, rotateX: 45 }}
+                      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                    >
+                      {ROTATING_WORDS[wordIndex]}
+                    </motion.span>
+                  </AnimatePresence>
+                </span>
+                <span className="block text-lg sm:text-xl md:text-2xl font-bold text-white/80 mt-1">
+                  Exam with Smart Notes
                 </span>
               </motion.h1>
 
-              {/* Student Images Row - Compact */}
+              {/* Student Images with Orbit Effect */}
               <motion.div 
                 variants={staggerItem}
-                className="flex items-center justify-center gap-6 md:gap-10 lg:gap-14 mb-4"
+                className="flex items-center justify-center gap-6 md:gap-10 lg:gap-14 my-5"
               >
                 {studentImages.map((student, index) => (
                   <motion.div
@@ -82,9 +176,15 @@ const HeroSection = () => {
                     whileTap={{ scale: 1.15 }}
                     transition={{ delay: 0.3 + index * 0.1, duration: 0.4, ease: "easeOut" }}
                   >
-                    {/* Image Container */}
-                    <div className="relative">
-                      <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl overflow-hidden ring-2 ring-white/30 shadow-lg hover:ring-secondary hover:shadow-2xl hover:shadow-secondary/30 transition-all duration-300">
+                    <div className="relative group">
+                      {/* Glowing ring animation */}
+                      <motion.div
+                        className="absolute -inset-1 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                        style={{ background: 'linear-gradient(135deg, hsl(160 84% 39% / 0.5), hsl(221 83% 53% / 0.5))' }}
+                        animate={{ rotate: [0, 360] }}
+                        transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+                      />
+                      <div className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl overflow-hidden ring-2 ring-white/30 shadow-lg hover:ring-secondary hover:shadow-2xl hover:shadow-secondary/30 transition-all duration-300">
                         <img
                           src={student.src}
                           alt={student.label}
@@ -94,15 +194,43 @@ const HeroSection = () => {
                       </div>
                       
                       {/* Floating Label */}
-                      <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-white rounded-full shadow-md whitespace-nowrap">
+                      <motion.div 
+                        className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 bg-white rounded-full shadow-md whitespace-nowrap"
+                        whileHover={{ scale: 1.1 }}
+                      >
                         <span className="text-[10px] font-bold text-primary">{student.label}</span>
-                      </div>
+                      </motion.div>
                     </div>
                   </motion.div>
                 ))}
               </motion.div>
 
-              {/* Trust Points Row - Compact */}
+              {/* Animated Stats Counter */}
+              <motion.div
+                variants={staggerItem}
+                className="flex items-center justify-center gap-6 md:gap-10 mb-5"
+              >
+                {stats.map((stat, index) => (
+                  <motion.div
+                    key={index}
+                    className="text-center"
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.6 + index * 0.15, type: 'spring', stiffness: 200 }}
+                  >
+                    <motion.div 
+                      className="text-lg sm:text-xl md:text-2xl font-black text-secondary"
+                      animate={{ scale: [1, 1.05, 1] }}
+                      transition={{ duration: 3, repeat: Infinity, delay: index * 0.5 }}
+                    >
+                      {stat.value}
+                    </motion.div>
+                    <div className="text-[10px] md:text-xs text-white/60 font-medium">{stat.label}</div>
+                  </motion.div>
+                ))}
+              </motion.div>
+
+              {/* Trust Points Row */}
               <motion.div 
                 variants={staggerItem} 
                 className="flex flex-wrap items-center justify-center gap-2 md:gap-4"
@@ -110,14 +238,23 @@ const HeroSection = () => {
                 {trustPoints.map((point, index) => (
                   <motion.div 
                     key={index} 
-                    className="flex items-center gap-1.5 px-2 py-1 bg-white/5 rounded-full border border-white/10"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 rounded-full border border-white/10 backdrop-blur-sm"
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5 + index * 0.1, duration: 0.3 }}
+                    transition={{ delay: 0.8 + index * 0.1, duration: 0.3 }}
+                    whileHover={{ 
+                      backgroundColor: 'rgba(255,255,255,0.12)', 
+                      borderColor: 'rgba(255,255,255,0.25)',
+                      scale: 1.05,
+                    }}
                   >
-                    <div className="w-5 h-5 rounded-full bg-secondary/20 flex items-center justify-center">
+                    <motion.div 
+                      className="w-5 h-5 rounded-full bg-secondary/20 flex items-center justify-center"
+                      whileHover={{ rotate: 360 }}
+                      transition={{ duration: 0.5 }}
+                    >
                       <point.icon className="h-3 w-3 text-secondary" />
-                    </div>
+                    </motion.div>
                     <span className="text-xs font-medium text-primary-foreground">{point.text}</span>
                   </motion.div>
                 ))}
@@ -128,14 +265,30 @@ const HeroSection = () => {
         </div>
       </div>
 
-      {/* Slim Wave Separator */}
+      {/* Animated Wave Separator */}
       <div className="absolute bottom-0 left-0 right-0">
-        <svg viewBox="0 0 1440 40" fill="none" className="w-full h-auto" preserveAspectRatio="none">
-          <path 
-            d="M0 40L48 37.3C96 35 192 29 288 26.7C384 24 480 24 576 25.3C672 27 768 29 864 29.3C960 29 1056 27 1152 25.3C1248 24 1344 24 1392 24L1440 24V40H1392C1344 40 1248 40 1152 40C1056 40 960 40 864 40C768 40 672 40 576 40C480 40 384 40 288 40C192 40 96 40 48 40H0Z" 
-            fill="hsl(210 20% 98%)" 
+        <motion.svg 
+          viewBox="0 0 1440 50" 
+          fill="none" 
+          className="w-full h-auto" 
+          preserveAspectRatio="none"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1 }}
+        >
+          <motion.path 
+            d="M0 50L48 46C96 42 192 34 288 30C384 26 480 26 576 28C672 30 768 34 864 35C960 36 1056 34 1152 30C1248 26 1344 26 1392 26L1440 26V50H1392C1344 50 1248 50 1152 50C1056 50 960 50 864 50C768 50 672 50 576 50C480 50 384 50 288 50C192 50 96 50 48 50H0Z" 
+            fill="hsl(210 20% 98%)"
+            animate={{
+              d: [
+                "M0 50L48 46C96 42 192 34 288 30C384 26 480 26 576 28C672 30 768 34 864 35C960 36 1056 34 1152 30C1248 26 1344 26 1392 26L1440 26V50H1392C1344 50 1248 50 1152 50C1056 50 960 50 864 50C768 50 672 50 576 50C480 50 384 50 288 50C192 50 96 50 48 50H0Z",
+                "M0 50L48 44C96 38 192 30 288 28C384 26 480 30 576 32C672 34 768 30 864 28C960 26 1056 30 1152 34C1248 38 1344 34 1392 32L1440 30V50H1392C1344 50 1248 50 1152 50C1056 50 960 50 864 50C768 50 672 50 576 50C480 50 384 50 288 50C192 50 96 50 48 50H0Z",
+                "M0 50L48 46C96 42 192 34 288 30C384 26 480 26 576 28C672 30 768 34 864 35C960 36 1056 34 1152 30C1248 26 1344 26 1392 26L1440 26V50H1392C1344 50 1248 50 1152 50C1056 50 960 50 864 50C768 50 672 50 576 50C480 50 384 50 288 50C192 50 96 50 48 50H0Z",
+              ],
+            }}
+            transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
           />
-        </svg>
+        </motion.svg>
       </div>
     </section>
   );
