@@ -11,6 +11,8 @@ import {
   XCircle,
   Clock,
   ShieldAlert,
+  MessageCircle,
+  IndianRupee,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -36,9 +38,11 @@ interface FailedEmailLog {
     order_number: string;
     customer_name: string | null;
     customer_phone: string;
+    customer_email: string;
     status: string;
     total_amount: number;
     delivery_status: string | null;
+    razorpay_payment_id: string | null;
   } | null;
   products: {
     name: string;
@@ -49,6 +53,8 @@ interface FailedEmailLog {
 const FailedEmailsTab = () => {
   const queryClient = useQueryClient();
   const [resendingOrderId, setResendingOrderId] = useState<string | null>(null);
+  const [notifyingOrderId, setNotifyingOrderId] = useState<string | null>(null);
+  const [refundingLogId, setRefundingLogId] = useState<string | null>(null);
 
   const { data: failedEmails, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['failed-emails'],
@@ -57,7 +63,7 @@ const FailedEmailsTab = () => {
         .from('email_delivery_logs')
         .select(`
           *,
-          orders (order_number, customer_name, customer_phone, status, total_amount, delivery_status),
+          orders (order_number, customer_name, customer_phone, customer_email, status, total_amount, delivery_status, razorpay_payment_id),
           products (name, category)
         `)
         .in('delivery_status', ['failed', 'bounced', 'complained', 'delayed', 'pending'])
@@ -67,6 +73,18 @@ const FailedEmailsTab = () => {
       return data as FailedEmailLog[];
     },
     refetchOnWindowFocus: true,
+  });
+
+  // Check which orders already have refunds
+  const { data: existingRefunds } = useQuery({
+    queryKey: ['refund-order-ids'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('refunds')
+        .select('order_id')
+        .in('status', ['eligible', 'processing', 'completed']);
+      return new Set((data || []).map(r => r.order_id));
+    },
   });
 
   const pagination = usePagination({ data: failedEmails, itemsPerPage: 15 });
@@ -81,7 +99,6 @@ const FailedEmailsTab = () => {
   const handleResendEmail = async (orderId: string) => {
     setResendingOrderId(orderId);
     try {
-      // Delete expired tokens first
       const now = new Date();
       const { data: existingTokens } = await supabase
         .from('download_tokens')
@@ -93,10 +110,7 @@ const FailedEmailsTab = () => {
           t.expires_at && new Date(t.expires_at) <= now
         );
         if (expiredTokens.length > 0) {
-          await supabase
-            .from('download_tokens')
-            .delete()
-            .eq('order_id', orderId);
+          await supabase.from('download_tokens').delete().eq('order_id', orderId);
         }
       }
 
@@ -107,9 +121,7 @@ const FailedEmailsTab = () => {
       if (error) throw error;
 
       toast.success('Email resent successfully', {
-        description: data?.emails_sent > 1
-          ? `${data.emails_sent} emails sent`
-          : 'Download link sent',
+        description: data?.emails_sent > 1 ? `${data.emails_sent} emails sent` : 'Download link sent',
       });
       refetch();
       queryClient.invalidateQueries({ queryKey: ['orders'] });
@@ -118,6 +130,69 @@ const FailedEmailsTab = () => {
       toast.error('Failed to resend email', { description: err.message });
     } finally {
       setResendingOrderId(null);
+    }
+  };
+
+  const handleWhatsAppNotify = async (log: FailedEmailLog) => {
+    if (!log.orders) return;
+    setNotifyingOrderId(log.order_id);
+    try {
+      const { data, error } = await supabase.functions.invoke('notify-delivery-failure', {
+        body: {
+          order_id: log.order_id,
+          error_reason: log.error_message || `Email delivery ${log.delivery_status} for ${log.recipient_email}`,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast.success('WhatsApp notification sent', {
+          description: `Customer notified on ${log.orders.customer_phone}`,
+        });
+      } else {
+        toast.error('WhatsApp notification failed', { description: data?.error });
+      }
+    } catch (err: any) {
+      console.error('WhatsApp notify error:', err);
+      toast.error('Failed to send WhatsApp', { description: err.message });
+    } finally {
+      setNotifyingOrderId(null);
+    }
+  };
+
+  const handleMarkForRefund = async (log: FailedEmailLog) => {
+    if (!log.orders || !log.orders.razorpay_payment_id) {
+      toast.error('Cannot create refund', { description: 'No payment ID found for this order' });
+      return;
+    }
+    if (existingRefunds?.has(log.order_id)) {
+      toast.info('Refund already exists for this order');
+      return;
+    }
+    setRefundingLogId(log.id);
+    try {
+      const { error } = await supabase.from('refunds').insert({
+        order_id: log.order_id,
+        amount: log.orders.total_amount,
+        razorpay_payment_id: log.orders.razorpay_payment_id,
+        reason: 'email_delivery_failed',
+        failed_email: log.recipient_email,
+        status: 'eligible',
+      });
+
+      if (error) throw error;
+
+      toast.success('Marked for refund', {
+        description: `Order ${log.orders.order_number} is now eligible for refund`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['refund-order-ids'] });
+      queryClient.invalidateQueries({ queryKey: ['refunds'] });
+    } catch (err: any) {
+      console.error('Mark refund error:', err);
+      toast.error('Failed to create refund entry', { description: err.message });
+    } finally {
+      setRefundingLogId(null);
     }
   };
 
@@ -279,64 +354,115 @@ const FailedEmailsTab = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {pagination.paginatedData.map((log) => (
-                    <tr
-                      key={log.id}
-                      className="border-b border-border last:border-0 hover:bg-muted/30"
-                    >
-                      <td className="p-4 text-sm font-medium text-foreground font-mono">
-                        {log.orders?.order_number || '—'}
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          <Mail className="h-4 w-4 text-primary" />
-                          <span className="text-sm text-foreground">{log.recipient_email}</span>
-                        </div>
-                      </td>
-                      <td className="p-4 text-sm text-muted-foreground">
-                        {log.products?.name || '—'}
-                        {log.products?.category === 'combo-pack' && (
-                          <Badge variant="outline" className="ml-1.5 text-[10px]">Combo</Badge>
-                        )}
-                      </td>
-                      <td className="p-4 text-sm text-muted-foreground">
-                        {log.part_number && log.total_parts
-                          ? `${log.part_number}/${log.total_parts}`
-                          : '—'}
-                      </td>
-                      <td className="p-4">{getStatusBadge(log.delivery_status)}</td>
-                      <td className="p-4">
-                        {log.error_message ? (
-                          <span className="text-xs text-destructive max-w-[200px] block truncate" title={log.error_message}>
-                            {log.error_message}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
-                      </td>
-                      <td className="p-4 text-sm text-muted-foreground whitespace-nowrap">
-                        {format(new Date(log.created_at), 'MMM d, h:mm a')}
-                      </td>
-                      <td className="p-4">
-                        {log.orders && (log.orders.status === 'paid' || log.orders.status === 'completed') && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleResendEmail(log.order_id)}
-                            disabled={resendingOrderId === log.order_id}
-                            className="gap-1.5"
-                          >
-                            {resendingOrderId === log.order_id ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <RefreshCw className="h-3.5 w-3.5" />
+                  {pagination.paginatedData.map((log) => {
+                    const hasRefund = existingRefunds?.has(log.order_id);
+                    return (
+                      <tr
+                        key={log.id}
+                        className="border-b border-border last:border-0 hover:bg-muted/30"
+                      >
+                        <td className="p-4 text-sm font-medium text-foreground font-mono">
+                          {log.orders?.order_number || '—'}
+                        </td>
+                        <td className="p-4">
+                          <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-2">
+                              <Mail className="h-4 w-4 text-primary" />
+                              <span className="text-sm text-foreground">{log.recipient_email}</span>
+                            </div>
+                            {log.orders?.customer_phone && (
+                              <span className="text-xs text-muted-foreground ml-6">📱 {log.orders.customer_phone}</span>
                             )}
-                            Resend
-                          </Button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                          </div>
+                        </td>
+                        <td className="p-4 text-sm text-muted-foreground">
+                          {log.products?.name || '—'}
+                          {log.products?.category === 'combo-pack' && (
+                            <Badge variant="outline" className="ml-1.5 text-[10px]">Combo</Badge>
+                          )}
+                        </td>
+                        <td className="p-4 text-sm text-muted-foreground">
+                          {log.part_number && log.total_parts
+                            ? `${log.part_number}/${log.total_parts}`
+                            : '—'}
+                        </td>
+                        <td className="p-4">{getStatusBadge(log.delivery_status)}</td>
+                        <td className="p-4">
+                          {log.error_message ? (
+                            <span className="text-xs text-destructive max-w-[200px] block truncate" title={log.error_message}>
+                              {log.error_message}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </td>
+                        <td className="p-4 text-sm text-muted-foreground whitespace-nowrap">
+                          {format(new Date(log.created_at), 'MMM d, h:mm a')}
+                        </td>
+                        <td className="p-4">
+                          <div className="flex flex-col gap-1.5">
+                            {/* Resend Email */}
+                            {log.orders && (log.orders.status === 'paid' || log.orders.status === 'completed') && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleResendEmail(log.order_id)}
+                                disabled={resendingOrderId === log.order_id}
+                                className="gap-1.5 text-xs h-7"
+                              >
+                                {resendingOrderId === log.order_id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <RefreshCw className="h-3 w-3" />
+                                )}
+                                Resend
+                              </Button>
+                            )}
+
+                            {/* WhatsApp Notify */}
+                            {log.orders && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleWhatsAppNotify(log)}
+                                disabled={notifyingOrderId === log.order_id}
+                                className="gap-1.5 text-xs h-7 border-green-500/30 text-green-700 hover:bg-green-50 hover:text-green-800"
+                              >
+                                {notifyingOrderId === log.order_id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <MessageCircle className="h-3 w-3" />
+                                )}
+                                WhatsApp
+                              </Button>
+                            )}
+
+                            {/* Mark for Refund */}
+                            {log.orders && log.orders.razorpay_payment_id && !hasRefund && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleMarkForRefund(log)}
+                                disabled={refundingLogId === log.id}
+                                className="gap-1.5 text-xs h-7 border-orange-500/30 text-orange-700 hover:bg-orange-50 hover:text-orange-800"
+                              >
+                                {refundingLogId === log.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <IndianRupee className="h-3 w-3" />
+                                )}
+                                Refund
+                              </Button>
+                            )}
+
+                            {hasRefund && (
+                              <span className="text-[10px] text-orange-600 font-medium">Refund created</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

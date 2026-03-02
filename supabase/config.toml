@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.export-schema]
 verify_jwt = false
+
+[functions.notify-delivery-failure]
+verify_jwt = false
