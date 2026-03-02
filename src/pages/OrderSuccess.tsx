@@ -233,7 +233,9 @@ const OrderSuccess = () => {
                         Check your email
                       </h3>
                       <p className="text-[11px] md:text-xs text-muted-foreground">
-                        Download links sent to your registered email
+                        {email
+                          ? <>Download links have been sent to <strong className="text-foreground">{email}</strong></>
+                          : 'Download links sent to your registered email'}
                       </p>
                     </div>
                   </div>
