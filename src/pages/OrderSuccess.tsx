@@ -8,11 +8,16 @@ import { Button } from '@/components/ui/button';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+// Convert name to Title Case (e.g., "john DOE" → "John Doe")
+const toTitleCase = (name: string): string =>
+  name.trim().toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+
 const OrderSuccess = () => {
   const [searchParams] = useSearchParams();
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationError, setVerificationError] = useState('');
   const [orderNumber, setOrderNumber] = useState('');
+  const [customerName, setCustomerName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const hasVerified = useRef(false);
@@ -47,6 +52,7 @@ const OrderSuccess = () => {
       if (pending) {
         const parsed = JSON.parse(pending);
         if (!orderNumber && parsed.order_number) setOrderNumber(parsed.order_number);
+        if (!customerName && parsed.name) setCustomerName(toTitleCase(parsed.name));
         if (!email && parsed.email) setEmail(parsed.email);
         if (!phone && parsed.phone) setPhone(parsed.phone);
         sessionStorage.removeItem('pending_order');
@@ -196,7 +202,7 @@ const OrderSuccess = () => {
                   Payment Successful! 🎉
                 </h1>
                 <p className="text-sm md:text-base text-muted-foreground mb-1">
-                  Thank you for your purchase
+                  Thank you{customerName ? `, ${customerName}` : ''} for your purchase
                 </p>
                 {orderNumber && (
                   <p className="text-xs font-medium text-primary mb-3 md:mb-4">
