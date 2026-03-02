@@ -1,9 +1,8 @@
 import { Helmet } from "react-helmet-async";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import { Play, Pause, Volume2, Share2, CheckCircle, Loader2 } from "lucide-react";
+import { Play, Pause, Volume2, CheckCircle, Loader2 } from "lucide-react";
 import { useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -181,15 +180,7 @@ const Demo = () => {
             </div>
           )}
 
-          {/* Share */}
-          <div className="mt-8 flex justify-center">
-            <Button variant="outline" onClick={handleShare} className="gap-2">
-              <Share2 className="w-4 h-4" />
-              Share this demo
-            </Button>
-          </div>
-
-          <div className="mt-6 text-center">
+          <div className="mt-8 text-center">
             <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">
               <CheckCircle className="w-4 h-4 text-secondary" />
               Like what you hear? Check out our full products!
