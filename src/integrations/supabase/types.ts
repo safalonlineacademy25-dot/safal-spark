@@ -137,6 +137,42 @@ export type Database = {
         }
         Relationships: []
       }
+      demo_files: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number
+          file_name: string
+          file_url: string
+          id: string
+          is_active: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          file_name: string
+          file_url: string
+          id?: string
+          is_active?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          file_name?: string
+          file_url?: string
+          id?: string
+          is_active?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       download_tokens: {
         Row: {
           created_at: string | null
