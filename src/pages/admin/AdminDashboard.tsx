@@ -57,6 +57,7 @@ import CampaignOffersTab from '@/components/admin/CampaignOffersTab';
 import VisitorStatsTab from '@/components/admin/VisitorStatsTab';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
 import DemoManagementTab from '@/components/admin/DemoManagementTab';
+import FailedEmailsTab from '@/components/admin/FailedEmailsTab';
 import OrdersChart from '@/components/admin/OrdersChart';
 import { usePagination } from '@/hooks/usePagination';
 import { toast } from 'sonner';
@@ -220,6 +221,7 @@ const AdminDashboard = () => {
     { id: 'customers', label: 'Customers', icon: Users },
     { id: 'visitors', label: 'Visitor Stats', icon: BarChart3 },
     { id: 'email', label: 'Email Logs', icon: Mail },
+    { id: 'failed-emails', label: 'Failed Emails', icon: AlertTriangle },
     { id: 'whatsapp', label: 'WhatsApp Logs', icon: MessageCircle },
     { id: 'broadcasts', label: 'Broadcast History', icon: History },
     { id: 'promotions', label: 'Promotions', icon: Sparkles },
@@ -1365,6 +1367,12 @@ const AdminDashboard = () => {
                   )}
                 </div>
               </motion.div>
+            )}
+
+            {activeTab === 'failed-emails' && (
+              <ErrorBoundary>
+                <FailedEmailsTab />
+              </ErrorBoundary>
             )}
 
             {activeTab === 'dbsnapshot' && (
