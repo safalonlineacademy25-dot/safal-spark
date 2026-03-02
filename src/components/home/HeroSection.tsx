@@ -138,14 +138,21 @@ const HeroSection = () => {
                 className="text-2xl sm:text-3xl md:text-5xl font-black text-primary-foreground leading-[1.1] mb-2 tracking-tight"
               >
                 <span className="block">Crack Your</span>
-                <span className="block h-[1.2em] mt-1 relative overflow-hidden">
+                <span className="block h-[1.4em] mt-1 relative overflow-hidden">
                   <AnimatePresence mode="wait">
                     <motion.span
                       key={wordIndex}
-                      className="inline-block bg-gradient-to-r from-secondary via-emerald-300 to-secondary bg-clip-text text-transparent"
-                      initial={{ y: 40, opacity: 0, rotateX: -45 }}
-                      animate={{ y: 0, opacity: 1, rotateX: 0 }}
-                      exit={{ y: -40, opacity: 0, rotateX: 45 }}
+                      className="inline-block px-4 py-0.5 rounded-lg text-3xl sm:text-4xl md:text-6xl font-black tracking-wider uppercase"
+                      style={{
+                        background: 'linear-gradient(135deg, hsl(160 84% 39%), hsl(160 84% 55%), hsl(120 70% 55%))',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        textShadow: '0 0 40px hsl(160 84% 39% / 0.3)',
+                        filter: 'drop-shadow(0 2px 8px hsl(160 84% 39% / 0.25))',
+                      }}
+                      initial={{ y: 50, opacity: 0, scale: 0.8, rotateX: -60 }}
+                      animate={{ y: 0, opacity: 1, scale: 1, rotateX: 0 }}
+                      exit={{ y: -50, opacity: 0, scale: 0.8, rotateX: 60 }}
                       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
                     >
                       {ROTATING_WORDS[wordIndex]}
