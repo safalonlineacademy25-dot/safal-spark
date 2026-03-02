@@ -44,6 +44,14 @@ async function getSettings(supabase: any): Promise<Record<string, string>> {
   return settings;
 }
 
+// Convert name to Title Case (e.g., "john DOE" → "John Doe")
+function toTitleCase(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 interface DownloadEmailRequest {
   orderId: string;
   customerEmail: string;
@@ -231,7 +239,7 @@ serve(async (req: Request): Promise<Response> => {
                 </h1>
                 
                 <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
-                  Hi ${customerName || "there"},
+                  Hi ${customerName ? toTitleCase(customerName) : "there"},
                 </p>
                 
                 <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
@@ -297,7 +305,7 @@ serve(async (req: Request): Promise<Response> => {
                 </h1>
                 
                 <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
-                  Hi ${customerName || "there"},
+                  Hi ${customerName ? toTitleCase(customerName) : "there"},
                 </p>
                 
                 <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">

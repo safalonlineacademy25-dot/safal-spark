@@ -66,6 +66,14 @@ function formatPhoneNumber(phone: string): string {
   return cleaned;
 }
 
+// Convert name to Title Case (e.g., "john DOE" → "John Doe")
+function toTitleCase(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 serve(async (req: Request): Promise<Response> => {
   const origin = req.headers.get('origin');
   const corsHeaders = getCorsHeaders(origin);
@@ -166,7 +174,7 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // Build corporate greeting message
-    const greetingMessage = `Dear ${order.customer_name || 'Customer'},\n\nThank you for choosing *Safal Online Academy*!\n\nYour purchased product links have been successfully sent to your registered email address: *${order.customer_email}*\n\nPlease check your inbox (and spam/junk folder) for the download links. If you face any issues, feel free to reach out to us at support@safalonlinesolutions.com.\n\nWarm regards,\nTeam Safal Online Academy`;
+    const greetingMessage = `Dear ${order.customer_name ? toTitleCase(order.customer_name) : 'Customer'},\n\nThank you for choosing *Safal Online Academy*!\n\nYour purchased product links have been successfully sent to your registered email address: *${order.customer_email}*\n\nPlease check your inbox (and spam/junk folder) for the download links. If you face any issues, feel free to reach out to us at support@safalonlinesolutions.com.\n\nWarm regards,\nTeam Safal Online Academy`;
 
     console.log("Sending media greeting via MatrixCloud to:", formattedPhone);
 
