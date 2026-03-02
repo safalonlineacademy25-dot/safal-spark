@@ -14,7 +14,6 @@ interface DemoFile {
   file_name: string;
   display_order: number;
   is_active: boolean;
-  signed_url?: string;
 }
 
 // Global audio manager to ensure only one plays at a time
@@ -36,39 +35,38 @@ const DemoAudioPlayer = ({ demo }: { demo: DemoFile }) => {
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(false);
   const { registerPlayer, notifyPlaying } = useAudioManager();
 
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+  const audioSrc = demo.file_url.startsWith('http')
+    ? demo.file_url
+    : `https://${projectId}.supabase.co/storage/v1/object/public/demo-files/${demo.file_url}`;
+
   // Register this player's pause function
-  const pauseRef = useRef(() => {
+  const pauseCallback = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
       setIsPlaying(false);
     }
-  });
+  }, []);
 
-  // Register on mount
   useState(() => {
-    registerPlayer(demo.id, pauseRef.current);
+    registerPlayer(demo.id, pauseCallback);
   });
 
-  const togglePlay = async () => {
+  const togglePlay = () => {
     if (!audioRef.current) return;
     if (isPlaying) {
       audioRef.current.pause();
       setIsPlaying(false);
     } else {
-      // Notify manager to pause other players
       notifyPlaying(demo.id);
-      try {
-        setIsLoading(true);
-        await audioRef.current.play();
+      audioRef.current.play().then(() => {
         setIsPlaying(true);
-      } catch (err) {
+      }).catch((err) => {
         console.error('Playback failed:', err);
-      } finally {
-        setIsLoading(false);
-      }
+      });
     }
   };
 
@@ -102,10 +100,12 @@ const DemoAudioPlayer = ({ demo }: { demo: DemoFile }) => {
     <div className="rounded-2xl border border-border bg-card shadow-lg p-6 md:p-8">
       <audio
         ref={audioRef}
-        src={demo.signed_url || ''}
+        src={audioSrc}
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={handleEnded}
+        onWaiting={() => setIsBuffering(true)}
+        onPlaying={() => setIsBuffering(false)}
         preload="metadata"
       />
 
@@ -142,10 +142,9 @@ const DemoAudioPlayer = ({ demo }: { demo: DemoFile }) => {
       <div className="flex items-center justify-center">
         <button
           onClick={togglePlay}
-          disabled={isLoading}
-          className="w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:opacity-90 transition-opacity shadow-md disabled:opacity-50"
+          className="w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:opacity-90 transition-opacity shadow-md"
         >
-          {isLoading ? (
+          {isBuffering ? (
             <Loader2 className="w-6 h-6 animate-spin" />
           ) : isPlaying ? (
             <Pause className="w-6 h-6" />
@@ -180,21 +179,7 @@ const Demo = () => {
         .eq('is_active', true)
         .order('display_order', { ascending: true });
       if (error) throw error;
-      const files = data as DemoFile[];
-
-      // Generate signed URLs for all demo files (valid for 1 hour)
-      const filesWithUrls = await Promise.all(
-        files.map(async (file) => {
-          if (file.file_url.startsWith('http')) {
-            return { ...file, signed_url: file.file_url };
-          }
-          const { data: signedData } = await supabase.storage
-            .from('product-files')
-            .createSignedUrl(file.file_url, 3600);
-          return { ...file, signed_url: signedData?.signedUrl || '' };
-        })
-      );
-      return filesWithUrls;
+      return data as DemoFile[];
     },
   });
 
