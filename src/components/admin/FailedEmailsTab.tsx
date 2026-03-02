@@ -13,6 +13,7 @@ import {
   ShieldAlert,
   MessageCircle,
   IndianRupee,
+  Package,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -85,6 +86,74 @@ const FailedEmailsTab = () => {
         .in('status', ['eligible', 'processing', 'completed']);
       return new Set((data || []).map(r => r.order_id));
     },
+  });
+
+  // Combo delivery progress - fetch ALL combo email logs (not just failed)
+  const { data: comboProgress } = useQuery({
+    queryKey: ['combo-delivery-progress'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('email_delivery_logs')
+        .select(`
+          order_id, part_number, total_parts, delivery_status, recipient_email, created_at,
+          orders (order_number, customer_email, customer_phone, total_amount, delivery_status)
+        `)
+        .eq('email_type', 'combo_part')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Group by order_id, deduplicate by part_number (keep latest)
+      const orderMap = new Map<string, {
+        order_number: string;
+        customer_email: string;
+        customer_phone: string;
+        total_amount: number;
+        order_delivery_status: string | null;
+        total_parts: number;
+        parts: Map<number, { status: string; created_at: string }>;
+      }>();
+
+      for (const log of (data || [])) {
+        const orderId = log.order_id;
+        if (!orderMap.has(orderId)) {
+          orderMap.set(orderId, {
+            order_number: (log.orders as any)?.order_number || '—',
+            customer_email: (log.orders as any)?.customer_email || '',
+            customer_phone: (log.orders as any)?.customer_phone || '',
+            total_amount: (log.orders as any)?.total_amount || 0,
+            order_delivery_status: (log.orders as any)?.delivery_status || null,
+            total_parts: log.total_parts || 0,
+            parts: new Map(),
+          });
+        }
+        const order = orderMap.get(orderId)!;
+        if (log.total_parts && log.total_parts > order.total_parts) {
+          order.total_parts = log.total_parts;
+        }
+        const partNum = log.part_number || 0;
+        // Keep latest status per part
+        if (!order.parts.has(partNum) || new Date(log.created_at) > new Date(order.parts.get(partNum)!.created_at)) {
+          order.parts.set(partNum, { status: log.delivery_status, created_at: log.created_at });
+        }
+      }
+
+      return Array.from(orderMap.entries()).map(([orderId, info]) => {
+        const deliveredCount = Array.from(info.parts.values()).filter(p => p.status === 'delivered' || p.status === 'sent').length;
+        const failedCount = Array.from(info.parts.values()).filter(p => ['failed', 'bounced', 'complained'].includes(p.status)).length;
+        const pendingCount = Array.from(info.parts.values()).filter(p => ['pending', 'delayed'].includes(p.status)).length;
+        return {
+          orderId,
+          ...info,
+          deliveredCount,
+          failedCount,
+          pendingCount,
+          isComplete: deliveredCount === info.total_parts && info.total_parts > 0,
+          hasIssues: failedCount > 0 || pendingCount > 0,
+        };
+      });
+    },
+    refetchOnWindowFocus: true,
   });
 
   const pagination = usePagination({ data: failedEmails, itemsPerPage: 15 });
@@ -319,6 +388,102 @@ const FailedEmailsTab = () => {
           <p className="text-xl font-bold text-foreground">{pendingCount}</p>
         </div>
       </div>
+
+      {/* Combo Delivery Progress */}
+      {comboProgress && comboProgress.length > 0 && (
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
+          <div className="p-4 border-b border-border bg-primary/5 flex items-center gap-2">
+            <Package className="h-5 w-5 text-primary" />
+            <h3 className="font-medium text-foreground">
+              Combo Pack Delivery Progress ({comboProgress.length} orders)
+            </h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border bg-muted/30">
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Order #</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Customer</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Progress</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Parts Status</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Overall</th>
+                </tr>
+              </thead>
+              <tbody>
+                {comboProgress.slice(0, 20).map((combo) => {
+                  const progressPct = combo.total_parts > 0 ? Math.round((combo.deliveredCount / combo.total_parts) * 100) : 0;
+                  return (
+                    <tr key={combo.orderId} className="border-b border-border last:border-0 hover:bg-muted/30">
+                      <td className="p-3 text-sm font-mono font-medium text-foreground">
+                        {combo.order_number}
+                      </td>
+                      <td className="p-3">
+                        <div className="text-sm text-foreground">{combo.customer_email}</div>
+                        <div className="text-xs text-muted-foreground">📱 {combo.customer_phone}</div>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden min-w-[80px]">
+                            <div
+                              className={`h-full rounded-full transition-all ${
+                                combo.isComplete ? 'bg-emerald-500' : combo.hasIssues ? 'bg-orange-500' : 'bg-primary'
+                              }`}
+                              style={{ width: `${progressPct}%` }}
+                            />
+                          </div>
+                          <span className="text-sm font-medium text-foreground whitespace-nowrap">
+                            {combo.deliveredCount}/{combo.total_parts}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {Array.from({ length: combo.total_parts }, (_, i) => {
+                            const part = combo.parts.get(i + 1);
+                            const status = part?.status || 'missing';
+                            return (
+                              <span
+                                key={i}
+                                title={`Part ${i + 1}: ${status}`}
+                                className={`inline-flex items-center justify-center w-6 h-6 rounded text-[10px] font-bold ${
+                                  status === 'delivered' || status === 'sent'
+                                    ? 'bg-emerald-100 text-emerald-700'
+                                    : status === 'failed' || status === 'bounced'
+                                    ? 'bg-destructive/10 text-destructive'
+                                    : status === 'pending' || status === 'delayed'
+                                    ? 'bg-yellow-100 text-yellow-700'
+                                    : 'bg-muted text-muted-foreground'
+                                }`}
+                              >
+                                {i + 1}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        {combo.isComplete ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                            <CheckCircle className="h-3 w-3" /> Complete
+                          </span>
+                        ) : combo.hasIssues ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-destructive/10 text-destructive">
+                            <AlertTriangle className="h-3 w-3" /> Issues
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+                            <Clock className="h-3 w-3" /> In Progress
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Table */}
       <div className="bg-card rounded-xl border border-destructive/20 overflow-hidden">
