@@ -126,12 +126,28 @@ const Header = () => {
           {/* Logo with hover effect */}
           <Link to="/" className="flex items-center gap-3 group">
             <motion.div 
-              className="flex h-12 w-12 items-center justify-center rounded-xl overflow-hidden shadow-lg"
+              className="flex h-12 w-12 items-center justify-center rounded-xl overflow-hidden shadow-lg relative"
+              animate={{ 
+                y: [0, -3, 0],
+                rotateZ: [0, 2, -2, 0],
+              }}
               whileHover={{ scale: 1.15, rotate: 8, boxShadow: '0 8px 25px hsl(var(--primary) / 0.4)' }}
               whileTap={{ scale: 0.95 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+              transition={{ 
+                y: { duration: 3, repeat: Infinity, ease: 'easeInOut' },
+                rotateZ: { duration: 4, repeat: Infinity, ease: 'easeInOut' },
+                scale: { type: 'spring', stiffness: 400, damping: 17 },
+                rotate: { type: 'spring', stiffness: 400, damping: 17 },
+              }}
             >
-              <img src={safalLogo} alt="Safal Online Academy Logo" className="h-full w-full object-cover" />
+              {/* Subtle glow pulse behind logo */}
+              <motion.div
+                className="absolute inset-0 rounded-xl"
+                style={{ background: 'linear-gradient(135deg, hsl(221 83% 53% / 0.3), hsl(160 84% 39% / 0.3))' }}
+                animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.08, 1] }}
+                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+              />
+              <img src={safalLogo} alt="Safal Online Academy Logo" className="h-full w-full object-cover relative z-10" />
             </motion.div>
             <motion.div 
               className="flex flex-col"
