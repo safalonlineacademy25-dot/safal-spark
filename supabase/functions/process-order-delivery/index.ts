@@ -507,6 +507,35 @@ serve(async (req) => {
             },
           }),
         }).catch(err => console.error('Telegram failure alert failed:', err));
+
+        // Send WhatsApp notification to customer about failed email delivery
+        try {
+          const failedPartsStr = failedParts.join(', ');
+          const errorReason = `Email delivery failed for: ${failedPartsStr} (${failedParts.length} of ${totalEmails} parts). Please check your inbox/spam folder for the remaining parts.`;
+          
+          console.log(`Sending WhatsApp delivery failure notification for order ${order.order_number}`);
+          
+          const whatsappNotifyResponse = await fetch(`${supabaseUrl}/functions/v1/notify-delivery-failure`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseServiceKey}`,
+            },
+            body: JSON.stringify({
+              order_id: order_id,
+              error_reason: errorReason,
+            }),
+          });
+          
+          const whatsappNotifyResult = await whatsappNotifyResponse.json();
+          if (whatsappNotifyResult.success) {
+            console.log(`✅ WhatsApp delivery failure notification sent to customer for order ${order.order_number}`);
+          } else {
+            console.error(`❌ WhatsApp delivery failure notification failed: ${whatsappNotifyResult.error}`);
+          }
+        } catch (whatsappErr: any) {
+          console.error('Error sending WhatsApp delivery failure notification:', whatsappErr.message);
+        }
       }
     }
 
