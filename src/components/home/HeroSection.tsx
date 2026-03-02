@@ -169,47 +169,78 @@ const HeroSection = () => {
                 variants={staggerItem}
                 className="flex items-center justify-center gap-6 md:gap-10 lg:gap-14 my-5"
               >
-                {studentImages.map((student, index) => (
-                  <motion.div
-                    key={index}
-                    className="relative"
-                    initial={{ opacity: 0, y: 20, scale: 0.9 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    whileHover={{ 
-                      scale: 1.25, 
-                      y: -8,
-                      transition: { type: "spring", stiffness: 400, damping: 15 }
-                    }}
-                    whileTap={{ scale: 1.15 }}
-                    transition={{ delay: 0.3 + index * 0.1, duration: 0.4, ease: "easeOut" }}
-                  >
-                    <div className="relative group">
-                      {/* Glowing ring animation */}
-                      <motion.div
-                        className="absolute -inset-1 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                        style={{ background: 'linear-gradient(135deg, hsl(160 84% 39% / 0.5), hsl(221 83% 53% / 0.5))' }}
-                        animate={{ rotate: [0, 360] }}
-                        transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
-                      />
-                      <div className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl overflow-hidden ring-2 ring-white/30 shadow-lg hover:ring-secondary hover:shadow-2xl hover:shadow-secondary/30 transition-all duration-300">
-                        <img
-                          src={student.src}
-                          alt={student.label}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
-                      </div>
-                      
-                      {/* Floating Label */}
+                {studentImages.map((student, index) => {
+                  // Subtle, staggered float for a refined corporate feel
+                  const floatY = index === 1 ? [-4, 4, -4] : [4, -4, 4];
+                  const floatDuration = 5 + index * 0.8;
+                  const floatDelay = index * 0.6;
+
+                  return (
+                    <motion.div
+                      key={index}
+                      className="relative"
+                      initial={{ opacity: 0, y: 30, scale: 0.85 }}
+                      animate={{ 
+                        opacity: 1, 
+                        y: 0, 
+                        scale: 1,
+                      }}
+                      whileHover={{ 
+                        scale: 1.2, 
+                        y: -10,
+                        transition: { type: "spring", stiffness: 400, damping: 15 }
+                      }}
+                      whileTap={{ scale: 1.1 }}
+                      transition={{ delay: 0.3 + index * 0.15, duration: 0.5, ease: "easeOut" }}
+                    >
                       <motion.div 
-                        className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 bg-white rounded-full shadow-md whitespace-nowrap"
-                        whileHover={{ scale: 1.1 }}
+                        className="relative group"
+                        animate={{ y: floatY }}
+                        transition={{ 
+                          duration: floatDuration, 
+                          repeat: Infinity, 
+                          ease: 'easeInOut',
+                          delay: floatDelay,
+                        }}
                       >
-                        <span className="text-[10px] font-bold text-primary">{student.label}</span>
+                        {/* Subtle pulse ring */}
+                        <motion.div
+                          className="absolute -inset-1.5 rounded-xl"
+                          style={{ 
+                            background: 'linear-gradient(135deg, hsl(160 84% 39% / 0.25), hsl(221 83% 53% / 0.25))',
+                            filter: 'blur(4px)',
+                          }}
+                          animate={{ 
+                            opacity: [0.3, 0.6, 0.3],
+                            scale: [1, 1.05, 1],
+                          }}
+                          transition={{ 
+                            duration: 3, 
+                            repeat: Infinity, 
+                            ease: 'easeInOut',
+                            delay: index * 0.4,
+                          }}
+                        />
+                        <div className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl overflow-hidden ring-2 ring-white/30 shadow-lg hover:ring-secondary hover:shadow-2xl hover:shadow-secondary/30 transition-all duration-300">
+                          <img
+                            src={student.src}
+                            alt={student.label}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+                        </div>
+                        
+                        {/* Floating Label */}
+                        <motion.div 
+                          className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 bg-white rounded-full shadow-md whitespace-nowrap"
+                          whileHover={{ scale: 1.1 }}
+                        >
+                          <span className="text-[10px] font-bold text-primary">{student.label}</span>
+                        </motion.div>
                       </motion.div>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  );
+                })}
               </motion.div>
 
               {/* Animated Stats Counter */}
