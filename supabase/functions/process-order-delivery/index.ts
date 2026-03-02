@@ -73,6 +73,45 @@ async function sendDownloadEmailWithRetry(
   }
   
   console.error(`All ${MAX_EMAIL_RETRIES} attempts failed for email ${emailIndex || 1}/${totalEmails || 1} to ${customerEmail}. Last error: ${lastError}`);
+  
+  // Log the failure directly to email_delivery_logs so it appears in Failed Emails tab
+  try {
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // Check if send-download-email already logged this failure (avoid duplicates)
+    const { data: existingLog } = await supabase
+      .from('email_delivery_logs')
+      .select('id')
+      .eq('order_id', orderId)
+      .eq('recipient_email', customerEmail)
+      .eq('part_number', emailIndex || 1)
+      .in('delivery_status', ['failed', 'bounced'])
+      .limit(1);
+    
+    if (existingLog && existingLog.length > 0) {
+      console.log(`Failed email already logged for part ${emailIndex || 1}, skipping duplicate`);
+    } else {
+      const { error: logError } = await supabase.from('email_delivery_logs').insert({
+        order_id: orderId,
+        product_id: null,
+        resend_email_id: null,
+        recipient_email: customerEmail,
+        email_type: isMultiFileEmail ? 'combo_part' : 'download',
+        part_number: emailIndex || null,
+        total_parts: totalEmails || null,
+        delivery_status: 'failed',
+        error_message: `All ${MAX_EMAIL_RETRIES} retry attempts exhausted. Last error: ${lastError}`,
+      });
+      if (logError) {
+        console.error('Failed to log email failure to email_delivery_logs:', logError);
+      } else {
+        console.log(`Logged failed email delivery for part ${emailIndex || 1} to email_delivery_logs`);
+      }
+    }
+  } catch (logErr) {
+    console.error('Error logging failed email to database:', logErr);
+  }
+  
   return { success: false, error: lastError, attempts: MAX_EMAIL_RETRIES };
 }
 
