@@ -51,21 +51,13 @@ function arrayBufferToHex(buffer: ArrayBuffer): string {
     .join('');
 }
 
-// Function to verify Razorpay signature using Web Crypto API
-async function verifyRazorpaySignature(
-  razorpay_order_id: string,
-  razorpay_payment_id: string,
-  razorpay_signature: string,
-  secret: string,
-  isTestMode: boolean
+// Verify HMAC SHA256 signature
+async function verifySignature(
+  message: string,
+  signature: string,
+  secret: string
 ): Promise<boolean> {
-  if (isTestMode) {
-    console.log("⚠️ Test mode - skipping signature verification");
-    return true;
-  }
-  
   try {
-    const message = `${razorpay_order_id}|${razorpay_payment_id}`;
     const encoder = new TextEncoder();
     const keyData = encoder.encode(secret);
     const messageData = encoder.encode(message);
@@ -78,16 +70,17 @@ async function verifyRazorpaySignature(
       ["sign"]
     );
     
-    const signature = await crypto.subtle.sign("HMAC", key, messageData);
-    const expectedSignature = arrayBufferToHex(signature);
+    const sig = await crypto.subtle.sign("HMAC", key, messageData);
+    const expectedSignature = arrayBufferToHex(sig);
     
-    if (expectedSignature.length !== razorpay_signature.length) {
+    if (expectedSignature.length !== signature.length) {
       return false;
     }
     
+    // Constant-time comparison
     let result = 0;
     for (let i = 0; i < expectedSignature.length; i++) {
-      result |= expectedSignature.charCodeAt(i) ^ razorpay_signature.charCodeAt(i);
+      result |= expectedSignature.charCodeAt(i) ^ signature.charCodeAt(i);
     }
     
     return result === 0;
@@ -106,85 +99,215 @@ serve(async (req) => {
   }
 
   try {
-    const { order_id, razorpay_payment_id, razorpay_order_id, razorpay_signature } = await req.json();
-    
-    console.log("Verifying payment:", { order_id, razorpay_payment_id, razorpay_order_id });
-
-    if (!order_id) {
-      throw new Error("Order ID is required");
-    }
-
-    if (!razorpay_payment_id || !razorpay_order_id) {
-      throw new Error("Payment ID and Order ID are required");
-    }
-
+    const body = await req.json();
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
     const settings = await getSettings(supabase);
     const RAZORPAY_KEY_SECRET = settings['razorpay_key_secret'] || Deno.env.get('RAZORPAY_KEY_SECRET') || 'test_secret_key';
     const IS_TEST_MODE = settings['razorpay_test_mode'] === 'true' || !settings['razorpay_key_secret'];
-    
-    console.log("Using settings from database. Test mode:", IS_TEST_MODE);
 
-    if (!IS_TEST_MODE && !razorpay_signature) {
-      throw new Error("Payment signature is required for verification");
+    console.log("Verify payment request. Test mode:", IS_TEST_MODE);
+
+    // Determine if this is a Payment Link callback or legacy modal verification
+    const isPaymentLink = !!body.razorpay_payment_link_id;
+
+    if (isPaymentLink) {
+      // ===== Payment Link Callback Verification =====
+      const {
+        razorpay_payment_id,
+        razorpay_payment_link_id,
+        razorpay_payment_link_reference_id,
+        razorpay_payment_link_status,
+        razorpay_signature,
+      } = body;
+
+      console.log("Payment Link callback:", {
+        razorpay_payment_id,
+        razorpay_payment_link_id,
+        razorpay_payment_link_reference_id,
+        razorpay_payment_link_status,
+      });
+
+      if (!razorpay_payment_id || !razorpay_payment_link_id) {
+        throw new Error("Payment ID and Payment Link ID are required");
+      }
+
+      // Verify signature for payment links:
+      // message = payment_link_id|payment_link_reference_id|payment_link_status|razorpay_payment_id
+      if (!IS_TEST_MODE) {
+        if (!razorpay_signature) {
+          throw new Error("Payment signature is required for verification");
+        }
+
+        const message = `${razorpay_payment_link_id}|${razorpay_payment_link_reference_id}|${razorpay_payment_link_status}|${razorpay_payment_id}`;
+        const isValid = await verifySignature(message, razorpay_signature, RAZORPAY_KEY_SECRET);
+
+        if (!isValid) {
+          console.error("Invalid payment link signature - potential fraud attempt");
+          throw new Error("Invalid payment signature");
+        }
+        console.log("Payment link signature verified successfully");
+      } else {
+        console.log("⚠️ Test mode - skipping signature verification");
+      }
+
+      // Find order by payment link ID (stored in razorpay_order_id) or by reference_id (order_number)
+      let order = null;
+      let findError = null;
+
+      // Try by payment link ID first
+      const { data: orderByLinkId, error: err1 } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('razorpay_order_id', razorpay_payment_link_id)
+        .single();
+
+      if (orderByLinkId) {
+        order = orderByLinkId;
+      } else {
+        // Fallback: find by order number (reference_id)
+        const { data: orderByRef, error: err2 } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('order_number', razorpay_payment_link_reference_id)
+          .single();
+        
+        if (orderByRef) {
+          order = orderByRef;
+        } else {
+          findError = err1 || err2;
+        }
+      }
+
+      if (!order) {
+        console.error("Order not found for payment link:", razorpay_payment_link_id, "ref:", razorpay_payment_link_reference_id);
+        throw new Error("Order not found");
+      }
+
+      // Check if already processed (idempotency)
+      if (order.status === 'paid' || order.status === 'completed') {
+        console.log("Order already paid, returning success:", order.order_number);
+        return new Response(
+          JSON.stringify({
+            success: true,
+            order_number: order.order_number,
+            status: order.status,
+            message: 'Payment already verified. Download links have been sent.',
+            already_processed: true,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Update order status
+      const { data: updatedOrder, error: updateError } = await supabase
+        .from('orders')
+        .update({
+          status: 'paid',
+          razorpay_payment_id: razorpay_payment_id,
+          razorpay_signature: razorpay_signature || 'payment_link',
+          delivery_status: 'pending',
+        })
+        .eq('id', order.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error("Error updating order:", updateError);
+        throw updateError;
+      }
+
+      console.log("Payment verified via Payment Link. Order:", updatedOrder.order_number);
+
+      // Fire-and-forget: trigger async delivery
+      fetch(`${supabaseUrl}/functions/v1/process-order-delivery`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+        },
+        body: JSON.stringify({ order_id: order.id }),
+      }).catch(err => console.error('Failed to trigger order delivery:', err));
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          order_number: updatedOrder.order_number,
+          status: updatedOrder.status,
+          message: 'Payment verified! Download links will be sent shortly.',
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+
+    } else {
+      // ===== Legacy Modal Verification (backward compatibility) =====
+      const { order_id, razorpay_payment_id, razorpay_order_id, razorpay_signature } = body;
+
+      console.log("Legacy modal verification:", { order_id, razorpay_payment_id, razorpay_order_id });
+
+      if (!order_id) {
+        throw new Error("Order ID is required");
+      }
+
+      if (!razorpay_payment_id || !razorpay_order_id) {
+        throw new Error("Payment ID and Order ID are required");
+      }
+
+      if (!IS_TEST_MODE) {
+        if (!razorpay_signature) {
+          throw new Error("Payment signature is required for verification");
+        }
+
+        const message = `${razorpay_order_id}|${razorpay_payment_id}`;
+        const isValid = await verifySignature(message, razorpay_signature, RAZORPAY_KEY_SECRET);
+
+        if (!isValid) {
+          console.error("Invalid payment signature - potential fraud attempt");
+          throw new Error("Invalid payment signature");
+        }
+        console.log("Signature verified successfully");
+      } else {
+        console.log("⚠️ Test mode - skipping signature verification");
+      }
+
+      const { data: order, error: updateError } = await supabase
+        .from('orders')
+        .update({
+          status: 'paid',
+          razorpay_payment_id: razorpay_payment_id,
+          razorpay_signature: razorpay_signature || 'test_signature',
+          delivery_status: 'pending',
+        })
+        .eq('id', order_id)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error("Error updating order:", updateError);
+        throw updateError;
+      }
+
+      console.log("Payment verified (legacy), order updated:", order.id);
+
+      // Fire-and-forget: trigger async delivery
+      fetch(`${supabaseUrl}/functions/v1/process-order-delivery`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+        },
+        body: JSON.stringify({ order_id }),
+      }).catch(err => console.error('Failed to trigger order delivery:', err));
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          order_number: order.order_number,
+          status: order.status,
+          message: 'Payment verified! Download links will be sent shortly.',
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
-
-    const isValidSignature = await verifyRazorpaySignature(
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature || '',
-      RAZORPAY_KEY_SECRET,
-      IS_TEST_MODE
-    );
-
-    if (!isValidSignature) {
-      console.error("Invalid payment signature - potential fraud attempt");
-      throw new Error("Invalid payment signature");
-    }
-
-    console.log("Signature verified successfully");
-    
-    const { data: order, error: updateError } = await supabase
-      .from('orders')
-      .update({
-        status: 'paid',
-        razorpay_payment_id: razorpay_payment_id,
-        razorpay_signature: razorpay_signature || 'test_signature',
-        delivery_status: 'pending',
-      })
-      .eq('id', order_id)
-      .select()
-      .single();
-
-    if (updateError) {
-      console.error("Error updating order:", updateError);
-      throw updateError;
-    }
-
-    console.log("Payment verified, order updated:", order.id, "Status:", order.status);
-
-    // Fire-and-forget: trigger async delivery (emails, WhatsApp, Telegram)
-    fetch(`${supabaseUrl}/functions/v1/process-order-delivery`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-      },
-      body: JSON.stringify({ order_id }),
-    }).catch(err => console.error('Failed to trigger order delivery:', err));
-
-    console.log("Payment verified, delivery triggered asynchronously for order:", order.id);
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        order_number: order.order_number,
-        status: order.status,
-        message: 'Payment verified! Download links will be sent shortly.',
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     console.error("Error in verify-razorpay-payment:", error);

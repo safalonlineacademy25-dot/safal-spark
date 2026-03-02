@@ -41,36 +41,68 @@ async function getSettings(supabase: any): Promise<Record<string, string>> {
   return settings;
 }
 
-// Create a real Razorpay order via their API
-async function createRazorpayOrder(
+// Create a Razorpay Payment Link for a simpler checkout experience
+async function createRazorpayPaymentLink(
   keyId: string,
   keySecret: string,
   amount: number,
   currency: string,
-  receipt: string
-): Promise<{ id: string; amount: number; currency: string }> {
+  description: string,
+  referenceId: string,
+  customerEmail: string,
+  customerPhone: string,
+  customerName: string | null,
+  callbackUrl: string,
+  orderId: string
+): Promise<{ id: string; short_url: string }> {
   const auth = btoa(`${keyId}:${keySecret}`);
   
-  const response = await fetch('https://api.razorpay.com/v1/orders', {
+  const payload: any = {
+    amount,
+    currency,
+    accept_partial: false,
+    description,
+    reference_id: referenceId,
+    customer: {
+      email: customerEmail,
+      contact: customerPhone,
+    },
+    notify: {
+      sms: false,
+      email: false,
+    },
+    reminder_enable: false,
+    callback_url: callbackUrl,
+    callback_method: "get",
+    notes: {
+      internal_order_id: orderId,
+    },
+  };
+
+  if (customerName) {
+    payload.customer.name = customerName;
+  }
+
+  console.log("Creating Razorpay Payment Link with payload:", JSON.stringify(payload));
+
+  const response = await fetch('https://api.razorpay.com/v1/payment_links', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Basic ${auth}`,
     },
-    body: JSON.stringify({
-      amount,
-      currency,
-      receipt,
-    }),
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("Razorpay API error:", errorText);
-    throw new Error(`Razorpay API error: ${response.status}`);
+    console.error("Razorpay Payment Link API error:", errorText);
+    throw new Error(`Razorpay API error: ${response.status} - ${errorText}`);
   }
 
-  return await response.json();
+  const result = await response.json();
+  console.log("Payment Link created:", result.id, "Short URL:", result.short_url);
+  return { id: result.id, short_url: result.short_url };
 }
 
 // Rate limit configuration: 5 orders per minute per IP/email
@@ -92,7 +124,7 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    const { items, customer_email, customer_phone, whatsapp_optin } = await req.json();
+    const { items, customer_email, customer_phone, customer_name, whatsapp_optin, callback_origin } = await req.json();
     
     console.log("Creating order for:", { customer_email, customer_phone, items_count: items?.length });
 
@@ -119,7 +151,6 @@ serve(async (req) => {
 
     if (rateLimitError) {
       console.error("Rate limit check error:", rateLimitError);
-      // Continue if rate limit check fails - don't block legitimate requests
     } else if (!isAllowed) {
       console.warn("Rate limit exceeded for:", rateLimitIdentifier);
       return new Response(
@@ -156,6 +187,13 @@ serve(async (req) => {
       isTestMode
     );
 
+    if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
+      console.error("Razorpay credentials missing (key id/secret)");
+      throw new Error(
+        "Payment gateway not configured. Please add Razorpay Key ID and Key Secret in Admin → Settings."
+      );
+    }
+
     // Generate order number
     const { data: orderNumberData, error: orderNumberError } = await supabase.rpc('generate_order_number');
     if (orderNumberError) {
@@ -164,44 +202,22 @@ serve(async (req) => {
     }
     const orderNumber = orderNumberData;
 
-    // For Razorpay Checkout, we must create a real Razorpay order (even in test mode)
-    if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
-      console.error("Razorpay credentials missing (key id/secret)");
-      throw new Error(
-        "Payment gateway not configured. Please add Razorpay Key ID and Key Secret in Admin → Settings."
-      );
-    }
-
-    const razorpayOrder = await createRazorpayOrder(
-      RAZORPAY_KEY_ID,
-      RAZORPAY_KEY_SECRET,
-      amountInPaise,
-      'INR',
-      orderNumber
-    );
-
-    const razorpayOrderId = razorpayOrder.id;
-    console.log(`${isTestMode ? 'Test' : 'Live'} mode: Created Razorpay order:`, razorpayOrderId);
-
-    console.log("Generated order number:", orderNumber, "Razorpay order ID:", razorpayOrderId);
-
-    // Create order in database
+    // Create order in database first
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
         order_number: orderNumber,
         customer_email,
         customer_phone,
+        customer_name: customer_name || null,
         total_amount: totalAmount,
         whatsapp_optin,
-        razorpay_order_id: razorpayOrderId,
         status: 'pending',
         currency: 'INR',
       })
       .select()
       .single();
 
-    // Log detailed result for debugging
     console.log("Order insert result:", { order, orderError });
 
     if (orderError) {
@@ -237,16 +253,49 @@ serve(async (req) => {
       throw itemsError;
     }
 
-    console.log("Order items created successfully, count:", itemsInserted?.length || 0);
+    // Build product description for payment link
+    const productNames = items.map((item: any) => item.product.name).join(', ');
+    const description = productNames.length > 200 
+      ? productNames.substring(0, 197) + '...' 
+      : productNames;
+
+    // Determine callback URL using the origin sent from frontend
+    const baseUrl = callback_origin || origin || 'https://safalonlinesolutions.com';
+    const callbackUrl = `${baseUrl}/order-success`;
+
+    console.log("Callback URL:", callbackUrl);
+
+    // Create Razorpay Payment Link (instead of Order)
+    const paymentLink = await createRazorpayPaymentLink(
+      RAZORPAY_KEY_ID,
+      RAZORPAY_KEY_SECRET,
+      amountInPaise,
+      'INR',
+      `Order ${orderNumber} - ${description}`,
+      orderNumber, // reference_id = order number
+      customer_email,
+      customer_phone,
+      customer_name || null,
+      callbackUrl,
+      order.id
+    );
+
+    // Store payment link ID in the order
+    await supabase
+      .from('orders')
+      .update({ razorpay_order_id: paymentLink.id })
+      .eq('id', order.id);
+
+    console.log("Payment Link created. ID:", paymentLink.id, "URL:", paymentLink.short_url);
 
     const responsePayload = {
       success: true,
       order_id: order.id,
       order_number: orderNumber,
-      razorpay_order_id: razorpayOrderId,
+      payment_link_id: paymentLink.id,
+      payment_url: paymentLink.short_url,
       amount: amountInPaise,
       currency: 'INR',
-      key_id: RAZORPAY_KEY_ID,
       is_test_mode: isTestMode,
     };
 
@@ -259,7 +308,6 @@ serve(async (req) => {
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     console.error("Error in create-razorpay-order:", error, error instanceof Error ? error.stack : null);
-    // Return 200 so the client can reliably read the JSON body and show a friendly message
     return new Response(
       JSON.stringify({ success: false, error: errorMessage }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
