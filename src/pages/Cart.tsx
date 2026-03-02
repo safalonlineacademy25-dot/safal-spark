@@ -6,68 +6,11 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/lib/store';
-import { Checkbox } from '@/components/ui/checkbox';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
 import { useActiveProducts } from '@/hooks/useProducts';
-
-// Declare Razorpay on window
-declare global {
-  interface Window {
-    Razorpay: new (options: RazorpayOptions) => RazorpayInstance;
-  }
-}
-
-interface RazorpayOptions {
-  key: string;
-  amount: number;
-  currency: string;
-  name: string;
-  description: string;
-  order_id: string;
-  handler: (response: RazorpayResponse) => void;
-  prefill: {
-    email: string;
-    contact: string;
-  };
-  theme?: {
-    color?: string;
-  };
-  modal?: {
-    ondismiss?: () => void;
-  };
-}
-
-interface RazorpayInstance {
-  open: () => void;
-  close: () => void;
-  on?: (event: string, handler: (response: any) => void) => void;
-}
-
-interface RazorpayResponse {
-  razorpay_payment_id: string;
-  razorpay_order_id: string;
-  razorpay_signature: string;
-}
-
-// Validation schema for checkout form
-const checkoutSchema = z.object({
-  email: z
-    .string()
-    .trim()
-    .min(1, 'Email is required')
-    .email('Please enter a valid email address')
-    .max(255, 'Email must be less than 255 characters'),
-  phone: z
-    .string()
-    .trim()
-    .min(1, 'Phone number is required')
-    .min(10, 'Phone number must be at least 10 digits')
-    .max(15, 'Phone number must be less than 15 digits')
-    .regex(/^\+?[0-9]{10,15}$/, 'Please enter a valid phone number (digits only, 10-15 characters)'),
-});
 
 // Convert Google Drive sharing links to direct image URLs
 const getImageUrl = (url: string): string => {
@@ -75,7 +18,6 @@ const getImageUrl = (url: string): string => {
   
   // Handle Google Drive sharing links
   if (url.includes('drive.google.com')) {
-    // Extract file ID from various Google Drive URL formats
     const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || 
                         url.match(/id=([a-zA-Z0-9_-]+)/) ||
                         url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
@@ -102,7 +44,6 @@ const Cart = () => {
   const navigate = useNavigate();
 
   // Check if WhatsApp delivery is enabled in admin settings
-  // Uses get_public_setting RPC to avoid exposing sensitive settings
   useEffect(() => {
     const fetchWhatsappSetting = async () => {
       const { data, error } = await supabase
@@ -117,7 +58,6 @@ const Cart = () => {
       
       const isEnabled = data === 'true';
       setWhatsappEnabled(isEnabled);
-      // If WhatsApp is disabled, set opt-in to false
       if (!isEnabled) {
         setWhatsappOptIn(false);
       }
@@ -125,29 +65,15 @@ const Cart = () => {
     fetchWhatsappSetting();
   }, []);
 
-  // Load Razorpay script
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.async = true;
-    document.body.appendChild(script);
-    
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
-
   // Scroll to top on mount and reset processing state on unmount
   useEffect(() => {
     window.scrollTo(0, 0);
-    
-    // Reset processing state on unmount (e.g., when navigating away)
     return () => {
       setIsProcessing(false);
     };
   }, []);
 
-  // Handle QR code add parameter (supports single ID or comma-separated IDs for combo offers)
+  // Handle QR code add parameter
   useEffect(() => {
     const addParam = searchParams.get('add');
     if (addParam && allProducts) {
@@ -157,14 +83,11 @@ const Cart = () => {
         .filter((p): p is NonNullable<typeof p> => !!p);
 
       if (productsToAdd.length > 0) {
-        // Clear existing cart and add selected products (QR code = direct buy)
         clearCart();
         for (const product of productsToAdd) {
           addItem(product);
         }
-        // Silent add - no toast to avoid confusing customers
       }
-      // Remove the add parameter from URL
       searchParams.delete('add');
       setSearchParams(searchParams, { replace: true });
     }
@@ -173,7 +96,6 @@ const Cart = () => {
   const validateForm = (): boolean => {
     let hasErrors = false;
     
-    // Validate email separately
     const emailResult = z.string().trim().min(1, 'Email address is required').email('Please enter a valid email address').max(255, 'Email must be less than 255 characters').safeParse(email);
     if (!emailResult.success) {
       setEmailError(emailResult.error.errors[0]?.message || 'Email address is required');
@@ -182,7 +104,6 @@ const Cart = () => {
       setEmailError('');
     }
     
-    // Validate phone separately
     const phoneResult = z.string().trim().min(1, 'Phone number is required').min(10, 'Phone number must be at least 10 digits').max(15, 'Phone number must be less than 15 digits').regex(/^\+?[0-9]{10,15}$/, 'Please enter a valid phone number (digits only, 10-15 characters)').safeParse(phone);
     if (!phoneResult.success) {
       setPhoneError(phoneResult.error.errors[0]?.message || 'Phone number is required');
@@ -194,127 +115,9 @@ const Cart = () => {
     return !hasErrors;
   };
 
-  const verifyPayment = useCallback(async (
-    orderId: string,
-    razorpayPaymentId: string,
-    razorpayOrderId: string,
-    razorpaySignature: string
-  ) => {
-    const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-razorpay-payment', {
-      body: {
-        order_id: orderId,
-        razorpay_payment_id: razorpayPaymentId,
-        razorpay_order_id: razorpayOrderId,
-        razorpay_signature: razorpaySignature,
-      },
-    });
-
-    if (verifyError || !verifyData?.success) {
-      throw new Error(verifyData?.error || verifyError?.message || 'Payment verification failed');
-    }
-
-    return verifyData;
-  }, []);
-
-  const openRazorpayModal = useCallback((orderData: {
-    key_id: string;
-    amount: number;
-    currency: string;
-    order_id: string;
-    razorpay_order_id: string;
-    order_number: string;
-    is_test_mode: boolean;
-  }) => {
-    if (!window.Razorpay) {
-      toast({
-        title: 'Payment gateway not loaded',
-        description: 'Please refresh the page and try again.',
-        variant: 'destructive',
-      });
-      setIsProcessing(false);
-      return;
-    }
-
-    const options: RazorpayOptions = {
-      key: orderData.key_id,
-      amount: orderData.amount,
-      currency: orderData.currency,
-      name: 'Safal Online Academy',
-      description: `Order ${orderData.order_number}`,
-      order_id: orderData.razorpay_order_id,
-      handler: async (response: RazorpayResponse) => {
-        try {
-          const verifyData = await verifyPayment(
-            orderData.order_id,
-            response.razorpay_payment_id,
-            response.razorpay_order_id,
-            response.razorpay_signature
-          );
-
-          clearCart();
-          navigate(`/order-success?order=${verifyData.order_number}&email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}`);
-        } catch (error: any) {
-          toast({
-            title: 'Payment verification failed',
-            description: error.message || 'Please contact support.',
-            variant: 'destructive',
-          });
-        } finally {
-          setIsProcessing(false);
-        }
-      },
-      prefill: {
-        email: email,
-        contact: phone,
-      },
-      modal: {
-        ondismiss: () => {
-          setIsProcessing(false);
-          toast({
-            title: 'Payment cancelled',
-            description: 'You can try again when ready.',
-          });
-        },
-      },
-    };
-
-    try {
-      const razorpay = new window.Razorpay(options);
-
-      // Razorpay emits `payment.failed` events for failures inside the modal
-      if (typeof razorpay.on === 'function') {
-        razorpay.on('payment.failed', (resp: any) => {
-          const description =
-            resp?.error?.description ||
-            resp?.error?.reason ||
-            resp?.error?.code ||
-            'Payment failed. Please try again.';
-
-          toast({
-            title: 'Payment failed',
-            description,
-            variant: 'destructive',
-          });
-
-          setIsProcessing(false);
-        });
-      }
-
-      razorpay.open();
-    } catch (e: any) {
-      toast({
-        title: 'Unable to start payment',
-        description: e?.message || 'Please refresh the page and try again.',
-        variant: 'destructive',
-      });
-      setIsProcessing(false);
-    }
-  }, [email, phone, clearCart, navigate, toast, verifyPayment]);
-
   const handleCheckout = async () => {
     console.log('[Cart] handleCheckout called', { email, phone, itemCount: items.length, isProcessing });
     
-    // Prevent double-clicks
     if (isProcessing) {
       console.log('[Cart] Already processing, ignoring click');
       return;
@@ -325,11 +128,11 @@ const Cart = () => {
       return;
     }
     
-    console.log('[Cart] Form validation passed, creating order...');
+    console.log('[Cart] Form validation passed, creating payment link...');
 
     setIsProcessing(true);
     
-    // Safety timeout - reset processing state after 30 seconds if something goes wrong
+    // Safety timeout
     const timeoutId = setTimeout(() => {
       console.log('[Cart] Checkout timeout - resetting processing state');
       setIsProcessing(false);
@@ -343,41 +146,53 @@ const Cart = () => {
     try {
       console.log('[Cart] Calling create-razorpay-order edge function...');
       
-      // Create order via edge function
       const { data: orderData, error: orderError } = await supabase.functions.invoke('create-razorpay-order', {
         body: {
           items,
           customer_email: email,
           customer_phone: phone,
+          customer_name: null,
           whatsapp_optin: whatsappOptIn,
+          callback_origin: window.location.origin,
         },
       });
       
       console.log('[Cart] Edge function response:', { orderData, orderError });
 
-      // Clear the timeout since we got a response
       clearTimeout(timeoutId);
 
       if (orderError || !orderData?.success) {
         throw new Error(orderData?.error || orderError?.message || 'Failed to create order');
       }
 
-      // Check if we have valid Razorpay key
-      if (!orderData.key_id || orderData.key_id.trim() === '') {
-        throw new Error('Payment gateway is not configured. Please contact support.');
+      if (!orderData.payment_url) {
+        throw new Error('Payment link not generated. Please contact support.');
       }
 
-      console.log('[Cart] Opening Razorpay modal...');
-      // Open Razorpay checkout modal
-      openRazorpayModal(orderData);
+      console.log('[Cart] Redirecting to Razorpay Payment Link:', orderData.payment_url);
+
+      // Save cart context before redirect so OrderSuccess can display info
+      try {
+        sessionStorage.setItem('pending_order', JSON.stringify({
+          order_number: orderData.order_number,
+          email,
+          phone,
+        }));
+      } catch (e) {
+        // sessionStorage might not be available
+      }
+
+      // Clear cart before redirect
+      clearCart();
+
+      // Redirect to Razorpay's hosted payment page
+      window.location.href = orderData.payment_url;
 
     } catch (error: any) {
-      // Clear the timeout on error
       clearTimeout(timeoutId);
       
       console.error('[Cart] Checkout error:', error);
       
-      // Provide user-friendly error messages
       let errorTitle = 'Checkout failed';
       let errorMessage = 'Something went wrong. Please try again.';
       
@@ -558,7 +373,7 @@ const Cart = () => {
                           setEmail(e.target.value);
                           if (emailError) setEmailError('');
                         }}
-placeholder="Please enter your email here"
+                        placeholder="Please enter your email here"
                         className={`w-full px-3 py-2 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm ${
                           emailError ? 'border-destructive' : 'border-input'
                         }`}
@@ -582,7 +397,7 @@ placeholder="Please enter your email here"
                           setPhone(value);
                           if (phoneError) setPhoneError('');
                         }}
-placeholder="Please enter your mobile here"
+                        placeholder="Please enter your mobile here"
                         maxLength={15}
                         className={`w-full px-3 py-2 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm ${
                           phoneError ? 'border-destructive' : 'border-input'
@@ -632,11 +447,11 @@ placeholder="Please enter your mobile here"
                     {isProcessing ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Processing...
+                        Redirecting to Payment...
                       </>
                     ) : (
                       <>
-                        Pay with Razorpay
+                        Pay Now — ₹{getTotal()}
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </>
                     )}
@@ -645,7 +460,7 @@ placeholder="Please enter your mobile here"
                   <div className="mt-4 space-y-2">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Shield className="h-3.5 w-3.5 text-secondary" />
-                      <span>Secure payment via Razorpay</span>
+                      <span>Secure payment · UPI, GPay, PhonePe, Cards</span>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Mail className="h-3.5 w-3.5 text-primary" />
@@ -764,12 +579,12 @@ placeholder="Please enter your mobile here"
             {isProcessing ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing...
+                Redirecting to Payment...
               </>
             ) : (
               <>
                 <Shield className="mr-2 h-4 w-4" />
-                Pay with Razorpay — ₹{getTotal()}
+                Pay Now — ₹{getTotal()}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </>
             )}

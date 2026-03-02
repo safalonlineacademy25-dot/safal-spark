@@ -1,16 +1,163 @@
 import { Link, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
-import { CheckCircle, Mail, MessageCircle, Download, ArrowRight, Home } from 'lucide-react';
+import { CheckCircle, Mail, MessageCircle, Download, ArrowRight, Home, Loader2, AlertCircle } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
+import { useState, useEffect, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 const OrderSuccess = () => {
   const [searchParams] = useSearchParams();
-  const orderNumber = searchParams.get('order') || '';
-  const email = searchParams.get('email') || '';
-  const phone = searchParams.get('phone') || '';
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verificationError, setVerificationError] = useState('');
+  const [orderNumber, setOrderNumber] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const hasVerified = useRef(false);
+
+  // Check for Razorpay Payment Link callback params
+  const razorpayPaymentId = searchParams.get('razorpay_payment_id');
+  const razorpayPaymentLinkId = searchParams.get('razorpay_payment_link_id');
+  const razorpayPaymentLinkRefId = searchParams.get('razorpay_payment_link_reference_id');
+  const razorpayPaymentLinkStatus = searchParams.get('razorpay_payment_link_status');
+  const razorpaySignature = searchParams.get('razorpay_signature');
+
+  // Also check for legacy query params
+  const legacyOrderNumber = searchParams.get('order');
+  const legacyEmail = searchParams.get('email');
+  const legacyPhone = searchParams.get('phone');
+
+  useEffect(() => {
+    // If this is a Payment Link callback, verify the payment
+    if (razorpayPaymentId && razorpayPaymentLinkId && !hasVerified.current) {
+      hasVerified.current = true;
+      verifyPaymentLink();
+    } else if (legacyOrderNumber) {
+      // Legacy flow - already verified
+      setOrderNumber(legacyOrderNumber);
+      setEmail(legacyEmail || '');
+      setPhone(legacyPhone || '');
+    }
+
+    // Try to load saved order context from sessionStorage
+    try {
+      const pending = sessionStorage.getItem('pending_order');
+      if (pending) {
+        const parsed = JSON.parse(pending);
+        if (!orderNumber && parsed.order_number) setOrderNumber(parsed.order_number);
+        if (!email && parsed.email) setEmail(parsed.email);
+        if (!phone && parsed.phone) setPhone(parsed.phone);
+        sessionStorage.removeItem('pending_order');
+      }
+    } catch (e) {
+      // Ignore
+    }
+  }, []);
+
+  const verifyPaymentLink = async () => {
+    setIsVerifying(true);
+    setVerificationError('');
+
+    try {
+      console.log('[OrderSuccess] Verifying payment link callback:', {
+        razorpayPaymentId,
+        razorpayPaymentLinkId,
+        razorpayPaymentLinkRefId,
+        razorpayPaymentLinkStatus,
+      });
+
+      const { data, error } = await supabase.functions.invoke('verify-razorpay-payment', {
+        body: {
+          razorpay_payment_id: razorpayPaymentId,
+          razorpay_payment_link_id: razorpayPaymentLinkId,
+          razorpay_payment_link_reference_id: razorpayPaymentLinkRefId,
+          razorpay_payment_link_status: razorpayPaymentLinkStatus,
+          razorpay_signature: razorpaySignature,
+        },
+      });
+
+      if (error) {
+        console.error('[OrderSuccess] Verification error:', error);
+        throw new Error(error.message || 'Payment verification failed');
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Payment verification failed');
+      }
+
+      console.log('[OrderSuccess] Payment verified:', data);
+      setOrderNumber(data.order_number || razorpayPaymentLinkRefId || '');
+
+    } catch (err: any) {
+      console.error('[OrderSuccess] Payment verification failed:', err);
+      setVerificationError(err.message || 'Could not verify payment. Please contact support.');
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  // Show loading while verifying
+  if (isVerifying) {
+    return (
+      <>
+        <Helmet>
+          <title>Verifying Payment | Safal Online Academy</title>
+          <meta name="robots" content="noindex" />
+        </Helmet>
+        <div className="min-h-screen flex flex-col bg-background">
+          <Header />
+          <main className="flex-1 flex items-center justify-center">
+            <div className="text-center px-4">
+              <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+              <h1 className="text-xl font-bold text-foreground mb-2">Verifying your payment...</h1>
+              <p className="text-sm text-muted-foreground">Please wait while we confirm your payment.</p>
+            </div>
+          </main>
+          <Footer />
+        </div>
+      </>
+    );
+  }
+
+  // Show error if verification failed
+  if (verificationError) {
+    return (
+      <>
+        <Helmet>
+          <title>Payment Issue | Safal Online Academy</title>
+          <meta name="robots" content="noindex" />
+        </Helmet>
+        <div className="min-h-screen flex flex-col bg-background">
+          <Header />
+          <main className="flex-1 flex items-center justify-center">
+            <div className="text-center px-4 max-w-md">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-destructive/10 flex items-center justify-center">
+                <AlertCircle className="h-8 w-8 text-destructive" />
+              </div>
+              <h1 className="text-xl font-bold text-foreground mb-2">Payment Verification Issue</h1>
+              <p className="text-sm text-muted-foreground mb-4">{verificationError}</p>
+              <p className="text-xs text-muted-foreground mb-6">
+                If money was deducted, don't worry — it will be refunded automatically. 
+                You can also contact us at{' '}
+                <a href="mailto:support@safalonlinesolutions.com" className="text-primary hover:underline">
+                  support@safalonlinesolutions.com
+                </a>
+              </p>
+              <Link to="/">
+                <Button variant="outline">
+                  <Home className="mr-2 h-4 w-4" />
+                  Back to Home
+                </Button>
+              </Link>
+            </div>
+          </main>
+          <Footer />
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
