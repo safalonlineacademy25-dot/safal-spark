@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Demo Audio | Safal Online Academy</title>
+  <meta name="description" content="Listen to our demo audio - Current Affairs February edition preview. Safal Online Academy." />
+  <meta property="og:title" content="Demo Audio | Safal Online Academy" />
+  <meta property="og:description" content="Listen to our demo audio - Current Affairs February edition preview." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://safalonline.in/demo/" />
+  <meta property="og:image" content="https://safalonlinesolutions.com/opengraph-image-p98pqg.png" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: hsl(210, 20%, 98%);
+      --fg: hsl(222, 47%, 11%);
+      --card: hsl(0, 0%, 100%);
+      --card-fg: hsl(222, 47%, 11%);
+      --primary: hsl(221, 83%, 53%);
+      --primary-fg: hsl(0, 0%, 100%);
+      --secondary: hsl(160, 84%, 39%);
+      --muted: hsl(210, 40%, 96%);
+      --muted-fg: hsl(215, 16%, 47%);
+      --border: hsl(214, 32%, 91%);
+      --radius: 0.75rem;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    .header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 1rem;
+    }
+    .header-inner {
+      max-width: 80rem; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 4rem;
+    }
+    .logo-link {
+      display: flex; align-items: center; gap: 0.75rem;
+      text-decoration: none; color: var(--fg);
+    }
+    .logo-img {
+      width: 48px; height: 48px; border-radius: 12px;
+      object-fit: cover; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .logo-title { font-weight: 800; font-size: 1.15rem; }
+    .logo-sub { font-size: 0.7rem; color: var(--muted-fg); font-weight: 500; }
+    .nav-links { display: flex; gap: 1.5rem; list-style: none; }
+    .nav-links a {
+      text-decoration: none; color: var(--muted-fg); font-size: 0.875rem; font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--primary); }
+
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+    }
+
+    /* Main */
+    main {
+      flex: 1;
+      padding-top: 6rem; padding-bottom: 4rem;
+      display: flex; justify-content: center; align-items: flex-start;
+    }
+    .container { max-width: 42rem; width: 100%; padding: 0 1rem; }
+
+    .page-title {
+      font-size: 1.875rem; font-weight: 700; text-align: center; margin-bottom: 0.5rem;
+    }
+    @media (min-width: 768px) { .page-title { font-size: 2.25rem; } }
+    .page-sub { text-align: center; color: var(--muted-fg); margin-bottom: 2rem; }
+
+    /* Card */
+    .player-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 1rem; padding: 1.5rem;
+      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+    }
+    @media (min-width: 768px) { .player-card { padding: 2rem; } }
+
+    .album-art {
+      width: 6rem; height: 6rem; margin: 0 auto 1.5rem;
+      background: hsl(221, 83%, 53%, 0.1); border-radius: 1rem;
+      display: flex; align-items: center; justify-content: center;
+    }
+    @media (min-width: 768px) { .album-art { width: 8rem; height: 8rem; } }
+    .album-art svg { width: 3rem; height: 3rem; color: var(--primary); }
+    @media (min-width: 768px) { .album-art svg { width: 4rem; height: 4rem; } }
+
+    .track-title { font-size: 1.125rem; font-weight: 600; text-align: center; margin-bottom: 0.25rem; }
+    .track-artist { font-size: 0.875rem; color: var(--muted-fg); text-align: center; margin-bottom: 1.5rem; }
+
+    /* Progress */
+    .progress-wrap { width: 100%; height: 8px; background: var(--muted); border-radius: 9999px; cursor: pointer; margin-bottom: 0.5rem; position: relative; }
+    .progress-wrap:hover .progress-thumb { opacity: 1; }
+    .progress-bar { height: 100%; background: var(--primary); border-radius: 9999px; transition: width 0.1s; position: relative; }
+    .progress-thumb {
+      position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+      width: 14px; height: 14px; background: var(--primary); border-radius: 50%;
+      opacity: 0; transition: opacity 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .time-row { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--muted-fg); margin-bottom: 1.5rem; }
+
+    /* Controls */
+    .controls { display: flex; align-items: center; justify-content: center; gap: 1rem; }
+    .play-btn {
+      width: 3.5rem; height: 3.5rem; border-radius: 50%;
+      background: var(--primary); color: var(--primary-fg);
+      border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.15); transition: opacity 0.2s;
+    }
+    .play-btn:hover { opacity: 0.9; }
+    .play-btn svg { width: 24px; height: 24px; }
+
+    /* Share */
+    .share-row { margin-top: 2rem; display: flex; justify-content: center; }
+    .share-btn {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.5rem 1.25rem; border: 1px solid var(--border); border-radius: var(--radius);
+      background: transparent; color: var(--fg); font-size: 0.875rem; font-weight: 500;
+      cursor: pointer; transition: background 0.2s;
+      font-family: inherit;
+    }
+    .share-btn:hover { background: var(--muted); }
+    .share-btn svg { width: 16px; height: 16px; }
+
+    /* CTA */
+    .cta-row {
+      margin-top: 1.5rem; text-align: center; font-size: 0.875rem; color: var(--muted-fg);
+      display: flex; align-items: center; justify-content: center; gap: 0.25rem;
+    }
+    .cta-row svg { width: 16px; height: 16px; color: var(--secondary); }
+    .cta-row a { color: var(--primary); text-decoration: none; font-weight: 600; }
+    .cta-row a:hover { text-decoration: underline; }
+
+    /* Footer */
+    .footer {
+      text-align: center; padding: 1.5rem 1rem;
+      border-top: 1px solid var(--border); font-size: 0.8rem; color: var(--muted-fg);
+    }
+    .footer a { color: var(--primary); text-decoration: none; }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
+      background: var(--fg); color: var(--bg); padding: 0.75rem 1.5rem;
+      border-radius: var(--radius); font-size: 0.875rem; font-weight: 500;
+      opacity: 0; pointer-events: none; transition: opacity 0.3s;
+      z-index: 100;
+    }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-inner">
+      <a href="/" class="logo-link">
+        <img src="/assets/safal-logo.jpg" alt="Safal Online Academy Logo" class="logo-img" onerror="this.style.display='none'" />
+        <div>
+          <div class="logo-title">Safal Online Academy</div>
+          <div class="logo-sub">Learn • Prepare • Succeed</div>
+        </div>
+      </a>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/products">Products</a></li>
+          <li><a href="/demo" style="color:var(--primary);font-weight:600;">Demo</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main>
+    <div class="container">
+      <h1 class="page-title">🎧 Demo Audio</h1>
+      <p class="page-sub">Current Affairs - February Edition (Preview)</p>
+
+      <div class="player-card">
+        <audio id="audio" src="Current_Affairs_asof_Feb_demo.mp3" preload="metadata"></audio>
+
+        <div class="album-art">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+        </div>
+
+        <div class="track-title">Current Affairs - Feb Demo</div>
+        <div class="track-artist">Safal Online Academy</div>
+
+        <div class="progress-wrap" id="progressWrap">
+          <div class="progress-bar" id="progressBar" style="width:0%">
+            <div class="progress-thumb"></div>
+          </div>
+        </div>
+        <div class="time-row">
+          <span id="currentTime">0:00</span>
+          <span id="duration">0:00</span>
+        </div>
+
+        <div class="controls">
+          <button class="play-btn" id="playBtn" aria-label="Play / Pause">
+            <svg id="playIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <svg id="pauseIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+          </button>
+        </div>
+
+        <div class="share-row">
+          <button class="share-btn" id="shareBtn">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            Share this demo
+          </button>
+        </div>
+      </div>
+
+      <div class="cta-row">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        Like what you hear?&nbsp;<a href="/products">Check out our full products!</a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    &copy; 2025 <a href="/">Safal Online Academy</a>. All rights reserved.
+  </footer>
+
+  <div class="toast" id="toast">Link copied to clipboard!</div>
+
+  <script>
+    const audio = document.getElementById('audio');
+    const playBtn = document.getElementById('playBtn');
+    const playIcon = document.getElementById('playIcon');
+    const pauseIcon = document.getElementById('pauseIcon');
+    const progressBar = document.getElementById('progressBar');
+    const progressWrap = document.getElementById('progressWrap');
+    const currentTimeEl = document.getElementById('currentTime');
+    const durationEl = document.getElementById('duration');
+    const shareBtn = document.getElementById('shareBtn');
+    const toastEl = document.getElementById('toast');
+
+    let isPlaying = false;
+
+    function formatTime(t) {
+      if (!t || isNaN(t)) return '0:00';
+      const m = Math.floor(t / 60);
+      const s = Math.floor(t % 60);
+      return m + ':' + String(s).padStart(2, '0');
+    }
+
+    playBtn.addEventListener('click', function() {
+      if (isPlaying) { audio.pause(); } else { audio.play(); }
+      isPlaying = !isPlaying;
+      playIcon.style.display = isPlaying ? 'none' : '';
+      pauseIcon.style.display = isPlaying ? '' : 'none';
+    });
+
+    audio.addEventListener('timeupdate', function() {
+      const pct = (audio.currentTime / audio.duration) * 100;
+      progressBar.style.width = pct + '%';
+      currentTimeEl.textContent = formatTime(audio.currentTime);
+    });
+
+    audio.addEventListener('loadedmetadata', function() {
+      durationEl.textContent = formatTime(audio.duration);
+    });
+
+    audio.addEventListener('ended', function() {
+      isPlaying = false;
+      playIcon.style.display = '';
+      pauseIcon.style.display = 'none';
+    });
+
+    progressWrap.addEventListener('click', function(e) {
+      const rect = progressWrap.getBoundingClientRect();
+      const pct = (e.clientX - rect.left) / rect.width;
+      audio.currentTime = pct * audio.duration;
+    });
+
+    shareBtn.addEventListener('click', async function() {
+      const url = window.location.href;
+      if (navigator.share) {
+        try { await navigator.share({ title: 'Demo Audio - Safal Online Academy', url: url }); } catch(e) {}
+      } else {
+        await navigator.clipboard.writeText(url);
+        toastEl.classList.add('show');
+        setTimeout(function() { toastEl.classList.remove('show'); }, 2500);
+      }
+    });
+  </script>
+</body>
+</html>
