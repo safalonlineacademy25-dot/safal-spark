@@ -358,18 +358,19 @@ const Cart = () => {
                       <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4, ease: 'easeOut' }}
-                        className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20"
+                        transition={{ duration: 0.5, ease: 'easeOut' }}
+                        className="py-1"
                       >
-                        <motion.div
-                          animate={{ scale: [1, 1.15, 1] }}
-                          transition={{ repeat: Infinity, repeatDelay: 2, duration: 0.6 }}
-                        >
-                          <Mail className="h-4 w-4 text-primary mt-0.5" />
-                        </motion.div>
-                        <p className="text-xs text-muted-foreground">
-                          <span className="font-medium text-foreground">Enter your details below</span> to receive your order confirmation and download links.
+                        <p className="text-sm text-foreground font-semibold">
+                          Enter your details to receive download link
                         </p>
+                        <motion.span
+                          className="inline-block text-xl mt-1"
+                          animate={{ y: [0, 6, 0] }}
+                          transition={{ repeat: Infinity, duration: 1, ease: 'easeInOut' }}
+                        >
+                          👇
+                        </motion.span>
                       </motion.div>
                     )}
 
@@ -544,12 +545,23 @@ const Cart = () => {
                   <h2 className="text-base font-bold text-foreground">Contact Details</h2>
 
                   {(!customerName || !email || !phone) && (
-                    <div className="flex items-start gap-2 p-2.5 rounded-lg bg-primary/5 border border-primary/20">
-                      <Mail className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                      <p className="text-xs text-muted-foreground">
-                        <span className="font-medium text-foreground">Enter your details</span> to receive download links.
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, ease: 'easeOut' }}
+                      className="py-1"
+                    >
+                      <p className="text-sm text-foreground font-semibold">
+                        Enter your details to receive download link
                       </p>
-                    </div>
+                      <motion.span
+                        className="inline-block text-xl mt-1"
+                        animate={{ y: [0, 6, 0] }}
+                        transition={{ repeat: Infinity, duration: 1, ease: 'easeInOut' }}
+                      >
+                        👇
+                      </motion.span>
+                    </motion.div>
                   )}
 
                   <div>
