@@ -35,8 +35,10 @@ const Cart = () => {
   const { data: allProducts } = useActiveProducts();
   const [whatsappOptIn, setWhatsappOptIn] = useState(true);
   const [whatsappEnabled, setWhatsappEnabled] = useState(false);
+  const [customerName, setCustomerName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [nameError, setNameError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [phoneError, setPhoneError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -95,6 +97,14 @@ const Cart = () => {
 
   const validateForm = (): boolean => {
     let hasErrors = false;
+
+    const nameResult = z.string().trim().min(1, 'Name is required').max(100, 'Name must be less than 100 characters').safeParse(customerName);
+    if (!nameResult.success) {
+      setNameError(nameResult.error.errors[0]?.message || 'Name is required');
+      hasErrors = true;
+    } else {
+      setNameError('');
+    }
     
     const emailResult = z.string().trim().min(1, 'Email address is required').email('Please enter a valid email address').max(255, 'Email must be less than 255 characters').safeParse(email);
     if (!emailResult.success) {
@@ -151,7 +161,7 @@ const Cart = () => {
           items,
           customer_email: email,
           customer_phone: phone,
-          customer_name: null,
+          customer_name: customerName.trim() || null,
           whatsapp_optin: whatsappOptIn,
           callback_origin: window.location.origin,
         },
@@ -177,6 +187,7 @@ const Cart = () => {
           order_number: orderData.order_number,
           email,
           phone,
+          name: customerName.trim(),
         }));
       } catch (e) {
         // sessionStorage might not be available
@@ -343,7 +354,7 @@ const Cart = () => {
 
                   {/* Contact Details */}
                   <div className="space-y-3 mb-4">
-                    {(!email || !phone) && (
+                  {(!customerName || !email || !phone) && (
                       <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -361,6 +372,31 @@ const Cart = () => {
                         </p>
                       </motion.div>
                     )}
+
+                    <div>
+                      <label className="text-[11px] font-bold uppercase tracking-widest text-foreground mb-1.5 block" style={{ textShadow: '0 1px 0 hsl(var(--muted)), 0 2px 3px rgba(0,0,0,0.1)' }}>
+                        Your Name <span className="text-destructive">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={customerName}
+                        onChange={(e) => {
+                          setCustomerName(e.target.value);
+                          if (nameError) setNameError('');
+                        }}
+                        placeholder="Enter your full name"
+                        maxLength={100}
+                        className={`w-full px-3 py-2 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm ${
+                          nameError ? 'border-destructive' : 'border-input'
+                        }`}
+                      />
+                      {nameError && (
+                        <div className="flex items-center gap-1.5 mt-1.5 px-2 py-1.5 rounded-md bg-destructive/10 border border-destructive/30 animate-shake">
+                          <AlertCircle className="h-3.5 w-3.5 text-destructive flex-shrink-0" />
+                          <p className="text-xs font-medium text-destructive">{nameError}</p>
+                        </div>
+                      )}
+                    </div>
 
                     <div>
                       <label className="text-[11px] font-bold uppercase tracking-widest text-foreground mb-1.5 block" style={{ textShadow: '0 1px 0 hsl(var(--muted)), 0 2px 3px rgba(0,0,0,0.1)' }}>
@@ -481,7 +517,7 @@ const Cart = () => {
                 <div className="bg-card rounded-xl border border-border p-4 space-y-3">
                   <h2 className="text-base font-bold text-foreground">Contact Details</h2>
 
-                  {(!email || !phone) && (
+                  {(!customerName || !email || !phone) && (
                     <div className="flex items-start gap-2 p-2.5 rounded-lg bg-primary/5 border border-primary/20">
                       <Mail className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                       <p className="text-xs text-muted-foreground">
@@ -489,6 +525,31 @@ const Cart = () => {
                       </p>
                     </div>
                   )}
+
+                  <div>
+                    <label className="text-xs font-extrabold uppercase tracking-widest text-foreground mb-1.5 block" style={{ textShadow: '0 1px 0 hsl(var(--muted)), 0 2px 4px rgba(0,0,0,0.15)' }}>
+                      Your Name <span className="text-destructive">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={customerName}
+                      onChange={(e) => {
+                        setCustomerName(e.target.value);
+                        if (nameError) setNameError('');
+                      }}
+                      placeholder="Enter your full name"
+                      maxLength={100}
+                      className={`w-full px-3 py-2 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm ${
+                        nameError ? 'border-destructive' : 'border-input'
+                      }`}
+                    />
+                    {nameError && (
+                      <div className="flex items-center gap-1.5 mt-1.5 px-2 py-1.5 rounded-md bg-destructive/10 border border-destructive/30 animate-shake">
+                        <AlertCircle className="h-3.5 w-3.5 text-destructive flex-shrink-0" />
+                        <p className="text-xs font-medium text-destructive">{nameError}</p>
+                      </div>
+                    )}
+                  </div>
 
                   <div>
                     <label className="text-xs font-extrabold uppercase tracking-widest text-foreground mb-1.5 block" style={{ textShadow: '0 1px 0 hsl(var(--muted)), 0 2px 4px rgba(0,0,0,0.15)' }}>
