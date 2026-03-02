@@ -493,11 +493,37 @@ const Cart = () => {
                     )}
                   </Button>
 
-                  <div className="mt-4 space-y-2">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  {/* Payment method icons */}
+                  <div className="mt-4 p-3 rounded-lg bg-muted/50 border border-border">
+                    <div className="flex items-center gap-1.5 mb-2">
                       <Shield className="h-3.5 w-3.5 text-secondary" />
-                      <span>Secure payment · UPI, GPay, PhonePe, Cards</span>
+                      <span className="text-xs font-semibold text-foreground">Secure Payment Options</span>
                     </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-background border border-border text-[11px] font-bold text-foreground shadow-sm">
+                        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="1.5"/><path d="M2 10h20" stroke="currentColor" strokeWidth="1.5"/><path d="M6 15h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                        Cards
+                      </span>
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-background border border-border text-[11px] font-bold shadow-sm" style={{ color: '#4285F4' }}>
+                        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor"><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/></svg>
+                        GPay
+                      </span>
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-background border border-border text-[11px] font-bold shadow-sm" style={{ color: '#5f259f' }}>
+                        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+                        PhonePe
+                      </span>
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-background border border-border text-[11px] font-bold shadow-sm" style={{ color: '#00897B' }}>
+                        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+                        UPI
+                      </span>
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-background border border-border text-[11px] font-bold shadow-sm text-foreground">
+                        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V6h16v12zM4 0h16v2H4zm0 22h16v2H4z"/></svg>
+                        Net Banking
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 space-y-2">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Mail className="h-3.5 w-3.5 text-primary" />
                       <span>Download link sent to email</span>
@@ -650,6 +676,15 @@ const Cart = () => {
               </>
             )}
           </Button>
+          <div className="flex items-center justify-center gap-3 mt-2 opacity-70">
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Pay with</span>
+            <div className="flex items-center gap-1.5">
+              <span className="px-1.5 py-0.5 rounded bg-muted text-[10px] font-bold text-foreground border border-border">UPI</span>
+              <span className="px-1.5 py-0.5 rounded bg-muted text-[10px] font-bold border border-border" style={{ color: '#4285F4' }}>GPay</span>
+              <span className="px-1.5 py-0.5 rounded bg-muted text-[10px] font-bold border border-border" style={{ color: '#5f259f' }}>PhonePe</span>
+              <span className="px-1.5 py-0.5 rounded bg-muted text-[10px] font-bold text-foreground border border-border">Cards</span>
+            </div>
+          </div>
         </div>
 
         <div className="hidden lg:block">
