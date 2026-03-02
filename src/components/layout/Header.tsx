@@ -1,9 +1,10 @@
 import { useState, useRef, type MouseEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, Menu, X, BookOpen } from 'lucide-react';
+import { ShoppingCart, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/lib/store';
+import safalLogo from '@/assets/safal-logo.jpg';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -125,12 +126,12 @@ const Header = () => {
           {/* Logo with hover effect */}
           <Link to="/" className="flex items-center gap-3 group">
             <motion.div 
-              className="flex h-12 w-12 items-center justify-center rounded-xl hero-gradient shadow-lg"
+              className="flex h-12 w-12 items-center justify-center rounded-xl overflow-hidden shadow-lg"
               whileHover={{ scale: 1.15, rotate: 8, boxShadow: '0 8px 25px hsl(var(--primary) / 0.4)' }}
               whileTap={{ scale: 0.95 }}
               transition={{ type: 'spring', stiffness: 400, damping: 17 }}
             >
-              <BookOpen className="h-7 w-7 text-primary-foreground" />
+              <img src={safalLogo} alt="Safal Online Academy Logo" className="h-full w-full object-cover" />
             </motion.div>
             <motion.div 
               className="flex flex-col"
