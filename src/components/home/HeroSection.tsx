@@ -6,7 +6,7 @@ import studentStudy1 from '@/assets/student-study-1.jpg';
 import studentStudy2 from '@/assets/student-study-2.jpg';
 import studentStudy3 from '@/assets/student-study-3.jpg';
 
-const ROTATING_WORDS = ['MPSC', 'Banking', 'SSC', 'Talathi', 'Police Bharti'];
+const ROTATING_WORDS = ['MPSC', 'Banking', 'SSC', 'Talathi Bharti', 'Police Bharti', 'Court Assistant'];
 const EXAM_ICONS = [BookOpen, FileText, Headphones, Sparkles, Award];
 
 const HeroSection = () => {
