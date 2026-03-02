@@ -73,7 +73,7 @@ const DemoManagementTab = () => {
   // Upload audio file to storage
   const uploadAudioFile = async (file: File): Promise<{ url: string; fileName: string }> => {
     const fileExt = file.name.split('.').pop();
-    const filePath = `demo-audio/${Date.now()}-${file.name}`;
+    const filePath = `${Date.now()}-${file.name}`;
 
     const { data: sessionData } = await supabase.auth.getSession();
     const accessToken = sessionData?.session?.access_token;
@@ -92,7 +92,7 @@ const DemoManagementTab = () => {
         uploadDataDuringCreation: true,
         removeFingerprintOnSuccess: true,
         metadata: {
-          bucketName: 'product-files',
+          bucketName: 'demo-files',
           objectName: filePath,
           contentType: file.type,
           cacheControl: '3600',
@@ -106,7 +106,7 @@ const DemoManagementTab = () => {
           setUploadProgress(Math.round((bytesUploaded / bytesTotal) * 100));
         },
         onSuccess: () => {
-          const { data: urlData } = supabase.storage.from('product-files').getPublicUrl(filePath);
+          const { data: urlData } = supabase.storage.from('demo-files').getPublicUrl(filePath);
           resolve({ url: filePath, fileName: file.name });
         },
       });
@@ -201,7 +201,7 @@ const DemoManagementTab = () => {
     mutationFn: async (demo: DemoFile) => {
       // Delete file from storage
       if (demo.file_url) {
-        await supabase.storage.from('product-files').remove([demo.file_url]);
+        await supabase.storage.from('demo-files').remove([demo.file_url]);
       }
       const { error } = await supabase.from('demo_files').delete().eq('id', demo.id);
       if (error) throw error;
