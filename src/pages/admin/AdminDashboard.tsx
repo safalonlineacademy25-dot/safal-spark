@@ -57,6 +57,7 @@ import CampaignOffersTab from '@/components/admin/CampaignOffersTab';
 import VisitorStatsTab from '@/components/admin/VisitorStatsTab';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
 import DemoManagementTab from '@/components/admin/DemoManagementTab';
+import ManualDownloadTab from '@/components/admin/ManualDownloadTab';
 import FailedEmailsTab from '@/components/admin/FailedEmailsTab';
 import OrdersChart from '@/components/admin/OrdersChart';
 import { usePagination } from '@/hooks/usePagination';
@@ -226,6 +227,7 @@ const AdminDashboard = () => {
     { id: 'broadcasts', label: 'Broadcast History', icon: History },
     { id: 'promotions', label: 'Promotions', icon: Sparkles },
     { id: 'campaigns', label: 'Combo Offers', icon: Gift },
+    { id: 'manual-download', label: 'Send Download', icon: FileDown },
     { id: 'demo', label: 'Demo Audio', icon: Music },
     { id: 'dbsnapshot', label: 'DB Snapshot', icon: Database },
     ...(isSuperAdmin ? [{ id: 'datapurging', label: 'Data Purging', icon: Trash2 }] : []),
@@ -1402,6 +1404,12 @@ const AdminDashboard = () => {
             {activeTab === 'campaigns' && (
               <ErrorBoundary>
                 <CampaignOffersTab products={products} isLoading={productsLoading} isSuperAdmin={isSuperAdmin} />
+              </ErrorBoundary>
+            )}
+
+            {activeTab === 'manual-download' && (
+              <ErrorBoundary>
+                <ManualDownloadTab />
               </ErrorBoundary>
             )}
 
