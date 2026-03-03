@@ -121,15 +121,6 @@ const ProductsSection = () => {
           viewport={viewportSettings}
           className="text-center mb-4 md:mb-6"
         >
-          <motion.span 
-            className="inline-block px-4 py-1.5 rounded-full bg-secondary/10 text-secondary text-sm font-medium mb-4"
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={viewportSettings}
-            transition={{ duration: 0.4 }}
-          >
-            Our Products
-          </motion.span>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             All Study Materials
           </h2>
