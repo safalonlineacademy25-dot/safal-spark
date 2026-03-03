@@ -133,9 +133,6 @@ const ProductsSection = () => {
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             All Study Materials
           </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto text-sm md:text-base">
-            Choose the package that suits your preparation. All products include instant PDF download.
-          </p>
         </motion.div>
 
         {/* Category Tabs */}
