@@ -106,7 +106,7 @@ const HeroSection = () => {
       </div>
 
       <div className="relative container-custom">
-        <div className="py-4 md:py-6">
+        <div className="py-2 md:py-3">
           <motion.div 
             className="max-w-6xl mx-auto w-full"
             variants={staggerContainer} 
@@ -118,7 +118,7 @@ const HeroSection = () => {
               {/* Animated Trust Badge */}
               <motion.div 
                 variants={staggerItem} 
-                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 mb-2"
+                className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 mb-1"
                 whileHover={{ scale: 1.05, borderColor: 'rgba(255,255,255,0.4)' }}
               >
                 <motion.div
@@ -135,14 +135,14 @@ const HeroSection = () => {
               {/* Main Headline with Rotating Word */}
               <motion.h1 
                 variants={staggerItem} 
-                className="text-2xl sm:text-3xl md:text-5xl font-black text-primary-foreground leading-[1.1] mb-2 tracking-tight"
+                className="text-xl sm:text-2xl md:text-4xl font-black text-primary-foreground leading-[1.1] mb-1 tracking-tight"
               >
                 <span className="block">Crack Your</span>
                 <span className="block h-[1.4em] mt-1 relative overflow-hidden">
                   <AnimatePresence mode="wait">
                     <motion.span
                       key={wordIndex}
-                      className="inline-block px-4 py-0.5 rounded-lg text-3xl sm:text-4xl md:text-6xl font-black tracking-wider uppercase"
+                      className="inline-block px-3 py-0.5 rounded-lg text-2xl sm:text-3xl md:text-5xl font-black tracking-wider uppercase"
                       style={{
                         background: 'linear-gradient(135deg, hsl(160 84% 39%), hsl(160 84% 55%), hsl(120 70% 55%))',
                         WebkitBackgroundClip: 'text',
@@ -159,7 +159,7 @@ const HeroSection = () => {
                     </motion.span>
                   </AnimatePresence>
                 </span>
-                <span className="block text-lg sm:text-xl md:text-2xl font-bold text-white/80 mt-1">
+                <span className="block text-base sm:text-lg md:text-xl font-bold text-white/80 mt-0.5">
                   Exam with Smart Notes
                 </span>
               </motion.h1>
@@ -167,7 +167,7 @@ const HeroSection = () => {
               {/* Student Images with Orbit Effect */}
               <motion.div 
                 variants={staggerItem}
-                className="flex items-center justify-center gap-6 md:gap-10 lg:gap-14 my-3"
+                className="flex items-center justify-center gap-6 md:gap-10 lg:gap-14 my-2"
               >
                 {studentImages.map((student, index) => {
                   // Subtle, staggered float for a refined corporate feel
@@ -221,7 +221,7 @@ const HeroSection = () => {
                             delay: index * 0.4,
                           }}
                         />
-                        <div className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl overflow-hidden ring-2 ring-white/30 shadow-lg hover:ring-secondary hover:shadow-2xl hover:shadow-secondary/30 transition-all duration-300">
+                        <div className="relative w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl overflow-hidden ring-2 ring-white/30 shadow-lg hover:ring-secondary hover:shadow-2xl hover:shadow-secondary/30 transition-all duration-300">
                           <img
                             src={student.src}
                             alt={student.label}
@@ -246,7 +246,7 @@ const HeroSection = () => {
               {/* Animated Stats Counter */}
               <motion.div
                 variants={staggerItem}
-                className="flex items-center justify-center gap-6 md:gap-10 mb-3"
+                className="flex items-center justify-center gap-6 md:gap-10 mb-2"
               >
                 {stats.map((stat, index) => (
                   <motion.div
@@ -257,7 +257,7 @@ const HeroSection = () => {
                     transition={{ delay: 0.6 + index * 0.15, type: 'spring', stiffness: 200 }}
                   >
                     <motion.div 
-                      className="text-lg sm:text-xl md:text-2xl font-black text-secondary"
+                      className="text-base sm:text-lg md:text-xl font-black text-secondary"
                       animate={{ scale: [1, 1.05, 1] }}
                       transition={{ duration: 3, repeat: Infinity, delay: index * 0.5 }}
                     >
