@@ -38,7 +38,7 @@ const HeroSection = () => {
   ];
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary/95 to-primary/90 min-h-[420px] md:min-h-[480px]">
+    <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary/95 to-primary/90">
       
       {/* Animated Gradient Orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -106,7 +106,7 @@ const HeroSection = () => {
       </div>
 
       <div className="relative container-custom">
-        <div className="py-6 md:py-10">
+        <div className="py-4 md:py-6">
           <motion.div 
             className="max-w-6xl mx-auto w-full"
             variants={staggerContainer} 
@@ -118,7 +118,7 @@ const HeroSection = () => {
               {/* Animated Trust Badge */}
               <motion.div 
                 variants={staggerItem} 
-                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 mb-4"
+                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 mb-2"
                 whileHover={{ scale: 1.05, borderColor: 'rgba(255,255,255,0.4)' }}
               >
                 <motion.div
@@ -167,7 +167,7 @@ const HeroSection = () => {
               {/* Student Images with Orbit Effect */}
               <motion.div 
                 variants={staggerItem}
-                className="flex items-center justify-center gap-6 md:gap-10 lg:gap-14 my-5"
+                className="flex items-center justify-center gap-6 md:gap-10 lg:gap-14 my-3"
               >
                 {studentImages.map((student, index) => {
                   // Subtle, staggered float for a refined corporate feel
@@ -246,7 +246,7 @@ const HeroSection = () => {
               {/* Animated Stats Counter */}
               <motion.div
                 variants={staggerItem}
-                className="flex items-center justify-center gap-6 md:gap-10 mb-5"
+                className="flex items-center justify-center gap-6 md:gap-10 mb-3"
               >
                 {stats.map((stat, index) => (
                   <motion.div
