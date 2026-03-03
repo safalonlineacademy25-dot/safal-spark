@@ -115,16 +115,23 @@ export const useAuth = () => {
 
     getInitialSession();
 
+    // Track the latest role check to prevent stale results from overwriting newer ones
+    let roleCheckVersion = 0;
+
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         // Debug: log auth change events
         console.debug('[useAuth] onAuthStateChange', { time: new Date().toISOString(), event, userId: session?.user?.id });
 
+        // Skip INITIAL_SESSION — already handled by getInitialSession above
+        if (event === 'INITIAL_SESSION') return;
+
         // Handle sign-out events synchronously to avoid race conditions
         // when multiple tabs are open
         if (event === 'SIGNED_OUT' || !session?.user) {
           if (cancelled) return;
+          roleCheckVersion++;
           setAuthState({
             user: null,
             session: null,
@@ -137,16 +144,16 @@ export const useAuth = () => {
           return;
         }
 
-        // For sign-in events, defer role checks to avoid deadlocks
-        // Using setTimeout(0) prevents blocking the auth state change callback
+        // For sign-in / token refresh events, defer role checks to avoid deadlocks
         if (session?.user) {
+          const thisVersion = ++roleCheckVersion;
           setTimeout(async () => {
-            if (cancelled) return;
+            if (cancelled || thisVersion !== roleCheckVersion) return;
             try {
               const roleInfo = await checkRolesWithTimeout(session.user.id);
-              if (cancelled) return;
+              if (cancelled || thisVersion !== roleCheckVersion) return;
 
-              console.debug('[useAuth] roleInfo (onAuthStateChange)', { userId: session.user.id, roleInfo });
+              console.debug('[useAuth] roleInfo (onAuthStateChange)', { event, userId: session.user.id, roleInfo });
 
               setAuthState({
                 user: session.user,
@@ -159,7 +166,7 @@ export const useAuth = () => {
               });
             } catch (e) {
               console.error('Auth change error:', e);
-              if (!cancelled) {
+              if (!cancelled && thisVersion === roleCheckVersion) {
                 setAuthState({
                   user: session.user,
                   session,
