@@ -1,10 +1,11 @@
 import { Helmet } from "react-helmet-async";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import { Play, Pause, Volume2, CheckCircle, Loader2 } from "lucide-react";
+import { Play, Pause, Volume2, CheckCircle, Loader2, ExternalLink } from "lucide-react";
 import { useRef, useState, useCallback, createContext, useContext } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Link } from "react-router-dom";
 
 interface DemoFile {
   id: string;
@@ -214,7 +215,18 @@ const Demo = () => {
           ) : (
             <div className="space-y-6">
               {demoFiles.map((demo) => (
-                <DemoAudioPlayer key={demo.id} demo={demo} />
+                <div key={demo.id} className="relative">
+                  <DemoAudioPlayer demo={demo} />
+                  <div className="flex justify-center mt-2">
+                    <Link
+                      to={`/demo/${demo.id}`}
+                      className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      Open shareable link
+                    </Link>
+                  </div>
+                </div>
               ))}
             </div>
           )}
