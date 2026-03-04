@@ -17,6 +17,7 @@ import Disclaimer from "./pages/Disclaimer";
 import AboutUs from "./pages/AboutUs";
 import NotFound from "./pages/NotFound";
 import Demo from "./pages/Demo";
+import DemoSingle from "./pages/DemoSingle";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/products" element={<Products />} />
             <Route path="/demo" element={<Demo />} />
+            <Route path="/demo/:id" element={<DemoSingle />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/order-success" element={<OrderSuccess />} />
             <Route path="/admin" element={<AdminLogin />} />
