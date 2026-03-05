@@ -178,7 +178,7 @@ export default function WhatsAppOrder() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-lg">
                       <ShoppingBag className="h-5 w-5 text-primary" />
-                      Select Product
+                      {isPreSelected ? "Selected Product" : "Select Product"}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -246,10 +246,13 @@ export default function WhatsAppOrder() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-lg">
                       <User className="h-5 w-5 text-primary" />
-                      Your Details
+                      Please provide your details 👇
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    <p className="text-xs text-muted-foreground">
+                      All fields are mandatory. Enter your details to receive the download link on email & payment link on WhatsApp.
+                    </p>
                     <div className="space-y-2">
                       <Label htmlFor="wa-name" className="flex items-center gap-1.5">
                         <User className="h-3.5 w-3.5" /> Full Name
