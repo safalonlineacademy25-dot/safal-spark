@@ -18,6 +18,7 @@ import AboutUs from "./pages/AboutUs";
 import NotFound from "./pages/NotFound";
 import Demo from "./pages/Demo";
 import DemoSingle from "./pages/DemoSingle";
+import WhatsAppOrder from "./pages/WhatsAppOrder";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,7 @@ const App = () => (
             <Route path="/refund" element={<RefundPolicy />} />
             <Route path="/disclaimer" element={<Disclaimer />} />
             <Route path="/about" element={<AboutUs />} />
+            <Route path="/order-whatsapp" element={<WhatsAppOrder />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
