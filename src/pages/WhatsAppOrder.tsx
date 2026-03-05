@@ -67,6 +67,7 @@ export default function WhatsAppOrder() {
   }, [searchParams]);
 
   const selectedProduct = products.find((p) => p.id === selectedProductId);
+  const isPreSelected = !!searchParams.get("product") && !!selectedProduct;
 
   // Group products by category
   const productsByCategory = products.reduce<Record<string, Product[]>>((acc, p) => {
@@ -184,6 +185,19 @@ export default function WhatsAppOrder() {
                     {loadingProducts ? (
                       <div className="flex items-center justify-center py-8">
                         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : isPreSelected ? (
+                      <div className="p-4 rounded-lg bg-muted/50 border border-border">
+                        <h3 className="font-semibold text-foreground">{selectedProduct.name}</h3>
+                        {selectedProduct.description && (
+                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{selectedProduct.description}</p>
+                        )}
+                        <div className="mt-2 flex items-baseline gap-2">
+                          <span className="text-xl font-bold price-text">₹{selectedProduct.price}</span>
+                          {selectedProduct.original_price && selectedProduct.original_price > selectedProduct.price && (
+                            <span className="text-sm price-original">₹{selectedProduct.original_price}</span>
+                          )}
+                        </div>
                       </div>
                     ) : (
                       <>

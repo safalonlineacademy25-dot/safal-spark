@@ -73,7 +73,7 @@ const WhatsAppOrderLinkDialog = ({ productId, productName, productPrice }: Whats
           <MessageCircle className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle className="text-lg flex items-center gap-2">
             <MessageCircle className="h-5 w-5 text-green-600" />
