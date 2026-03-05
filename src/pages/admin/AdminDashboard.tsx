@@ -44,6 +44,7 @@ import EditProductDialog from '@/components/admin/EditProductDialog';
 import DeleteProductDialog from '@/components/admin/DeleteProductDialog';
 import OrderDetailsDialog from '@/components/admin/OrderDetailsDialog';
 import ProductQRCodeDialog from '@/components/admin/ProductQRCodeDialog';
+import WhatsAppOrderLinkDialog from '@/components/admin/WhatsAppOrderLinkDialog';
 import DBSnapshotTab from '@/components/admin/DBSnapshotTab';
 import SettingsTab from '@/components/admin/SettingsTab';
 import WhatsAppSettingsTab from '@/components/admin/WhatsAppSettingsTab';
@@ -751,6 +752,7 @@ const AdminDashboard = () => {
                               <td className="p-4">
                                 <div className="flex items-center gap-2">
                                   <ProductQRCodeDialog productId={product.id} productName={product.name} />
+                                  <WhatsAppOrderLinkDialog productId={product.id} productName={product.name} productPrice={product.price} />
                                   <Button variant="ghost" size="icon" className="h-8 w-8">
                                     <Eye className="h-4 w-4" />
                                   </Button>
