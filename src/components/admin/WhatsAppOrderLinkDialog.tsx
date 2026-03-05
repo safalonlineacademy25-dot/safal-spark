@@ -81,50 +81,50 @@ const WhatsAppOrderLinkDialog = ({ productId, productName, productPrice }: Whats
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col items-center gap-5 py-4">
+        <div className="flex flex-col items-center gap-3 py-2">
           {/* Product info */}
-          <div className="w-full p-3 bg-muted rounded-lg text-center">
-            <p className="font-semibold text-foreground">{productName}</p>
-            <p className="text-sm text-muted-foreground">₹{productPrice}</p>
+          <div className="w-full p-2 bg-muted rounded-lg text-center">
+            <p className="font-semibold text-sm text-foreground">{productName}</p>
+            <p className="text-xs text-muted-foreground">₹{productPrice}</p>
           </div>
 
           {/* QR Code */}
-          <div ref={qrRef} className="p-4 bg-white rounded-xl shadow-sm border">
+          <div ref={qrRef} className="p-2 bg-white rounded-xl shadow-sm border">
             <QRCodeSVG
               value={orderUrl}
-              size={200}
+              size={140}
               level="H"
-              includeMargin
+              includeMargin={false}
               bgColor="#ffffff"
               fgColor="#000000"
             />
           </div>
 
-          <p className="text-xs text-muted-foreground text-center">
-            Share this link or QR code with students. They'll see the product pre-selected and just need to fill their details.
+          <p className="text-[11px] text-muted-foreground text-center leading-tight">
+            Share this link or QR code with students.
           </p>
 
           {/* URL preview */}
-          <div className="w-full p-3 bg-muted rounded-lg">
-            <p className="text-xs text-muted-foreground font-mono break-all">{orderUrl}</p>
+          <div className="w-full p-2 bg-muted rounded-lg">
+            <p className="text-[11px] text-muted-foreground font-mono break-all">{orderUrl}</p>
           </div>
 
           {/* Actions */}
-          <div className="grid grid-cols-2 gap-3 w-full">
-            <Button variant="outline" onClick={handleCopyLink}>
+          <div className="grid grid-cols-2 gap-2 w-full">
+            <Button variant="outline" size="sm" onClick={handleCopyLink}>
               {copied ? (
-                <><Check className="mr-2 h-4 w-4" /> Copied!</>
+                <><Check className="mr-1.5 h-3.5 w-3.5" /> Copied!</>
               ) : (
-                <><Copy className="mr-2 h-4 w-4" /> Copy Link</>
+                <><Copy className="mr-1.5 h-3.5 w-3.5" /> Copy Link</>
               )}
             </Button>
-            <Button variant="outline" onClick={handleDownloadQR}>
-              <Download className="mr-2 h-4 w-4" /> Download QR
+            <Button variant="outline" size="sm" onClick={handleDownloadQR}>
+              <Download className="mr-1.5 h-3.5 w-3.5" /> Download QR
             </Button>
           </div>
 
-          <Button onClick={handleShareWhatsApp} className="w-full bg-green-600 hover:bg-green-700 text-white">
-            <ExternalLink className="mr-2 h-4 w-4" />
+          <Button size="sm" onClick={handleShareWhatsApp} className="w-full bg-green-600 hover:bg-green-700 text-white">
+            <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
             Share via WhatsApp
           </Button>
         </div>
