@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { MessageCircle, Send, CheckCircle, Loader2, ShoppingBag, User, Mail, Phone } from "lucide-react";
@@ -36,6 +37,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export default function WhatsAppOrder() {
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [selectedProductId, setSelectedProductId] = useState("");
@@ -55,8 +57,14 @@ export default function WhatsAppOrder() {
         .order("name");
       setProducts(data || []);
       setLoadingProducts(false);
+
+      // Auto-select product from URL param
+      const productParam = searchParams.get("product");
+      if (productParam && data?.some((p) => p.id === productParam)) {
+        setSelectedProductId(productParam);
+      }
     })();
-  }, []);
+  }, [searchParams]);
 
   const selectedProduct = products.find((p) => p.id === selectedProductId);
 
