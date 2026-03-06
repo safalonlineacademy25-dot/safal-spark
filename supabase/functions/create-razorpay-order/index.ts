@@ -77,6 +77,13 @@ async function createRazorpayPaymentLink(
     notes: {
       internal_order_id: orderId,
     },
+    options: {
+      checkout: {
+        prefill: {
+          method: "upi",
+        },
+      },
+    },
   };
 
   if (customerName) {
