@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
-import { MessageCircle, Send, CheckCircle, Loader2, ShoppingBag, User, Mail, Phone } from "lucide-react";
+import { CreditCard, ShoppingBag, User, Mail, Phone, Loader2, Shield, CheckCircle } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -45,7 +45,6 @@ export default function WhatsAppOrder() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState<{ orderNumber: string; whatsappSent: boolean; paymentUrl: string } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -58,7 +57,6 @@ export default function WhatsAppOrder() {
       setProducts(data || []);
       setLoadingProducts(false);
 
-      // Auto-select product from URL param
       const productParam = searchParams.get("product");
       if (productParam && data?.some((p) => p.id === productParam)) {
         setSelectedProductId(productParam);
@@ -69,7 +67,6 @@ export default function WhatsAppOrder() {
   const selectedProduct = products.find((p) => p.id === selectedProductId);
   const isPreSelected = !!searchParams.get("product") && !!selectedProduct;
 
-  // Group products by category
   const productsByCategory = products.reduce<Record<string, Product[]>>((acc, p) => {
     if (!acc[p.category]) acc[p.category] = [];
     acc[p.category].push(p);
@@ -87,32 +84,84 @@ export default function WhatsAppOrder() {
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) return;
+    if (!validateForm() || !selectedProduct) return;
     setSubmitting(true);
+
+    const timeoutId = setTimeout(() => {
+      toast({
+        title: 'Request timed out',
+        description: 'The payment request took too long. Please try again.',
+        variant: 'destructive',
+      });
+      setSubmitting(false);
+    }, 30000);
+
     try {
-      const { data, error } = await supabase.functions.invoke("create-whatsapp-order", {
+      const items = [{
+        id: selectedProduct.id,
+        name: selectedProduct.name,
+        price: selectedProduct.price,
+        quantity: 1,
+      }];
+
+      const { data: orderData, error: orderError } = await supabase.functions.invoke('create-razorpay-order', {
         body: {
-          product_id: selectedProductId,
-          customer_name: name.trim(),
+          items,
           customer_email: email.trim().toLowerCase(),
           customer_phone: phone.trim(),
+          customer_name: name.trim(),
+          whatsapp_optin: true,
           callback_origin: window.location.origin,
         },
       });
 
-      if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || "Order creation failed");
+      clearTimeout(timeoutId);
 
-      setSuccess({
-        orderNumber: data.order_number,
-        whatsappSent: data.whatsapp_sent,
-        paymentUrl: data.payment_url,
-      });
+      if (orderError || !orderData?.success) {
+        throw new Error(orderData?.error || orderError?.message || 'Failed to create order');
+      }
 
-      toast({ title: "Order created!", description: data.whatsapp_sent ? "Payment link sent to your WhatsApp!" : "Payment link is ready." });
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Something went wrong", variant: "destructive" });
-    } finally {
+      if (!orderData.payment_url) {
+        throw new Error('Payment link not generated. Please contact support.');
+      }
+
+      // Save order context before redirect
+      try {
+        sessionStorage.setItem('pending_order', JSON.stringify({
+          order_number: orderData.order_number,
+          email: email.trim().toLowerCase(),
+          phone: phone.trim(),
+          name: name.trim(),
+        }));
+      } catch (e) {
+        // sessionStorage might not be available
+      }
+
+      // Redirect to Razorpay payment page
+      window.location.href = orderData.payment_url;
+
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      
+      let errorTitle = 'Payment failed';
+      let errorMessage = 'Something went wrong. Please try again.';
+      
+      const errorText = error.message?.toLowerCase() || '';
+      
+      if (errorText.includes('razorpay') || errorText.includes('payment gateway') || errorText.includes('api key')) {
+        errorTitle = 'Payment gateway not available';
+        errorMessage = 'The payment system is currently being configured. Please try again later.';
+      } else if (errorText.includes('rate limit') || errorText.includes('too many')) {
+        errorTitle = 'Too many attempts';
+        errorMessage = 'Please wait a moment before trying again.';
+      } else if (errorText.includes('network') || errorText.includes('fetch')) {
+        errorTitle = 'Connection error';
+        errorMessage = 'Please check your internet connection and try again.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast({ title: errorTitle, description: errorMessage, variant: 'destructive' });
       setSubmitting(false);
     }
   };
@@ -120,185 +169,175 @@ export default function WhatsAppOrder() {
   return (
     <>
       <Helmet>
-        <title>Order via WhatsApp | Safal Online Academy</title>
-        <meta name="description" content="Quick and easy ordering via WhatsApp. Select a product, fill your details, and receive the payment link on WhatsApp." />
+        <title>Quick Checkout | Safal Online Academy</title>
+        <meta name="description" content="Quick and easy checkout. Select a product, fill your details, and pay securely via UPI, Cards or Net Banking." />
       </Helmet>
       <Header />
       <main className="min-h-screen bg-background">
         {/* Hero */}
-        <section className="hero-gradient py-12 md:py-16">
+        <section className="hero-gradient py-10 md:py-14">
           <div className="container-custom text-center">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
               <div className="inline-flex items-center gap-2 bg-background/20 backdrop-blur-sm rounded-full px-4 py-2 mb-4">
-                <MessageCircle className="h-5 w-5 text-primary-foreground" />
-                <span className="text-primary-foreground font-medium text-sm">Quick WhatsApp Checkout</span>
+                <CreditCard className="h-5 w-5 text-primary-foreground" />
+                <span className="text-primary-foreground font-medium text-sm">Quick & Secure Checkout</span>
               </div>
               <h1 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-3">
-                Order via WhatsApp
+                Buy in 3 Simple Steps
               </h1>
-              <p className="text-primary-foreground/80 max-w-lg mx-auto">
-                Select a product, fill your details, and get the payment link directly on WhatsApp. Simple & fast!
-              </p>
+              <div className="flex items-center justify-center gap-3 md:gap-6 text-primary-foreground/90 text-sm md:text-base mt-4">
+                <span className="flex items-center gap-1.5"><span className="bg-primary-foreground/20 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">1</span> Select Product</span>
+                <span className="text-primary-foreground/40">→</span>
+                <span className="flex items-center gap-1.5"><span className="bg-primary-foreground/20 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">2</span> Fill Details</span>
+                <span className="text-primary-foreground/40">→</span>
+                <span className="flex items-center gap-1.5"><span className="bg-primary-foreground/20 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">3</span> Pay & Download</span>
+              </div>
             </motion.div>
           </div>
         </section>
 
         <div className="container-custom py-8 md:py-12">
-          {success ? (
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-lg mx-auto text-center">
-              <Card className="border-secondary/30">
-                <CardContent className="pt-8 pb-6 space-y-4">
-                  <CheckCircle className="h-16 w-16 text-secondary mx-auto" />
-                  <h2 className="text-2xl font-bold text-foreground">Order Created!</h2>
-                  <p className="text-muted-foreground">Order #{success.orderNumber}</p>
-                  {success.whatsappSent ? (
-                    <div className="bg-secondary/10 rounded-lg p-4 text-sm text-foreground">
-                      <MessageCircle className="h-5 w-5 text-secondary inline mr-2" />
-                      Payment link has been sent to your WhatsApp! Check your messages.
+          <div className="max-w-2xl mx-auto grid gap-6">
+            {/* Product Selection */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <ShoppingBag className="h-5 w-5 text-primary" />
+                    {isPreSelected ? "Selected Product" : "Step 1: Select Product"}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {loadingProducts ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : isPreSelected ? (
+                    <div className="p-4 rounded-lg bg-muted/50 border border-border">
+                      <h3 className="font-semibold text-foreground">{selectedProduct.name}</h3>
+                      {selectedProduct.description && (
+                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{selectedProduct.description}</p>
+                      )}
+                      <div className="mt-2 flex items-baseline gap-2">
+                        <span className="text-xl font-bold price-text">₹{selectedProduct.price}</span>
+                        {selectedProduct.original_price && selectedProduct.original_price > selectedProduct.price && (
+                          <span className="text-sm price-original">₹{selectedProduct.original_price}</span>
+                        )}
+                      </div>
                     </div>
                   ) : (
-                    <div className="bg-muted rounded-lg p-4 text-sm text-foreground">
-                      <p className="mb-3">WhatsApp delivery couldn't be completed. Use this link to pay:</p>
-                      <a href={success.paymentUrl} target="_blank" rel="noopener noreferrer">
-                        <Button className="w-full">Pay Now →</Button>
-                      </a>
-                    </div>
+                    <>
+                      <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Choose a product..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(productsByCategory).map(([category, prods]) => (
+                            <div key={category}>
+                              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                                {CATEGORY_LABELS[category] || category}
+                              </div>
+                              {prods.map((p) => (
+                                <SelectItem key={p.id} value={p.id}>
+                                  {p.name} — ₹{p.price}
+                                </SelectItem>
+                              ))}
+                            </div>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {selectedProduct && (
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-4 p-4 rounded-lg bg-muted/50 border border-border">
+                          <h3 className="font-semibold text-foreground">{selectedProduct.name}</h3>
+                          {selectedProduct.description && (
+                            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{selectedProduct.description}</p>
+                          )}
+                          <div className="mt-2 flex items-baseline gap-2">
+                            <span className="text-xl font-bold price-text">₹{selectedProduct.price}</span>
+                            {selectedProduct.original_price && selectedProduct.original_price > selectedProduct.price && (
+                              <span className="text-sm price-original">₹{selectedProduct.original_price}</span>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </>
                   )}
-                  <Button variant="outline" onClick={() => { setSuccess(null); setSelectedProductId(""); setName(""); setEmail(""); setPhone(""); }}>
-                    Place Another Order
-                  </Button>
                 </CardContent>
               </Card>
             </motion.div>
-          ) : (
-            <div className="max-w-2xl mx-auto grid gap-6">
-              {/* Product Selection */}
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <ShoppingBag className="h-5 w-5 text-primary" />
-                      {isPreSelected ? "Selected Product" : "Select Product"}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {loadingProducts ? (
-                      <div className="flex items-center justify-center py-8">
-                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                      </div>
-                    ) : isPreSelected ? (
-                      <div className="p-4 rounded-lg bg-muted/50 border border-border">
-                        <h3 className="font-semibold text-foreground">{selectedProduct.name}</h3>
-                        {selectedProduct.description && (
-                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{selectedProduct.description}</p>
-                        )}
-                        <div className="mt-2 flex items-baseline gap-2">
-                          <span className="text-xl font-bold price-text">₹{selectedProduct.price}</span>
-                          {selectedProduct.original_price && selectedProduct.original_price > selectedProduct.price && (
-                            <span className="text-sm price-original">₹{selectedProduct.original_price}</span>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <Select value={selectedProductId} onValueChange={setSelectedProductId}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Choose a product..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Object.entries(productsByCategory).map(([category, prods]) => (
-                              <div key={category}>
-                                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                                  {CATEGORY_LABELS[category] || category}
-                                </div>
-                                {prods.map((p) => (
-                                  <SelectItem key={p.id} value={p.id}>
-                                    {p.name} — ₹{p.price}
-                                  </SelectItem>
-                                ))}
-                              </div>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {selectedProduct && (
-                          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-4 p-4 rounded-lg bg-muted/50 border border-border">
-                            <h3 className="font-semibold text-foreground">{selectedProduct.name}</h3>
-                            {selectedProduct.description && (
-                              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{selectedProduct.description}</p>
-                            )}
-                            <div className="mt-2 flex items-baseline gap-2">
-                              <span className="text-xl font-bold price-text">₹{selectedProduct.price}</span>
-                              {selectedProduct.original_price && selectedProduct.original_price > selectedProduct.price && (
-                                <span className="text-sm price-original">₹{selectedProduct.original_price}</span>
-                              )}
-                            </div>
-                          </motion.div>
-                        )}
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-              </motion.div>
 
-              {/* Customer Details */}
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <User className="h-5 w-5 text-primary" />
-                      Please provide your details 👇
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-xs text-muted-foreground">
-                      All fields are mandatory. Enter your details to receive the download link on email & payment link on WhatsApp.
-                    </p>
-                    <div className="space-y-2">
-                      <Label htmlFor="wa-name" className="flex items-center gap-1.5">
-                        <User className="h-3.5 w-3.5" /> Full Name
-                      </Label>
-                      <Input id="wa-name" placeholder="Enter your full name" value={name} onChange={(e) => setName(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="wa-email" className="flex items-center gap-1.5">
-                        <Mail className="h-3.5 w-3.5" /> Email Address
-                      </Label>
-                      <Input id="wa-email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
-                      <p className="text-xs text-muted-foreground">Product download links will be sent here</p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="wa-phone" className="flex items-center gap-1.5">
-                        <Phone className="h-3.5 w-3.5" /> WhatsApp Number
-                      </Label>
-                      <Input id="wa-phone" type="tel" placeholder="10-digit mobile number" value={phone} onChange={(e) => setPhone(e.target.value)} />
-                      <p className="text-xs text-muted-foreground">Payment link will be sent to this WhatsApp number</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              {/* Submit */}
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-                <Button
-                  onClick={handleSubmit}
-                  disabled={submitting || !selectedProductId}
-                  className="w-full h-12 text-base font-semibold gap-2"
-                  size="lg"
-                >
-                  {submitting ? (
-                    <><Loader2 className="h-5 w-5 animate-spin" /> Processing...</>
-                  ) : (
-                    <><Send className="h-5 w-5" /> Send Payment Link to WhatsApp</>
-                  )}
-                </Button>
-                {selectedProduct && (
-                  <p className="text-center text-sm text-muted-foreground mt-2">
-                    You'll receive a secure Razorpay payment link for ₹{selectedProduct.price} on WhatsApp
+            {/* Customer Details */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <User className="h-5 w-5 text-primary" />
+                    {isPreSelected ? "Please provide your details 👇" : "Step 2: Your Details"}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-xs text-muted-foreground">
+                    All fields are mandatory. After payment, download links will be sent to your email.
                   </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="wa-name" className="flex items-center gap-1.5">
+                      <User className="h-3.5 w-3.5" /> Full Name <span className="text-destructive">*</span>
+                    </Label>
+                    <Input id="wa-name" placeholder="Enter your full name" value={name} onChange={(e) => setName(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="wa-email" className="flex items-center gap-1.5">
+                      <Mail className="h-3.5 w-3.5" /> Email Address <span className="text-destructive">*</span>
+                    </Label>
+                    <Input id="wa-email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+                    <p className="text-xs text-muted-foreground">📧 Download links will be sent to this email</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="wa-phone" className="flex items-center gap-1.5">
+                      <Phone className="h-3.5 w-3.5" /> Mobile Number <span className="text-destructive">*</span>
+                    </Label>
+                    <Input id="wa-phone" type="tel" placeholder="10-digit mobile number" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Pay Now Button */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+              <Button
+                onClick={handleSubmit}
+                disabled={submitting || !selectedProductId}
+                className="w-full h-14 text-base font-semibold gap-2"
+                size="lg"
+              >
+                {submitting ? (
+                  <><Loader2 className="h-5 w-5 animate-spin" /> Processing...</>
+                ) : (
+                  <><CreditCard className="h-5 w-5" /> {selectedProduct ? `Pay ₹${selectedProduct.price} Now` : "Pay Now"}</>
                 )}
-              </motion.div>
-            </div>
-          )}
+              </Button>
+
+              {/* Trust indicators */}
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1"><Shield className="h-3.5 w-3.5" /> 100% Secure</span>
+                  <span className="flex items-center gap-1"><CheckCircle className="h-3.5 w-3.5" /> Instant Delivery</span>
+                </div>
+                <p className="text-center text-xs text-muted-foreground">
+                  Pay securely via UPI (GPay, PhonePe), Cards, or Net Banking
+                </p>
+
+                {/* Payment method badges */}
+                <div className="flex items-center justify-center gap-3 pt-1">
+                  {["GPay", "PhonePe", "UPI", "Cards"].map((method) => (
+                    <span key={method} className="text-[10px] font-medium bg-muted px-2 py-1 rounded text-muted-foreground">
+                      {method}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          </div>
         </div>
       </main>
       <Footer />
