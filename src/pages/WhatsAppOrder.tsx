@@ -98,9 +98,11 @@ export default function WhatsAppOrder() {
 
     try {
       const items = [{
-        id: selectedProduct.id,
-        name: selectedProduct.name,
-        price: selectedProduct.price,
+        product: {
+          id: selectedProduct.id,
+          name: selectedProduct.name,
+          price: selectedProduct.price,
+        },
         quantity: 1,
       }];
 
