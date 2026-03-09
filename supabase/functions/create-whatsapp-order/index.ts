@@ -179,7 +179,7 @@ serve(async (req) => {
       let retryCount = 0;
       while (retryCount <= 2 && !whatsappSent) {
         try {
-          const url = `https://app.wasimple.in/api/v1/whatsapp/sendTemplateMessage?phoneId=${encodeURIComponent(wasimplePhoneId)}&apiKey=${encodeURIComponent(wasimpleApiKey)}&whatsappNumber=${encodeURIComponent(formattedPhone)}`;
+          const url = `https://app.wasimple.in/api/v1/sendTemplateMessage?phoneId=${encodeURIComponent(wasimplePhoneId)}&apiKey=${encodeURIComponent(wasimpleApiKey)}&whatsappNumber=${encodeURIComponent(formattedPhone)}`;
 
           const response = await fetch(url, {
             method: "POST",
