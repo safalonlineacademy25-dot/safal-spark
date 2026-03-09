@@ -168,28 +168,18 @@ serve(async (req) => {
       const formattedPhone = formatPhoneNumber(customer_phone);
 
       const templateBody = {
-        messaging_product: "whatsapp",
-        to: formattedPhone,
-        type: "template",
-        template: {
-          name: templateName,
-          language: { code: "en" },
-          components: [
-            {
-              type: "body",
-              parameters: [
-                { type: "text", text: toTitleCase(customer_name) },
-                { type: "text", text: customer_email },
-              ],
-            },
-          ],
-        },
+        template_name: templateName,
+        broadcast_name: "order_payment",
+        parameters: [
+          { name: "1", value: toTitleCase(customer_name) },
+          { name: "2", value: customer_email },
+        ],
       };
 
       let retryCount = 0;
       while (retryCount <= 2 && !whatsappSent) {
         try {
-          const url = `https://app.wasimple.in/api/v1/whatsapp/sendMessage?phoneId=${encodeURIComponent(wasimplePhoneId)}&apiKey=${encodeURIComponent(wasimpleApiKey)}`;
+          const url = `https://app.wasimple.in/api/v1/whatsapp/sendTemplateMessage?phoneId=${encodeURIComponent(wasimplePhoneId)}&apiKey=${encodeURIComponent(wasimpleApiKey)}&whatsappNumber=${encodeURIComponent(formattedPhone)}`;
 
           const response = await fetch(url, {
             method: "POST",
