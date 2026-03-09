@@ -97,6 +97,7 @@ export const useAddProduct = () => {
         audio_url: newProduct.audio_url ?? null,
         badge: newProduct.badge ?? null,
         is_active: newProduct.is_active ?? true,
+        show_on_ui: newProduct.show_on_ui ?? true,
         features: newProduct.features ?? null,
         download_count: 0,
         seo_title: null,
