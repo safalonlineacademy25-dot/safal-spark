@@ -78,9 +78,6 @@ interface DeliverySettings {
   whatsappTemplateName: string;
   whatsappBroadcastTemplateName: string;
   whatsappPromotionTemplateName: string;
-  matrixInstanceId: string;
-  matrixAccessToken: string;
-  whatsappMediaUrl: string;
   telegramBotToken: string;
   telegramChatId: string;
   telegramEnabled: boolean;
