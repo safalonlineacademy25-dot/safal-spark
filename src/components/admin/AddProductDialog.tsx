@@ -30,6 +30,7 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
     audio_url: '',
     badge: '',
     is_active: true,
+    show_on_ui: true,
     features: [],
   });
   const [featuresInput, setFeaturesInput] = useState('');
