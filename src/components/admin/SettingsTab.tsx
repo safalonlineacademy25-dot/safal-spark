@@ -73,11 +73,8 @@ interface DeliverySettings {
   whatsappEnabled: boolean;
   resendApiKey: string;
   resendWebhookSecret: string;
-  whatsappAccessToken: string;
-  whatsappPhoneNumberId: string;
-  whatsappTemplateName: string;
-  whatsappBroadcastTemplateName: string;
-  whatsappPromotionTemplateName: string;
+  wasimpleApiKey: string;
+  wasimplePhoneId: string;
   telegramBotToken: string;
   telegramChatId: string;
   telegramEnabled: boolean;
@@ -127,11 +124,8 @@ const SettingsTab = () => {
     whatsappEnabled: true,
     resendApiKey: '',
     resendWebhookSecret: '',
-    whatsappAccessToken: '',
-    whatsappPhoneNumberId: '',
-    whatsappTemplateName: '',
-    whatsappBroadcastTemplateName: '',
-    whatsappPromotionTemplateName: '',
+    wasimpleApiKey: '',
+    wasimplePhoneId: '',
     telegramBotToken: '',
     telegramChatId: '',
     telegramEnabled: false,
@@ -139,7 +133,7 @@ const SettingsTab = () => {
   const [savingDelivery, setSavingDelivery] = useState(false);
   const [showResendKey, setShowResendKey] = useState(false);
   const [showResendWebhookSecret, setShowResendWebhookSecret] = useState(false);
-  const [showWhatsappToken, setShowWhatsappToken] = useState(false);
+  const [showWasimpleApiKey, setShowWasimpleApiKey] = useState(false);
 
 
 
@@ -214,11 +208,8 @@ const SettingsTab = () => {
           whatsappEnabled: settingsMap['whatsapp_enabled'] !== 'false',
           resendApiKey: settingsMap['resend_api_key'] || '',
           resendWebhookSecret: settingsMap['resend_webhook_secret'] || '',
-          whatsappAccessToken: settingsMap['whatsapp_access_token'] || '',
-          whatsappPhoneNumberId: settingsMap['whatsapp_phone_number_id'] || '',
-          whatsappTemplateName: settingsMap['whatsapp_template_name'] || '',
-          whatsappBroadcastTemplateName: settingsMap['whatsapp_broadcast_template_name'] || '',
-          whatsappPromotionTemplateName: settingsMap['whatsapp_promotion_template_name'] || '',
+          wasimpleApiKey: settingsMap['wasimple_api_key'] || '',
+          wasimplePhoneId: settingsMap['wasimple_phone_id'] || '',
           telegramBotToken: settingsMap['telegram_bot_token'] || '',
           telegramChatId: settingsMap['telegram_chat_id'] || '',
           telegramEnabled: settingsMap['telegram_enabled'] === 'true',
@@ -446,11 +437,8 @@ const SettingsTab = () => {
         { key: 'whatsapp_enabled', value: deliverySettings.whatsappEnabled.toString() },
         { key: 'resend_api_key', value: deliverySettings.resendApiKey },
         { key: 'resend_webhook_secret', value: deliverySettings.resendWebhookSecret },
-        { key: 'whatsapp_access_token', value: deliverySettings.whatsappAccessToken },
-        { key: 'whatsapp_phone_number_id', value: deliverySettings.whatsappPhoneNumberId },
-        { key: 'whatsapp_template_name', value: deliverySettings.whatsappTemplateName },
-        { key: 'whatsapp_broadcast_template_name', value: deliverySettings.whatsappBroadcastTemplateName },
-        { key: 'whatsapp_promotion_template_name', value: deliverySettings.whatsappPromotionTemplateName },
+        { key: 'wasimple_api_key', value: deliverySettings.wasimpleApiKey },
+        { key: 'wasimple_phone_id', value: deliverySettings.wasimplePhoneId },
         { key: 'telegram_enabled', value: deliverySettings.telegramEnabled.toString() },
         { key: 'telegram_bot_token', value: deliverySettings.telegramBotToken },
         { key: 'telegram_chat_id', value: deliverySettings.telegramChatId },

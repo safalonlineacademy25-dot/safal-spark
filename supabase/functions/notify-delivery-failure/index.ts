@@ -77,11 +77,11 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    const whatsappToken = settings['whatsapp_access_token'] || '';
-    const whatsappPhoneId = settings['whatsapp_phone_number_id'] || '';
+    const wasimpleApiKey = settings['wasimple_api_key'] || '';
+    const wasimplePhoneId = settings['wasimple_phone_id'] || '';
     const whatsappEnabled = settings['whatsapp_enabled'] !== 'false';
 
-    if (!whatsappEnabled || !whatsappToken || !whatsappPhoneId) {
+    if (!whatsappEnabled || !wasimpleApiKey || !wasimplePhoneId) {
       return new Response(
         JSON.stringify({ success: false, error: "WhatsApp not configured or disabled" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -90,45 +90,32 @@ serve(async (req: Request): Promise<Response> => {
 
     const formattedPhone = formatPhoneNumber(order.customer_phone);
 
-    const reasonText = error_reason ? `\n\n*Reason:* ${error_reason}` : '';
+    const reasonText = error_reason ? `\n\nReason: ${error_reason}` : '';
 
-    const notifyMessage = `Dear ${order.customer_name || 'Customer'},\n\nThis is regarding your order *${order.order_number}* from *Safal Online Academy*.\n\nWe were unable to deliver the product download links to your email address: *${order.customer_email}*${reasonText}\n\nPlease verify your email address and reply to this message with the correct email ID. We will resend the download links promptly.\n\nAlternatively, if you wish to request a refund, please let us know.\n\nFor any queries, reach us at support@safalonlinesolutions.com\n\nWarm regards,\nTeam Safal Online Academy`;
+    const notifyMessage = `Dear ${order.customer_name || 'Customer'},\n\nThis is regarding your order ${order.order_number} from Safal Online Academy.\n\nWe were unable to deliver the product download links to your email address: ${order.customer_email}${reasonText}\n\nPlease verify your email address and reply to this message with the correct email ID. We will resend the download links promptly.\n\nAlternatively, if you wish to request a refund, please let us know.\n\nFor any queries, reach us at support@safalonlinesolutions.com\n\nWarm regards,\nTeam Safal Online Academy`;
 
-    console.log("Sending delivery failure notification via WhatsApp Cloud API to:", formattedPhone);
+    console.log("Sending delivery failure notification via WaSimple to:", formattedPhone);
 
-    // Send plain text message via WhatsApp Cloud API
-    const messagePayload = {
-      messaging_product: "whatsapp",
-      recipient_type: "individual",
-      to: formattedPhone,
-      type: "text",
-      text: { body: notifyMessage }
-    };
+    const url = `https://app.wasimple.in/api/v1/whatsapp/sendMessage?phoneId=${encodeURIComponent(wasimplePhoneId)}&apiKey=${encodeURIComponent(wasimpleApiKey)}`;
 
-    const response = await fetch(
-      `https://graph.facebook.com/v18.0/${whatsappPhoneId}/messages`,
-      {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${whatsappToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(messagePayload),
-      }
-    );
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ to: formattedPhone, message: notifyMessage }),
+    });
 
     const result = await response.json();
-    console.log("WhatsApp Cloud API response:", response.status, JSON.stringify(result));
+    console.log("WaSimple API response:", response.status, JSON.stringify(result));
 
-    if (response.ok && result.messages?.length > 0) {
-      console.log("✅ Delivery failure WhatsApp notification sent");
+    if (response.ok && !result.error) {
+      console.log("✅ Delivery failure WhatsApp notification sent via WaSimple");
       return new Response(
         JSON.stringify({ success: true, message: "Customer notified via WhatsApp" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     } else {
-      const errMsg = result.error?.message || `HTTP ${response.status}`;
-      console.error("❌ WhatsApp notify failed:", errMsg);
+      const errMsg = result.error?.message || result.message || `HTTP ${response.status}`;
+      console.error("❌ WaSimple notify failed:", errMsg);
       return new Response(
         JSON.stringify({ success: false, error: errMsg }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

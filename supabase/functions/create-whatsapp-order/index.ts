@@ -88,8 +88,8 @@ serve(async (req) => {
     const settings = await getSettings(supabase);
     const RAZORPAY_KEY_ID = settings['razorpay_key_id'] || Deno.env.get('RAZORPAY_KEY_ID') || "";
     const RAZORPAY_KEY_SECRET = settings['razorpay_key_secret'] || Deno.env.get('RAZORPAY_KEY_SECRET') || "";
-    const whatsappToken = settings['whatsapp_access_token'] || '';
-    const whatsappPhoneId = settings['whatsapp_phone_number_id'] || '';
+    const wasimpleApiKey = settings['wasimple_api_key'] || '';
+    const wasimplePhoneId = settings['wasimple_phone_id'] || '';
     const whatsappEnabled = settings['whatsapp_enabled'] !== 'false';
 
     if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
@@ -161,47 +161,35 @@ serve(async (req) => {
 
     console.log("Payment link created:", paymentLink.short_url);
 
-    // Send payment link via WhatsApp Cloud API
+    // Send payment link via WaSimple
     let whatsappSent = false;
-    if (whatsappEnabled && whatsappToken && whatsappPhoneId) {
+    if (whatsappEnabled && wasimpleApiKey && wasimplePhoneId) {
       const formattedPhone = formatPhoneNumber(customer_phone);
-      const message = `Dear ${toTitleCase(customer_name)},\n\nThank you for your interest in *${product.name}*!\n\nYour order *${orderNumber}* has been created. Please complete the payment using the link below:\n\n🔗 *Payment Link:* ${paymentLink.short_url}\n\n💰 Amount: ₹${product.price}\n\nThis is a secure Razorpay payment link. You can pay using UPI, Cards, or Net Banking.\n\nIf you have any questions, feel free to reach out to us at support@safalonlinesolutions.com.\n\nWarm regards,\nTeam Safal Online Academy`;
+      const message = `Dear ${toTitleCase(customer_name)},\n\nThank you for your interest in ${product.name}!\n\nYour order ${orderNumber} has been created. Please complete the payment using the link below:\n\n🔗 Payment Link: ${paymentLink.short_url}\n\n💰 Amount: ₹${product.price}\n\nThis is a secure Razorpay payment link. You can pay using UPI, Cards, or Net Banking.\n\nIf you have any questions, feel free to reach out to us at support@safalonlinesolutions.com.\n\nWarm regards,\nTeam Safal Online Academy`;
 
       let retryCount = 0;
       while (retryCount <= 2 && !whatsappSent) {
         try {
-          const messagePayload = {
-            messaging_product: "whatsapp",
-            recipient_type: "individual",
-            to: formattedPhone,
-            type: "text",
-            text: { body: message }
-          };
+          const url = `https://app.wasimple.in/api/v1/whatsapp/sendMessage?phoneId=${encodeURIComponent(wasimplePhoneId)}&apiKey=${encodeURIComponent(wasimpleApiKey)}`;
 
-          const response = await fetch(
-            `https://graph.facebook.com/v18.0/${whatsappPhoneId}/messages`,
-            {
-              method: "POST",
-              headers: {
-                "Authorization": `Bearer ${whatsappToken}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(messagePayload),
-            }
-          );
+          const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ to: formattedPhone, message }),
+          });
 
           const result = await response.json();
 
-          if (response.ok && result.messages?.length > 0) {
+          if (response.ok && !result.error) {
             whatsappSent = true;
-            console.log("✅ WhatsApp payment link sent");
+            console.log("✅ WhatsApp payment link sent via WaSimple");
           } else {
-            console.error(`❌ WhatsApp send error:`, result.error?.message || JSON.stringify(result));
+            console.error(`❌ WaSimple send error:`, result.error?.message || result.message || JSON.stringify(result));
             retryCount++;
             if (retryCount <= 2) await new Promise(r => setTimeout(r, 2000 * retryCount));
           }
         } catch (e: any) {
-          console.error(`❌ WhatsApp fetch error: ${e.message}`);
+          console.error(`❌ WaSimple fetch error: ${e.message}`);
           retryCount++;
           if (retryCount <= 2) await new Promise(r => setTimeout(r, 1000 * retryCount));
         }
