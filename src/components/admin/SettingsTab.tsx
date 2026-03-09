@@ -78,9 +78,6 @@ interface DeliverySettings {
   whatsappTemplateName: string;
   whatsappBroadcastTemplateName: string;
   whatsappPromotionTemplateName: string;
-  matrixInstanceId: string;
-  matrixAccessToken: string;
-  whatsappMediaUrl: string;
   telegramBotToken: string;
   telegramChatId: string;
   telegramEnabled: boolean;
@@ -135,9 +132,6 @@ const SettingsTab = () => {
     whatsappTemplateName: '',
     whatsappBroadcastTemplateName: '',
     whatsappPromotionTemplateName: '',
-    matrixInstanceId: '',
-    matrixAccessToken: '',
-    whatsappMediaUrl: '',
     telegramBotToken: '',
     telegramChatId: '',
     telegramEnabled: false,
@@ -146,40 +140,9 @@ const SettingsTab = () => {
   const [showResendKey, setShowResendKey] = useState(false);
   const [showResendWebhookSecret, setShowResendWebhookSecret] = useState(false);
   const [showWhatsappToken, setShowWhatsappToken] = useState(false);
-  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
-  const mediaFileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleMediaFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    setIsUploadingMedia(true);
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `whatsapp-media/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('product-images')
-        .upload(fileName, file);
 
-      if (uploadError) {
-        toast.error('Upload failed: ' + uploadError.message);
-        return;
-      }
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('product-images')
-        .getPublicUrl(fileName);
-
-      setDeliverySettings((prev) => ({ ...prev, whatsappMediaUrl: publicUrl }));
-      toast.success('Media file uploaded successfully');
-    } catch (error: any) {
-      toast.error('Upload failed: ' + error.message);
-    } finally {
-      setIsUploadingMedia(false);
-      if (mediaFileInputRef.current) mediaFileInputRef.current.value = '';
-    }
-  };
 
   // Load admin users
   useEffect(() => {
@@ -256,9 +219,6 @@ const SettingsTab = () => {
           whatsappTemplateName: settingsMap['whatsapp_template_name'] || '',
           whatsappBroadcastTemplateName: settingsMap['whatsapp_broadcast_template_name'] || '',
           whatsappPromotionTemplateName: settingsMap['whatsapp_promotion_template_name'] || '',
-          matrixInstanceId: settingsMap['matrix_instance_id'] || '',
-          matrixAccessToken: settingsMap['matrix_access_token'] || '',
-          whatsappMediaUrl: settingsMap['whatsapp_media_url'] || '',
           telegramBotToken: settingsMap['telegram_bot_token'] || '',
           telegramChatId: settingsMap['telegram_chat_id'] || '',
           telegramEnabled: settingsMap['telegram_enabled'] === 'true',
@@ -491,9 +451,6 @@ const SettingsTab = () => {
         { key: 'whatsapp_template_name', value: deliverySettings.whatsappTemplateName },
         { key: 'whatsapp_broadcast_template_name', value: deliverySettings.whatsappBroadcastTemplateName },
         { key: 'whatsapp_promotion_template_name', value: deliverySettings.whatsappPromotionTemplateName },
-        { key: 'matrix_instance_id', value: deliverySettings.matrixInstanceId },
-        { key: 'matrix_access_token', value: deliverySettings.matrixAccessToken },
-        { key: 'whatsapp_media_url', value: deliverySettings.whatsappMediaUrl },
         { key: 'telegram_enabled', value: deliverySettings.telegramEnabled.toString() },
         { key: 'telegram_bot_token', value: deliverySettings.telegramBotToken },
         { key: 'telegram_chat_id', value: deliverySettings.telegramChatId },

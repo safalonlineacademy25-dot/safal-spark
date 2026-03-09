@@ -12,7 +12,7 @@ const EDGE_FUNCTIONS = [
   { name: 'verify-razorpay-payment', description: 'Verifies Razorpay payment signatures and updates order status' },
   { name: 'process-order-delivery', description: 'Processes order deliveries, generates download tokens, sends emails/WhatsApp' },
   { name: 'send-download-email', description: 'Sends download links via email using Resend API' },
-  { name: 'send-whatsapp-download', description: 'Sends download links via WhatsApp using MatrixCloud API' },
+  { name: 'send-whatsapp-download', description: 'Sends download links via WhatsApp using Meta Cloud API' },
   { name: 'download-file', description: 'Validates download tokens and serves file downloads' },
   { name: 'track-visit', description: 'Tracks website visitor counts' },
   { name: 'broadcast-whatsapp', description: 'Broadcasts WhatsApp messages to customers by product category' },

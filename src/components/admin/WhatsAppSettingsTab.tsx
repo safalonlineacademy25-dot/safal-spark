@@ -1,10 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   MessageCircle,
   Mail,
   Loader2,
-  Upload,
   Save,
   Eye,
   EyeOff,
@@ -35,9 +34,6 @@ interface WhatsAppSettings {
   whatsappTemplateName: string;
   whatsappBroadcastTemplateName: string;
   whatsappPromotionTemplateName: string;
-  matrixInstanceId: string;
-  matrixAccessToken: string;
-  whatsappMediaUrl: string;
 }
 
 const WhatsAppSettingsTab = () => {
@@ -52,16 +48,11 @@ const WhatsAppSettingsTab = () => {
     whatsappTemplateName: '',
     whatsappBroadcastTemplateName: '',
     whatsappPromotionTemplateName: '',
-    matrixInstanceId: '',
-    matrixAccessToken: '',
-    whatsappMediaUrl: '',
   });
   const [saving, setSaving] = useState(false);
   const [showResendKey, setShowResendKey] = useState(false);
   const [showResendWebhookSecret, setShowResendWebhookSecret] = useState(false);
   const [showWhatsappToken, setShowWhatsappToken] = useState(false);
-  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
-  const mediaFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadSettings();
@@ -86,9 +77,6 @@ const WhatsAppSettingsTab = () => {
           whatsappTemplateName: map['whatsapp_template_name'] || '',
           whatsappBroadcastTemplateName: map['whatsapp_broadcast_template_name'] || '',
           whatsappPromotionTemplateName: map['whatsapp_promotion_template_name'] || '',
-          matrixInstanceId: map['matrix_instance_id'] || '',
-          matrixAccessToken: map['matrix_access_token'] || '',
-          whatsappMediaUrl: map['whatsapp_media_url'] || '',
         });
       }
     } catch (error) {
@@ -118,9 +106,6 @@ const WhatsAppSettingsTab = () => {
         { key: 'whatsapp_template_name', value: settings.whatsappTemplateName },
         { key: 'whatsapp_broadcast_template_name', value: settings.whatsappBroadcastTemplateName },
         { key: 'whatsapp_promotion_template_name', value: settings.whatsappPromotionTemplateName },
-        { key: 'matrix_instance_id', value: settings.matrixInstanceId },
-        { key: 'matrix_access_token', value: settings.matrixAccessToken },
-        { key: 'whatsapp_media_url', value: settings.whatsappMediaUrl },
       ];
       for (const s of settingsToSave) {
         await upsertSetting(s.key, s.value);
@@ -133,29 +118,8 @@ const WhatsAppSettingsTab = () => {
     }
   };
 
-  const handleMediaFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setIsUploadingMedia(true);
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `whatsapp-media/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage.from('product-images').upload(fileName, file);
-      if (uploadError) { toast.error('Upload failed: ' + uploadError.message); return; }
-      const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(fileName);
-      setSettings(prev => ({ ...prev, whatsappMediaUrl: publicUrl }));
-      toast.success('Media file uploaded successfully');
-    } catch (error: any) {
-      toast.error('Upload failed: ' + error.message);
-    } finally {
-      setIsUploadingMedia(false);
-      if (mediaFileInputRef.current) mediaFileInputRef.current.value = '';
-    }
-  };
-
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-      {/* Delivery Toggles */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
@@ -189,7 +153,7 @@ const WhatsAppSettingsTab = () => {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-foreground">WhatsApp Delivery</p>
-                  <p className="text-xs text-muted-foreground">Send download links via WhatsApp (for opted-in customers)</p>
+                  <p className="text-xs text-muted-foreground">Send download links via WhatsApp Cloud API (for opted-in customers)</p>
                 </div>
               </div>
               <Switch checked={settings.whatsappEnabled} onCheckedChange={(checked) => setSettings(prev => ({ ...prev, whatsappEnabled: checked }))} disabled={!isSuperAdmin} />
@@ -217,10 +181,10 @@ const WhatsAppSettingsTab = () => {
                 {showResendWebhookSecret ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground">Get your webhook signing secret from <a href="https://resend.com/webhooks" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Resend Webhooks</a> after setting up the webhook endpoint</p>
+            <p className="text-xs text-muted-foreground">Get your webhook signing secret from <a href="https://resend.com/webhooks" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Resend Webhooks</a></p>
           </div>
 
-          {/* WhatsApp Settings */}
+          {/* WhatsApp Cloud API Settings */}
           <div className="space-y-2 pt-2">
             <Label htmlFor="whatsapp-access-token">WhatsApp Access Token</Label>
             <div className="relative">
@@ -229,38 +193,20 @@ const WhatsAppSettingsTab = () => {
                 {showWhatsappToken ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
               </Button>
             </div>
+            <p className="text-xs text-muted-foreground">Permanent access token from <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Meta for Developers</a></p>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="whatsapp-phone-number-id">WhatsApp Phone Number ID</Label>
             <Input id="whatsapp-phone-number-id" placeholder="1234567890" value={settings.whatsappPhoneNumberId} onChange={(e) => setSettings(prev => ({ ...prev, whatsappPhoneNumberId: e.target.value }))} disabled={!isSuperAdmin} />
-          </div>
-
-          {/* MatrixCloud WhatsApp API Settings */}
-          <div className="space-y-2 pt-2">
-            <Label htmlFor="matrix-instance-id">MatrixCloud Instance ID</Label>
-            <Input id="matrix-instance-id" placeholder="699DD4BFBA0A9" value={settings.matrixInstanceId} onChange={(e) => setSettings(prev => ({ ...prev, matrixInstanceId: e.target.value }))} disabled={!isSuperAdmin} />
-            <p className="text-xs text-muted-foreground">Instance ID from your MatrixCloud WhatsApp API dashboard.</p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="matrix-access-token">MatrixCloud Access Token</Label>
-            <Input id="matrix-access-token" type="password" placeholder="699dcec3189f6" value={settings.matrixAccessToken} onChange={(e) => setSettings(prev => ({ ...prev, matrixAccessToken: e.target.value }))} disabled={!isSuperAdmin} />
-            <p className="text-xs text-muted-foreground">Access token from your <a href="https://matrixcloudapi.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">MatrixCloud API</a> dashboard.</p>
-          </div>
-
-          {/* WhatsApp Media URL */}
-          <div className="space-y-2">
-            <Label htmlFor="whatsapp-media-url">WhatsApp Media URL</Label>
-            <Input id="whatsapp-media-url" placeholder="https://your-supabase-url/storage/v1/object/public/product-images/media.jpg" value={settings.whatsappMediaUrl} onChange={(e) => setSettings(prev => ({ ...prev, whatsappMediaUrl: e.target.value }))} disabled={!isSuperAdmin} />
-            <p className="text-xs text-muted-foreground">Public URL of the media file to send with WhatsApp messages.</p>
+            <p className="text-xs text-muted-foreground">Phone Number ID from your WhatsApp Business API dashboard.</p>
           </div>
 
           {/* Template Names */}
-          <div className="space-y-2">
-            <Label htmlFor="whatsapp-template-name">WhatsApp Template Name</Label>
+          <div className="space-y-2 pt-2">
+            <Label htmlFor="whatsapp-template-name">WhatsApp Download Template Name</Label>
             <Input id="whatsapp-template-name" placeholder="soa_download_ready" value={settings.whatsappTemplateName} onChange={(e) => setSettings(prev => ({ ...prev, whatsappTemplateName: e.target.value }))} disabled={!isSuperAdmin} />
-            <p className="text-xs text-muted-foreground">Delivery notification template from Meta Business Manager.</p>
+            <p className="text-xs text-muted-foreground">Template for delivery notifications (parameters: customer_name, order_number, email).</p>
           </div>
 
           <div className="space-y-2">
@@ -275,7 +221,7 @@ const WhatsAppSettingsTab = () => {
             <p className="text-xs text-muted-foreground">Template used for promotional campaign messages.</p>
           </div>
 
-          <p className="text-xs text-muted-foreground">Get these from your <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Meta for Developers</a> WhatsApp Business API settings.</p>
+          <p className="text-xs text-muted-foreground">All WhatsApp templates must be pre-approved in your <a href="https://business.facebook.com/wa/manage/message-templates/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Meta Business Manager</a>.</p>
 
           <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50 text-sm">
             <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
