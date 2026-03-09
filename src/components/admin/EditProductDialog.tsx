@@ -30,6 +30,7 @@ const EditProductDialog = ({ product, children }: EditProductDialogProps) => {
     audio_url: '',
     badge: '',
     is_active: true,
+    show_on_ui: true,
   });
   const [featuresInput, setFeaturesInput] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
