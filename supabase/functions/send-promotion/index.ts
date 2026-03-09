@@ -168,7 +168,7 @@ serve(async (req: Request): Promise<Response> => {
         const response = await fetch(waSimpleUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ to: recipient.phone, message: promotionMessage.trim() }),
+          body: JSON.stringify({ to: `${recipient.phone}@s.whatsapp.net`, message: promotionMessage.trim() }),
         });
 
         const result = await response.json();
