@@ -124,11 +124,8 @@ const SettingsTab = () => {
     whatsappEnabled: true,
     resendApiKey: '',
     resendWebhookSecret: '',
-    whatsappAccessToken: '',
-    whatsappPhoneNumberId: '',
-    whatsappTemplateName: '',
-    whatsappBroadcastTemplateName: '',
-    whatsappPromotionTemplateName: '',
+    wasimpleApiKey: '',
+    wasimplePhoneId: '',
     telegramBotToken: '',
     telegramChatId: '',
     telegramEnabled: false,
@@ -136,7 +133,7 @@ const SettingsTab = () => {
   const [savingDelivery, setSavingDelivery] = useState(false);
   const [showResendKey, setShowResendKey] = useState(false);
   const [showResendWebhookSecret, setShowResendWebhookSecret] = useState(false);
-  const [showWhatsappToken, setShowWhatsappToken] = useState(false);
+  const [showWasimpleApiKey, setShowWasimpleApiKey] = useState(false);
 
 
 
