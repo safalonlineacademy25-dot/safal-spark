@@ -5,7 +5,6 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-// Allowed origins for CORS
 const ALLOWED_ORIGINS = [
   'https://safalonlinesolutions.com',
   'https://hujuqkhbdptsdnbnkslo.supabase.co',
@@ -25,23 +24,11 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
   };
 }
 
-// Helper function to get settings from database
 async function getSettings(supabase: any): Promise<Record<string, string>> {
-  const { data, error } = await supabase
-    .from('settings')
-    .select('key, value');
-  
-  if (error) {
-    console.error("Error fetching settings:", error);
-    return {};
-  }
-  
+  const { data, error } = await supabase.from('settings').select('key, value');
+  if (error) { console.error("Error fetching settings:", error); return {}; }
   const settings: Record<string, string> = {};
-  if (data) {
-    data.forEach((s: { key: string; value: string | null }) => {
-      if (s.value) settings[s.key] = s.value;
-    });
-  }
+  if (data) data.forEach((s: { key: string; value: string | null }) => { if (s.value) settings[s.key] = s.value; });
   return settings;
 }
 
@@ -56,12 +43,8 @@ interface BroadcastRequest {
 
 function formatPhoneNumber(phone: string): string {
   let cleaned = phone.replace(/\D/g, "");
-  if (cleaned.startsWith("0")) {
-    cleaned = "91" + cleaned.substring(1);
-  }
-  if (cleaned.length === 10) {
-    cleaned = "91" + cleaned;
-  }
+  if (cleaned.startsWith("0")) cleaned = "91" + cleaned.substring(1);
+  if (cleaned.length === 10) cleaned = "91" + cleaned;
   return cleaned;
 }
 
@@ -69,7 +52,6 @@ serve(async (req: Request): Promise<Response> => {
   const origin = req.headers.get('origin');
   const corsHeaders = getCorsHeaders(origin);
 
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -78,14 +60,12 @@ serve(async (req: Request): Promise<Response> => {
     // === AUTHENTICATION CHECK ===
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      console.error("broadcast-whatsapp: No authorization header");
       return new Response(
         JSON.stringify({ success: false, error: 'Authorization required' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Use anon key client to verify the user's JWT
     const authClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -93,23 +73,19 @@ serve(async (req: Request): Promise<Response> => {
     const { data: { user }, error: userError } = await authClient.auth.getUser();
 
     if (userError || !user) {
-      console.error("broadcast-whatsapp: Invalid user token", userError?.message);
       return new Response(
         JSON.stringify({ success: false, error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Use service role client for admin check and data operations
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Check if user has admin access
     const { data: hasAccess, error: accessError } = await supabase.rpc('has_admin_access', {
       _user_id: user.id,
     });
 
     if (accessError || !hasAccess) {
-      console.error("broadcast-whatsapp: User lacks admin access", accessError?.message);
       return new Response(
         JSON.stringify({ success: false, error: 'Admin access required' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -123,13 +99,11 @@ serve(async (req: Request): Promise<Response> => {
     console.log("📢 Starting WhatsApp broadcast");
     console.log("Category:", category);
     console.log("Product:", productName);
-    console.log("Template:", templateName);
-    console.log("Product Link:", productLink || "Not provided");
 
     const settings = await getSettings(supabase);
     
-    const whatsappToken = settings['whatsapp_access_token'] || Deno.env.get("WHATSAPP_ACCESS_TOKEN");
-    const whatsappPhoneId = settings['whatsapp_phone_number_id'] || Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
+    const wasimpleApiKey = settings['wasimple_api_key'] || '';
+    const wasimplePhoneId = settings['wasimple_phone_id'] || '';
     const whatsappEnabled = settings['whatsapp_enabled'] !== 'false';
 
     if (!whatsappEnabled) {
@@ -139,9 +113,9 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    if (!whatsappToken || !whatsappPhoneId) {
+    if (!wasimpleApiKey || !wasimplePhoneId) {
       return new Response(
-        JSON.stringify({ success: false, error: "WhatsApp credentials not configured" }),
+        JSON.stringify({ success: false, error: "WaSimple credentials not configured" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -184,68 +158,32 @@ serve(async (req: Request): Promise<Response> => {
 
     if (recipients.length === 0) {
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: "No eligible customers found for this category",
-          sent: 0,
-          failed: 0
-        }),
+        JSON.stringify({ success: true, message: "No eligible customers found for this category", sent: 0, failed: 0 }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Send broadcast to each customer
     const results = { sent: 0, failed: 0, errors: [] as string[] };
+    const waSimpleUrl = `https://app.wasimple.in/api/v1/whatsapp/sendMessage?phoneId=${encodeURIComponent(wasimplePhoneId)}&apiKey=${encodeURIComponent(wasimpleApiKey)}`;
     
     for (const recipient of recipients) {
       try {
-        // Template: new_product_alert
-        // Variables: {{1}} = customer_name, {{2}} = product_name, {{3}} = category, {{4}} = description, {{5}} = product_link
-        const templateParameters = [
-          { type: "text", text: recipient.name },
-          { type: "text", text: productName },
-          { type: "text", text: category },
-          { type: "text", text: productDescription || "Check it out now!" },
-          { type: "text", text: productLink || "Visit our website" }
-        ];
-
-        const templateMessage = {
-          messaging_product: "whatsapp",
-          recipient_type: "individual",
-          to: recipient.phone,
-          type: "template",
-          template: {
-            name: templateName,
-            language: { code: "en" },
-            components: [
-              {
-                type: "body",
-                parameters: templateParameters
-              }
-            ]
-          }
-        };
+        const message = `Dear ${recipient.name},\n\nWe have an exciting update for you from Safal Online Academy!\n\nNew Product: ${productName}\nCategory: ${category}\n\n${productDescription || 'Check it out now!'}\n\n${productLink ? `🔗 Link: ${productLink}` : 'Visit our website for more details.'}\n\nWarm regards,\nTeam Safal Online Academy`;
 
         console.log(`Sending to ${recipient.phone}...`);
 
-        const response = await fetch(
-          `https://graph.facebook.com/v18.0/${whatsappPhoneId}/messages`,
-          {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${whatsappToken}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(templateMessage),
-          }
-        );
+        const response = await fetch(waSimpleUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ to: recipient.phone, message }),
+        });
 
         const result = await response.json();
 
-        if (!response.ok) {
-          console.error(`Failed for ${recipient.phone}:`, result.error?.message);
+        if (!response.ok || result.error) {
+          console.error(`Failed for ${recipient.phone}:`, result.error?.message || result.message);
           results.failed++;
-          results.errors.push(`${recipient.phone}: ${result.error?.message || 'Unknown error'}`);
+          results.errors.push(`${recipient.phone}: ${result.error?.message || result.message || 'Unknown error'}`);
         } else {
           console.log(`✅ Sent to ${recipient.phone}`);
           results.sent++;
@@ -269,7 +207,7 @@ serve(async (req: Request): Promise<Response> => {
         category,
         product_name: productName,
         product_description: productDescription || null,
-        template_name: templateName,
+        template_name: templateName || 'wasimple_text',
         recipients_count: recipients.length,
         sent_count: results.sent,
         failed_count: results.failed,
@@ -277,20 +215,12 @@ serve(async (req: Request): Promise<Response> => {
         product_link: productLink || null,
         created_by: user.id,
       });
-      console.log("✅ Broadcast logged to database");
     } catch (logError: any) {
       console.error("Failed to log broadcast:", logError.message);
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: `Broadcast complete`,
-        sent: results.sent,
-        failed: results.failed,
-        totalRecipients: recipients.length,
-        errors: results.errors.slice(0, 10) // Return first 10 errors only
-      }),
+      JSON.stringify({ success: true, message: `Broadcast complete`, sent: results.sent, failed: results.failed, totalRecipients: recipients.length, errors: results.errors.slice(0, 10) }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
