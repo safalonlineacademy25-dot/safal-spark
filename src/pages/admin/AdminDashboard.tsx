@@ -723,11 +723,12 @@ const AdminDashboard = () => {
                       <table className="w-full">
                         <thead>
                           <tr className="border-b border-border bg-muted/30">
-                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Product</th>
-                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Category</th>
-                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Price</th>
-                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Downloads</th>
-                            <th className="text-left p-4 text-sm font-medium text-muted-foreground">Actions</th>
+                             <th className="text-left p-4 text-sm font-medium text-muted-foreground">Product</th>
+                             <th className="text-left p-4 text-sm font-medium text-muted-foreground">Category</th>
+                             <th className="text-left p-4 text-sm font-medium text-muted-foreground">Price</th>
+                             <th className="text-left p-4 text-sm font-medium text-muted-foreground">Status</th>
+                             <th className="text-left p-4 text-sm font-medium text-muted-foreground">Downloads</th>
+                             <th className="text-left p-4 text-sm font-medium text-muted-foreground">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -748,6 +749,20 @@ const AdminDashboard = () => {
                               </td>
                               <td className="p-4 text-sm text-muted-foreground capitalize">{product.category}</td>
                               <td className="p-4 text-sm font-medium price-text">₹{product.price}</td>
+                              <td className="p-4">
+                                <div className="flex flex-col gap-1">
+                                  <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium w-fit ${
+                                    product.is_active ? 'bg-secondary/10 text-secondary' : 'bg-muted text-muted-foreground'
+                                  }`}>
+                                    {product.is_active ? 'Active' : 'Inactive'}
+                                  </span>
+                                  <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium w-fit ${
+                                    product.show_on_ui ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+                                  }`}>
+                                    {product.show_on_ui ? 'Visible' : 'Hidden'}
+                                  </span>
+                                </div>
+                              </td>
                               <td className="p-4 text-sm text-muted-foreground">{product.download_count?.toLocaleString() || 0}</td>
                               <td className="p-4">
                                 <div className="flex items-center gap-2">

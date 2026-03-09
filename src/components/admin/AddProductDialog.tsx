@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Loader2, Upload, X } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { useAddProduct, ProductInsert } from '@/hooks/useProducts';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { useComboPackFileUpload } from '@/hooks/useComboPackFiles';
@@ -30,6 +31,7 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
     audio_url: '',
     badge: '',
     is_active: true,
+    show_on_ui: true,
     features: [],
   });
   const [featuresInput, setFeaturesInput] = useState('');
@@ -106,6 +108,7 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
        audio_url: null,
       badge: formData.badge && formData.badge.trim().length > 0 ? formData.badge.trim() : null,
       is_active: formData.is_active ?? true,
+      show_on_ui: formData.show_on_ui ?? true,
       features: featuresInput ? featuresInput.split('\n').filter(f => f.trim()) : [],
     };
 
@@ -148,6 +151,7 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
       audio_url: '',
       badge: '',
       is_active: true,
+      show_on_ui: true,
       features: [],
     });
     setFeaturesInput('');
@@ -351,6 +355,30 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
               onChange={(e) => setFeaturesInput(e.target.value)}
               placeholder="Comprehensive coverage&#10;Expert solutions&#10;Updated content"
               rows={3}
+            />
+           </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="is_active">Active (available for combo offers)</Label>
+              <p className="text-xs text-muted-foreground">Active products can be selected in combo offers</p>
+            </div>
+            <Switch
+              id="is_active"
+              checked={formData.is_active ?? true}
+              onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="show_on_ui">Show on Landing Page</Label>
+              <p className="text-xs text-muted-foreground">Display this product on the website for customers</p>
+            </div>
+            <Switch
+              id="show_on_ui"
+              checked={formData.show_on_ui ?? true}
+              onCheckedChange={(checked) => setFormData({ ...formData, show_on_ui: checked })}
             />
           </div>
 

@@ -457,6 +457,7 @@ export type Database = {
           price: number
           seo_description: string | null
           seo_title: string | null
+          show_on_ui: boolean | null
           updated_at: string | null
         }
         Insert: {
@@ -476,6 +477,7 @@ export type Database = {
           price: number
           seo_description?: string | null
           seo_title?: string | null
+          show_on_ui?: boolean | null
           updated_at?: string | null
         }
         Update: {
@@ -495,6 +497,7 @@ export type Database = {
           price?: number
           seo_description?: string | null
           seo_title?: string | null
+          show_on_ui?: boolean | null
           updated_at?: string | null
         }
         Relationships: []
