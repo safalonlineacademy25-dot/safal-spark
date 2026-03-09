@@ -218,7 +218,7 @@ const WhatsAppSettingsTab = () => {
               <Label className="text-sm font-semibold">WhatsApp Message Templates</Label>
             </div>
             <p className="text-xs text-muted-foreground -mt-2">
-              Enter the approved template names from your WaSimple/Meta Business account. Each template receives two parameters: <strong>{{'{'}}{'{'}1{'}'}{'}'}} = Customer Name</strong> and <strong>{{'{'}}{'{'}2{'}'}{'}'}} = Email</strong>.
+              Enter the approved template names from your WaSimple/Meta Business account. Each template receives two parameters: <strong>{"{{1}}"} = Customer Name</strong> and <strong>{"{{2}}"} = Email</strong>.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
