@@ -107,6 +107,7 @@ const AddProductDialog = ({ children }: AddProductDialogProps) => {
        audio_url: null,
       badge: formData.badge && formData.badge.trim().length > 0 ? formData.badge.trim() : null,
       is_active: formData.is_active ?? true,
+      show_on_ui: formData.show_on_ui ?? true,
       features: featuresInput ? featuresInput.split('\n').filter(f => f.trim()) : [],
     };
 
