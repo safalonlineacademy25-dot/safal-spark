@@ -60,6 +60,7 @@ const EditProductDialog = ({ product, children }: EditProductDialogProps) => {
         audio_url: product.audio_url || '',
         badge: product.badge || '',
         is_active: product.is_active ?? true,
+        show_on_ui: product.show_on_ui ?? true,
       });
       setFeaturesInput(product.features?.join('\n') || '');
       setImagePreview(null);
