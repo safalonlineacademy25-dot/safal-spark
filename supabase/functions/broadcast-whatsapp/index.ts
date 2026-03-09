@@ -172,27 +172,18 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     const results = { sent: 0, failed: 0, errors: [] as string[] };
-    const waSimpleUrl = `https://app.wasimple.in/api/v1/whatsapp/sendMessage?phoneId=${encodeURIComponent(wasimplePhoneId)}&apiKey=${encodeURIComponent(wasimpleApiKey)}`;
     
     for (const recipient of recipients) {
       try {
+        const waSimpleUrl = `https://app.wasimple.in/api/v1/whatsapp/sendTemplateMessage?phoneId=${encodeURIComponent(wasimplePhoneId)}&apiKey=${encodeURIComponent(wasimpleApiKey)}&whatsappNumber=${encodeURIComponent(recipient.phone)}`;
+        
         const templateBody = {
-          messaging_product: "whatsapp",
-          to: recipient.phone,
-          type: "template",
-          template: {
-            name: templateName,
-            language: { code: "en" },
-            components: [
-              {
-                type: "body",
-                parameters: [
-                  { type: "text", text: recipient.name },
-                  { type: "text", text: recipient.email },
-                ],
-              },
-            ],
-          },
+          template_name: templateName,
+          broadcast_name: "broadcast_campaign",
+          parameters: [
+            { name: "1", value: recipient.name },
+            { name: "2", value: recipient.email },
+          ],
         };
 
         console.log(`Sending template to ${recipient.phone}...`);
