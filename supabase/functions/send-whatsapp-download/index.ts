@@ -49,14 +49,13 @@ function toTitleCase(name: string): string {
 
 async function sendWaSimpleMessage(apiKey: string, phoneId: string, to: string, message: string): Promise<{ success: boolean; error?: string }> {
   const url = `https://app.wasimple.in/api/v1/whatsapp/sendMessage?phoneId=${encodeURIComponent(phoneId)}&apiKey=${encodeURIComponent(apiKey)}`;
-  const chatId = to.includes('@') ? to : `${to}@s.whatsapp.net`;
   
-  console.log("WaSimple request body:", JSON.stringify({ to: chatId, message: message.substring(0, 50) + "..." }));
+  console.log("WaSimple request body:", JSON.stringify({ to, text: message.substring(0, 50) + "..." }));
   
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ to: chatId, message }),
+    body: JSON.stringify({ to, text: message }),
   });
 
   const result = await response.json();
