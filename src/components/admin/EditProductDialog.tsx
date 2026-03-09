@@ -315,11 +315,26 @@ const EditProductDialog = ({ product, children }: EditProductDialogProps) => {
           </div>
 
           <div className="flex items-center justify-between">
-            <Label htmlFor="edit-is_active">Active</Label>
+            <div>
+              <Label htmlFor="edit-is_active">Active (available for combo offers)</Label>
+              <p className="text-xs text-muted-foreground">Active products can be selected in combo offers</p>
+            </div>
             <Switch
               id="edit-is_active"
               checked={formData.is_active}
               onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="edit-show_on_ui">Show on Landing Page</Label>
+              <p className="text-xs text-muted-foreground">Display this product on the website for customers</p>
+            </div>
+            <Switch
+              id="edit-show_on_ui"
+              checked={formData.show_on_ui}
+              onCheckedChange={(checked) => setFormData({ ...formData, show_on_ui: checked })}
             />
           </div>
 
