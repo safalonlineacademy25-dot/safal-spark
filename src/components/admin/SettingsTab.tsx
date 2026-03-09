@@ -132,9 +132,6 @@ const SettingsTab = () => {
     whatsappTemplateName: '',
     whatsappBroadcastTemplateName: '',
     whatsappPromotionTemplateName: '',
-    matrixInstanceId: '',
-    matrixAccessToken: '',
-    whatsappMediaUrl: '',
     telegramBotToken: '',
     telegramChatId: '',
     telegramEnabled: false,
@@ -143,8 +140,6 @@ const SettingsTab = () => {
   const [showResendKey, setShowResendKey] = useState(false);
   const [showResendWebhookSecret, setShowResendWebhookSecret] = useState(false);
   const [showWhatsappToken, setShowWhatsappToken] = useState(false);
-  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
-  const mediaFileInputRef = useRef<HTMLInputElement>(null);
 
   const handleMediaFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
