@@ -91,6 +91,7 @@ serve(async (req) => {
     const wasimpleApiKey = settings['wasimple_api_key'] || '';
     const wasimplePhoneId = settings['wasimple_phone_id'] || '';
     const whatsappEnabled = settings['whatsapp_enabled'] !== 'false';
+    const templateName = settings['whatsapp_order_template_name'] || '';
 
     if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
       throw new Error("Payment gateway not configured.");
@@ -161,11 +162,29 @@ serve(async (req) => {
 
     console.log("Payment link created:", paymentLink.short_url);
 
-    // Send payment link via WaSimple
+    // Send payment link via WaSimple template
     let whatsappSent = false;
-    if (whatsappEnabled && wasimpleApiKey && wasimplePhoneId) {
+    if (whatsappEnabled && wasimpleApiKey && wasimplePhoneId && templateName) {
       const formattedPhone = formatPhoneNumber(customer_phone);
-      const message = `Dear ${toTitleCase(customer_name)},\n\nThank you for your interest in ${product.name}!\n\nYour order ${orderNumber} has been created. Please complete the payment using the link below:\n\n🔗 Payment Link: ${paymentLink.short_url}\n\n💰 Amount: ₹${product.price}\n\nThis is a secure Razorpay payment link. You can pay using UPI, Cards, or Net Banking.\n\nIf you have any questions, feel free to reach out to us at support@safalonlinesolutions.com.\n\nWarm regards,\nTeam Safal Online Academy`;
+
+      const templateBody = {
+        messaging_product: "whatsapp",
+        to: formattedPhone,
+        type: "template",
+        template: {
+          name: templateName,
+          language: { code: "en" },
+          components: [
+            {
+              type: "body",
+              parameters: [
+                { type: "text", text: toTitleCase(customer_name) },
+                { type: "text", text: customer_email },
+              ],
+            },
+          ],
+        },
+      };
 
       let retryCount = 0;
       while (retryCount <= 2 && !whatsappSent) {
@@ -175,14 +194,14 @@ serve(async (req) => {
           const response = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ to: formattedPhone, text: message }),
+            body: JSON.stringify(templateBody),
           });
 
           const result = await response.json();
 
           if (response.ok && !result.error) {
             whatsappSent = true;
-            console.log("✅ WhatsApp payment link sent via WaSimple");
+            console.log("✅ WhatsApp template message sent via WaSimple");
           } else {
             console.error(`❌ WaSimple send error:`, result.error?.message || result.message || JSON.stringify(result));
             retryCount++;
@@ -194,6 +213,8 @@ serve(async (req) => {
           if (retryCount <= 2) await new Promise(r => setTimeout(r, 1000 * retryCount));
         }
       }
+    } else if (!templateName) {
+      console.warn("⚠️ WhatsApp order template name not configured in settings");
     }
 
     return new Response(JSON.stringify({

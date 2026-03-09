@@ -47,15 +47,37 @@ function toTitleCase(name: string): string {
   return name.trim().toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-async function sendWaSimpleMessage(apiKey: string, phoneId: string, to: string, message: string): Promise<{ success: boolean; error?: string }> {
+async function sendWaSimpleTemplate(
+  apiKey: string, phoneId: string, to: string,
+  templateName: string, customerName: string, email: string
+): Promise<{ success: boolean; error?: string }> {
   const url = `https://app.wasimple.in/api/v1/whatsapp/sendMessage?phoneId=${encodeURIComponent(phoneId)}&apiKey=${encodeURIComponent(apiKey)}`;
   
-  console.log("WaSimple request body:", JSON.stringify({ to, text: message.substring(0, 50) + "..." }));
+  const body = {
+    messaging_product: "whatsapp",
+    to,
+    type: "template",
+    template: {
+      name: templateName,
+      language: { code: "en" },
+      components: [
+        {
+          type: "body",
+          parameters: [
+            { type: "text", text: customerName },
+            { type: "text", text: email },
+          ],
+        },
+      ],
+    },
+  };
+
+  console.log("WaSimple template request:", JSON.stringify({ to, template: templateName, params: [customerName, email] }));
   
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ to, text: message }),
+    body: JSON.stringify(body),
   });
 
   const result = await response.json();
@@ -82,12 +104,21 @@ serve(async (req: Request): Promise<Response> => {
     
     const wasimpleApiKey = settings['wasimple_api_key'] || '';
     const wasimplePhoneId = settings['wasimple_phone_id'] || '';
+    const templateName = settings['whatsapp_download_template_name'] || '';
 
     const { email, phone: phoneOverride }: WhatsAppDownloadRequest = body;
 
     if (!email) {
       return new Response(
         JSON.stringify({ success: false, error: "Email is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!templateName) {
+      console.error("❌ WhatsApp download template name not configured in settings");
+      return new Response(
+        JSON.stringify({ success: false, error: "WhatsApp download template name not configured in admin settings" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -126,11 +157,8 @@ serve(async (req: Request): Promise<Response> => {
 
     const whatsappEnabled = settings['whatsapp_enabled'] !== 'false';
     
-    console.log("WhatsApp enabled:", whatsappEnabled);
-    console.log("WaSimple Phone ID:", wasimplePhoneId ? wasimplePhoneId.substring(0, 6) + "..." : "NOT SET");
-
     const formattedPhone = formatPhoneNumber(phoneOverride || order.customer_phone);
-    console.log("Formatted phone:", formattedPhone, phoneOverride ? "(overridden)" : "(from order)");
+    console.log("Formatted phone:", formattedPhone);
 
     if (!whatsappEnabled) {
       console.log("⚠️ WhatsApp delivery is disabled in settings");
@@ -143,21 +171,14 @@ serve(async (req: Request): Promise<Response> => {
     if (!wasimpleApiKey || !wasimplePhoneId) {
       console.error("❌ WaSimple API credentials not configured");
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "WaSimple API credentials not configured in admin settings",
-          hint: "Please set WaSimple API Key and Phone ID in Admin > WhatsApp Settings"
-        }),
+        JSON.stringify({ success: false, error: "WaSimple API credentials not configured in admin settings" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const customerName = order.customer_name ? toTitleCase(order.customer_name) : 'Customer';
 
-    // Build plain text message
-    const message = `Dear ${customerName},\n\nThank you for choosing Safal Online Academy!\n\nYour purchased product links have been successfully sent to your registered email address: ${order.customer_email}\n\nPlease check your inbox (and spam/junk folder) for the download links. If you face any issues, feel free to reach out to us at support@safalonlinesolutions.com.\n\nWarm regards,\nTeam Safal Online Academy`;
-
-    console.log("Sending WhatsApp message via WaSimple to:", formattedPhone);
+    console.log("Sending WhatsApp template message via WaSimple to:", formattedPhone);
 
     let whatsappSuccess = false;
     let whatsappError: string | null = null;
@@ -167,11 +188,11 @@ serve(async (req: Request): Promise<Response> => {
     while (retryCount <= maxRetries && !whatsappSuccess) {
       try {
         console.log(`WaSimple send attempt ${retryCount + 1}/${maxRetries + 1}`);
-        const result = await sendWaSimpleMessage(wasimpleApiKey, wasimplePhoneId, formattedPhone, message);
+        const result = await sendWaSimpleTemplate(wasimpleApiKey, wasimplePhoneId, formattedPhone, templateName, customerName, order.customer_email);
         
         if (result.success) {
           whatsappSuccess = true;
-          console.log("✅ WhatsApp download notification sent successfully via WaSimple");
+          console.log("✅ WhatsApp template message sent successfully via WaSimple");
         } else {
           whatsappError = result.error || 'Unknown error';
           console.error(`❌ WaSimple error: ${whatsappError}`);
@@ -201,7 +222,7 @@ serve(async (req: Request): Promise<Response> => {
       return new Response(
         JSON.stringify({ 
           success: true, orderId: order.id, orderNumber: order.order_number,
-          whatsappDelivered: true, provider: "wasimple", messageType: "text"
+          whatsappDelivered: true, provider: "wasimple", messageType: "template"
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -211,7 +232,7 @@ serve(async (req: Request): Promise<Response> => {
         JSON.stringify({ 
           success: true, orderId: order.id, orderNumber: order.order_number,
           whatsappDelivered: false, whatsappError, provider: "wasimple",
-          fallbackMessage: "Email delivery is the primary channel. Customer can download from email."
+          fallbackMessage: "Email delivery is the primary channel."
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -220,7 +241,7 @@ serve(async (req: Request): Promise<Response> => {
   } catch (error: any) {
     console.error("❌ Critical error in send-whatsapp-download:", error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message, suggestion: "Please check order status and retry if needed." }),
+      JSON.stringify({ success: false, error: error.message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
