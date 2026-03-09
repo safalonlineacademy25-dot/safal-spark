@@ -52,8 +52,8 @@ export const useActiveProducts = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('products')
-        .select('id, name, description, price, original_price, category, badge, features, image_url, seo_title, seo_description, is_active, download_count, created_at, updated_at')
-        .eq('is_active', true)
+        .select('id, name, description, price, original_price, category, badge, features, image_url, seo_title, seo_description, is_active, show_on_ui, download_count, created_at, updated_at')
+        .eq('show_on_ui', true)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
