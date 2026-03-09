@@ -73,11 +73,8 @@ interface DeliverySettings {
   whatsappEnabled: boolean;
   resendApiKey: string;
   resendWebhookSecret: string;
-  whatsappAccessToken: string;
-  whatsappPhoneNumberId: string;
-  whatsappTemplateName: string;
-  whatsappBroadcastTemplateName: string;
-  whatsappPromotionTemplateName: string;
+  wasimpleApiKey: string;
+  wasimplePhoneId: string;
   telegramBotToken: string;
   telegramChatId: string;
   telegramEnabled: boolean;
