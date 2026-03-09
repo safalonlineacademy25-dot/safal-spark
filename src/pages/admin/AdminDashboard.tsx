@@ -749,6 +749,20 @@ const AdminDashboard = () => {
                               </td>
                               <td className="p-4 text-sm text-muted-foreground capitalize">{product.category}</td>
                               <td className="p-4 text-sm font-medium price-text">₹{product.price}</td>
+                              <td className="p-4">
+                                <div className="flex flex-col gap-1">
+                                  <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium w-fit ${
+                                    product.is_active ? 'bg-secondary/10 text-secondary' : 'bg-muted text-muted-foreground'
+                                  }`}>
+                                    {product.is_active ? 'Active' : 'Inactive'}
+                                  </span>
+                                  <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium w-fit ${
+                                    product.show_on_ui ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+                                  }`}>
+                                    {product.show_on_ui ? 'Visible' : 'Hidden'}
+                                  </span>
+                                </div>
+                              </td>
                               <td className="p-4 text-sm text-muted-foreground">{product.download_count?.toLocaleString() || 0}</td>
                               <td className="p-4">
                                 <div className="flex items-center gap-2">
