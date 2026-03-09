@@ -175,7 +175,7 @@ serve(async (req) => {
           const response = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ to: formattedPhone, message }),
+            body: JSON.stringify({ to: `${formattedPhone}@s.whatsapp.net`, message }),
           });
 
           const result = await response.json();
