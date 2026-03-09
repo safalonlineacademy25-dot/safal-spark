@@ -51,7 +51,7 @@ async function sendWaSimpleTemplate(
   apiKey: string, phoneId: string, to: string,
   templateName: string, customerName: string, email: string
 ): Promise<{ success: boolean; error?: string }> {
-  const url = `https://app.wasimple.in/api/v1/whatsapp/sendTemplateMessage?phoneId=${encodeURIComponent(phoneId)}&apiKey=${encodeURIComponent(apiKey)}&whatsappNumber=${encodeURIComponent(to)}`;
+  const url = `https://app.wasimple.in/api/v1/sendTemplateMessage?phoneId=${encodeURIComponent(phoneId)}&apiKey=${encodeURIComponent(apiKey)}&whatsappNumber=${encodeURIComponent(to)}`;
   
   const body = {
     template_name: templateName,
