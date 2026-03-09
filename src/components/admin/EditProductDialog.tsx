@@ -109,6 +109,7 @@ const EditProductDialog = ({ product, children }: EditProductDialogProps) => {
          audio_url: null,
         badge: formData.badge && formData.badge.trim().length > 0 ? formData.badge.trim() : null,
         is_active: formData.is_active,
+        show_on_ui: formData.show_on_ui,
         features: featuresInput ? featuresInput.split('\n').filter(f => f.trim()) : [],
       });
       setOpen(false);
