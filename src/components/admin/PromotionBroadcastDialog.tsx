@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Loader2, Send, Sparkles, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
@@ -29,7 +28,6 @@ export default function PromotionBroadcastDialog({ onBroadcastSent }: PromotionB
 
   // Form state
   const [templateName, setTemplateName] = useState('');
-  const [promotionMessage, setPromotionMessage] = useState('');
 
   // Fetch recipient count and template name when dialog opens
   useEffect(() => {
@@ -57,7 +55,6 @@ export default function PromotionBroadcastDialog({ onBroadcastSent }: PromotionB
   const fetchRecipientCount = async () => {
     setLoadingCount(true);
     try {
-      // Get unique customers who opted in for WhatsApp from customers table
       const { count, error } = await supabase
         .from('customers')
         .select('*', { count: 'exact', head: true })
@@ -73,18 +70,9 @@ export default function PromotionBroadcastDialog({ onBroadcastSent }: PromotionB
     }
   };
 
-  const resetForm = () => {
-    setPromotionMessage('');
-  };
-
   const handleSend = async () => {
     if (!templateName.trim()) {
       toast.error('Please enter a template name');
-      return;
-    }
-    
-    if (!promotionMessage.trim()) {
-      toast.error('Please enter a promotion message');
       return;
     }
 
@@ -95,7 +83,6 @@ export default function PromotionBroadcastDialog({ onBroadcastSent }: PromotionB
 
     setSending(true);
     try {
-      // Get the current session for auth
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session?.access_token) {
@@ -110,7 +97,6 @@ export default function PromotionBroadcastDialog({ onBroadcastSent }: PromotionB
         },
         body: {
           templateName: templateName.trim(),
-          promotionMessage: promotionMessage.trim(),
         },
       });
 
@@ -123,7 +109,6 @@ export default function PromotionBroadcastDialog({ onBroadcastSent }: PromotionB
       } else {
         toast.success(`Promotion sent! ${res.sent} delivered, ${res.failed} failed`);
         setOpen(false);
-        resetForm();
         onBroadcastSent?.();
       }
     } catch (err: any) {
@@ -146,10 +131,10 @@ export default function PromotionBroadcastDialog({ onBroadcastSent }: PromotionB
         <DialogHeader className="border-b pb-4">
           <DialogTitle className="flex items-center gap-2 text-lg">
             <Sparkles className="h-5 w-5 text-primary" />
-            Send Promotional Message
+            Send Promotional Template
           </DialogTitle>
           <DialogDescription>
-            Send promotional updates about new products or features to all opted-in customers.
+            Send a pre-approved WhatsApp template to all opted-in customers. The template will receive customer name and email as parameters.
           </DialogDescription>
         </DialogHeader>
 
@@ -164,22 +149,7 @@ export default function PromotionBroadcastDialog({ onBroadcastSent }: PromotionB
               onChange={(e) => setTemplateName(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
-              Meta-approved WhatsApp template name
-            </p>
-          </div>
-
-          {/* Promotion Message */}
-          <div className="space-y-2">
-            <Label htmlFor="promotionMessage">Message *</Label>
-            <Textarea
-              id="promotionMessage"
-              placeholder="Describe the new products, features, or special offers..."
-              value={promotionMessage}
-              onChange={(e) => setPromotionMessage(e.target.value)}
-              rows={5}
-            />
-            <p className="text-xs text-muted-foreground">
-              This value will be sent to the WhatsApp API as the message parameter
+              Meta-approved WhatsApp template name from WaSimple
             </p>
           </div>
 
@@ -211,8 +181,9 @@ export default function PromotionBroadcastDialog({ onBroadcastSent }: PromotionB
 
           {/* Info Box */}
           <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
-            <p className="font-medium text-foreground mb-1">Note:</p>
-            <p>This will send a promotional message using the specified template to all opted-in customers.</p>
+            <p className="font-medium text-foreground mb-1">Template Parameters:</p>
+            <p>{'{{1}}'} = Customer Name, {'{{2}}'} = Customer Email</p>
+            <p className="mt-1">Ensure your template is approved in WaSimple/Meta Business before sending.</p>
           </div>
         </div>
 
@@ -222,7 +193,7 @@ export default function PromotionBroadcastDialog({ onBroadcastSent }: PromotionB
           </Button>
           <Button 
             onClick={handleSend} 
-            disabled={sending || recipientCount === 0 || loadingCount || !templateName.trim() || !promotionMessage.trim()}
+            disabled={sending || recipientCount === 0 || loadingCount || !templateName.trim()}
             className="gap-2"
           >
             {sending ? (

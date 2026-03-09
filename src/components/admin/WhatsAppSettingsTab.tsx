@@ -8,6 +8,7 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
+  FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +32,11 @@ interface WhatsAppSettings {
   resendWebhookSecret: string;
   wasimpleApiKey: string;
   wasimplePhoneId: string;
+  downloadTemplateName: string;
+  orderTemplateName: string;
+  failureTemplateName: string;
+  broadcastTemplateName: string;
+  promotionTemplateName: string;
 }
 
 const WhatsAppSettingsTab = () => {
@@ -42,6 +48,11 @@ const WhatsAppSettingsTab = () => {
     resendWebhookSecret: '',
     wasimpleApiKey: '',
     wasimplePhoneId: '',
+    downloadTemplateName: '',
+    orderTemplateName: '',
+    failureTemplateName: '',
+    broadcastTemplateName: '',
+    promotionTemplateName: '',
   });
   const [saving, setSaving] = useState(false);
   const [showResendKey, setShowResendKey] = useState(false);
@@ -68,6 +79,11 @@ const WhatsAppSettingsTab = () => {
           resendWebhookSecret: map['resend_webhook_secret'] || '',
           wasimpleApiKey: map['wasimple_api_key'] || '',
           wasimplePhoneId: map['wasimple_phone_id'] || '',
+          downloadTemplateName: map['whatsapp_download_template_name'] || '',
+          orderTemplateName: map['whatsapp_order_template_name'] || '',
+          failureTemplateName: map['whatsapp_failure_template_name'] || '',
+          broadcastTemplateName: map['whatsapp_broadcast_template_name'] || '',
+          promotionTemplateName: map['whatsapp_promotion_template_name'] || '',
         });
       }
     } catch (error) {
@@ -94,6 +110,11 @@ const WhatsAppSettingsTab = () => {
         { key: 'resend_webhook_secret', value: settings.resendWebhookSecret },
         { key: 'wasimple_api_key', value: settings.wasimpleApiKey },
         { key: 'wasimple_phone_id', value: settings.wasimplePhoneId },
+        { key: 'whatsapp_download_template_name', value: settings.downloadTemplateName },
+        { key: 'whatsapp_order_template_name', value: settings.orderTemplateName },
+        { key: 'whatsapp_failure_template_name', value: settings.failureTemplateName },
+        { key: 'whatsapp_broadcast_template_name', value: settings.broadcastTemplateName },
+        { key: 'whatsapp_promotion_template_name', value: settings.promotionTemplateName },
       ];
       for (const s of settingsToSave) {
         await upsertSetting(s.key, s.value);
@@ -141,7 +162,7 @@ const WhatsAppSettingsTab = () => {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-foreground">WhatsApp Delivery</p>
-                  <p className="text-xs text-muted-foreground">Send messages via WaSimple API (for opted-in customers)</p>
+                  <p className="text-xs text-muted-foreground">Send template messages via WaSimple API (for opted-in customers)</p>
                 </div>
               </div>
               <Switch checked={settings.whatsappEnabled} onCheckedChange={(checked) => setSettings(prev => ({ ...prev, whatsappEnabled: checked }))} disabled={!isSuperAdmin} />
@@ -190,9 +211,52 @@ const WhatsAppSettingsTab = () => {
             <p className="text-xs text-muted-foreground">Phone ID from your WaSimple account for accounts with multiple numbers.</p>
           </div>
 
+          {/* WhatsApp Template Names */}
+          <div className="space-y-4 pt-4">
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-primary" />
+              <Label className="text-sm font-semibold">WhatsApp Message Templates</Label>
+            </div>
+            <p className="text-xs text-muted-foreground -mt-2">
+              Enter the approved template names from your WaSimple/Meta Business account. Each template receives two parameters: <strong>{"{{1}}"} = Customer Name</strong> and <strong>{"{{2}}"} = Email</strong>.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="download-template">Download Confirmation Template</Label>
+                <Input id="download-template" placeholder="e.g. download_confirmation" value={settings.downloadTemplateName} onChange={(e) => setSettings(prev => ({ ...prev, downloadTemplateName: e.target.value }))} disabled={!isSuperAdmin} />
+                <p className="text-xs text-muted-foreground">Sent after successful purchase & email delivery</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="order-template">Order/Payment Template</Label>
+                <Input id="order-template" placeholder="e.g. order_payment_link" value={settings.orderTemplateName} onChange={(e) => setSettings(prev => ({ ...prev, orderTemplateName: e.target.value }))} disabled={!isSuperAdmin} />
+                <p className="text-xs text-muted-foreground">Sent with payment link for WhatsApp orders</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="failure-template">Delivery Failure Template</Label>
+                <Input id="failure-template" placeholder="e.g. delivery_failure_notice" value={settings.failureTemplateName} onChange={(e) => setSettings(prev => ({ ...prev, failureTemplateName: e.target.value }))} disabled={!isSuperAdmin} />
+                <p className="text-xs text-muted-foreground">Sent when email delivery fails</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="broadcast-template">Broadcast Template</Label>
+                <Input id="broadcast-template" placeholder="e.g. product_broadcast" value={settings.broadcastTemplateName} onChange={(e) => setSettings(prev => ({ ...prev, broadcastTemplateName: e.target.value }))} disabled={!isSuperAdmin} />
+                <p className="text-xs text-muted-foreground">Used for product broadcast messages</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="promotion-template">Promotion Template</Label>
+                <Input id="promotion-template" placeholder="e.g. promotional_offer" value={settings.promotionTemplateName} onChange={(e) => setSettings(prev => ({ ...prev, promotionTemplateName: e.target.value }))} disabled={!isSuperAdmin} />
+                <p className="text-xs text-muted-foreground">Used for promotional broadcasts</p>
+              </div>
+            </div>
+          </div>
+
           <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50 text-sm">
             <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-            <p className="text-muted-foreground">When both are enabled, customers who opt-in to WhatsApp will receive links on both channels. Others will receive email only. Messages are sent as plain text via WaSimple API.</p>
+            <p className="text-muted-foreground">All WhatsApp messages are sent as approved templates via the WhatsApp Business API. Each template receives two parameters: customer name and email address.</p>
           </div>
 
           <Button onClick={handleSave} disabled={saving || !isSuperAdmin}>

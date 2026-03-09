@@ -99,6 +99,14 @@ serve(async (req: Request): Promise<Response> => {
     console.log("📢 Starting WhatsApp broadcast");
     console.log("Category:", category);
     console.log("Product:", productName);
+    console.log("Template:", templateName);
+
+    if (!templateName) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Template name is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const settings = await getSettings(supabase);
     
@@ -168,14 +176,31 @@ serve(async (req: Request): Promise<Response> => {
     
     for (const recipient of recipients) {
       try {
-        const message = `Dear ${recipient.name},\n\nWe have an exciting update for you from Safal Online Academy!\n\nNew Product: ${productName}\nCategory: ${category}\n\n${productDescription || 'Check it out now!'}\n\n${productLink ? `🔗 Link: ${productLink}` : 'Visit our website for more details.'}\n\nWarm regards,\nTeam Safal Online Academy`;
+        const templateBody = {
+          messaging_product: "whatsapp",
+          to: recipient.phone,
+          type: "template",
+          template: {
+            name: templateName,
+            language: { code: "en" },
+            components: [
+              {
+                type: "body",
+                parameters: [
+                  { type: "text", text: recipient.name },
+                  { type: "text", text: recipient.email },
+                ],
+              },
+            ],
+          },
+        };
 
-        console.log(`Sending to ${recipient.phone}...`);
+        console.log(`Sending template to ${recipient.phone}...`);
 
         const response = await fetch(waSimpleUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ to: recipient.phone, text: message }),
+          body: JSON.stringify(templateBody),
         });
 
         const result = await response.json();
@@ -207,7 +232,7 @@ serve(async (req: Request): Promise<Response> => {
         category,
         product_name: productName,
         product_description: productDescription || null,
-        template_name: templateName || 'wasimple_text',
+        template_name: templateName,
         recipients_count: recipients.length,
         sent_count: results.sent,
         failed_count: results.failed,

@@ -38,6 +38,10 @@ function formatPhoneNumber(phone: string): string {
   return cleaned;
 }
 
+function toTitleCase(name: string): string {
+  return name.trim().toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 interface NotifyRequest {
   order_id: string;
   error_reason?: string;
@@ -52,7 +56,7 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { order_id, error_reason }: NotifyRequest = await req.json();
+    const { order_id }: NotifyRequest = await req.json();
 
     if (!order_id) {
       return new Response(
@@ -80,6 +84,7 @@ serve(async (req: Request): Promise<Response> => {
     const wasimpleApiKey = settings['wasimple_api_key'] || '';
     const wasimplePhoneId = settings['wasimple_phone_id'] || '';
     const whatsappEnabled = settings['whatsapp_enabled'] !== 'false';
+    const templateName = settings['whatsapp_failure_template_name'] || '';
 
     if (!whatsappEnabled || !wasimpleApiKey || !wasimplePhoneId) {
       return new Response(
@@ -88,29 +93,52 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
+    if (!templateName) {
+      return new Response(
+        JSON.stringify({ success: false, error: "WhatsApp failure template name not configured in admin settings" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const formattedPhone = formatPhoneNumber(order.customer_phone);
+    const customerName = order.customer_name ? toTitleCase(order.customer_name) : 'Customer';
 
-    const reasonText = error_reason ? `\n\nReason: ${error_reason}` : '';
-
-    const notifyMessage = `Dear ${order.customer_name || 'Customer'},\n\nThis is regarding your order ${order.order_number} from Safal Online Academy.\n\nWe were unable to deliver the product download links to your email address: ${order.customer_email}${reasonText}\n\nPlease verify your email address and reply to this message with the correct email ID. We will resend the download links promptly.\n\nAlternatively, if you wish to request a refund, please let us know.\n\nFor any queries, reach us at support@safalonlinesolutions.com\n\nWarm regards,\nTeam Safal Online Academy`;
-
-    console.log("Sending delivery failure notification via WaSimple to:", formattedPhone);
+    console.log("Sending delivery failure notification via WaSimple template to:", formattedPhone);
 
     const url = `https://app.wasimple.in/api/v1/whatsapp/sendMessage?phoneId=${encodeURIComponent(wasimplePhoneId)}&apiKey=${encodeURIComponent(wasimpleApiKey)}`;
+
+    const templateBody = {
+      messaging_product: "whatsapp",
+      to: formattedPhone,
+      type: "template",
+      template: {
+        name: templateName,
+        language: { code: "en" },
+        components: [
+          {
+            type: "body",
+            parameters: [
+              { type: "text", text: customerName },
+              { type: "text", text: order.customer_email },
+            ],
+          },
+        ],
+      },
+    };
 
     const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ to: formattedPhone, text: notifyMessage }),
+      body: JSON.stringify(templateBody),
     });
 
     const result = await response.json();
     console.log("WaSimple API response:", response.status, JSON.stringify(result));
 
     if (response.ok && !result.error) {
-      console.log("✅ Delivery failure WhatsApp notification sent via WaSimple");
+      console.log("✅ Delivery failure WhatsApp template sent via WaSimple");
       return new Response(
-        JSON.stringify({ success: true, message: "Customer notified via WhatsApp" }),
+        JSON.stringify({ success: true, message: "Customer notified via WhatsApp template" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     } else {

@@ -32,12 +32,9 @@ async function getSettings(supabase: any): Promise<Record<string, string>> {
   return settings;
 }
 
-const DEFAULT_PROMOTION_TITLE = "Special Offer from Safal Resources";
-const DEFAULT_CTA_LINK = "https://safalonlinesolutions.com";
-
 interface PromotionRequest {
   templateName?: string;
-  promotionMessage: string;
+  promotionMessage?: string;
 }
 
 function formatPhoneNumber(phone: string): string {
@@ -90,20 +87,17 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    const { templateName, promotionMessage }: PromotionRequest = await req.json();
+    const { templateName }: PromotionRequest = await req.json();
 
-    if (!promotionMessage || !promotionMessage.trim()) {
+    if (!templateName || !templateName.trim()) {
       return new Response(
-        JSON.stringify({ success: false, error: 'Promotion message is required' }),
+        JSON.stringify({ success: false, error: 'Template name is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const promotionTitle = DEFAULT_PROMOTION_TITLE;
-    const ctaLink = DEFAULT_CTA_LINK;
-
-    console.log("🎉 Starting promotional broadcast via WaSimple");
-    console.log("Message:", promotionMessage);
+    console.log("🎉 Starting promotional broadcast via WaSimple template");
+    console.log("Template:", templateName);
 
     const settings = await getSettings(supabase);
     
@@ -163,12 +157,31 @@ serve(async (req: Request): Promise<Response> => {
     
     for (const recipient of recipients) {
       try {
-        console.log(`Sending promotion to ${recipient.phone}...`);
+        const templateBody = {
+          messaging_product: "whatsapp",
+          to: recipient.phone,
+          type: "template",
+          template: {
+            name: templateName.trim(),
+            language: { code: "en" },
+            components: [
+              {
+                type: "body",
+                parameters: [
+                  { type: "text", text: recipient.name },
+                  { type: "text", text: recipient.email },
+                ],
+              },
+            ],
+          },
+        };
+
+        console.log(`Sending promotion template to ${recipient.phone}...`);
 
         const response = await fetch(waSimpleUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ to: recipient.phone, text: promotionMessage.trim() }),
+          body: JSON.stringify(templateBody),
         });
 
         const result = await response.json();
@@ -196,10 +209,10 @@ serve(async (req: Request): Promise<Response> => {
     // Log the promotion to database
     try {
       await supabase.from('promotion_logs').insert({
-        promotion_title: promotionTitle,
-        promotion_message: promotionMessage.trim(),
-        cta_link: ctaLink,
-        template_name: templateName || 'wasimple_text',
+        promotion_title: `Template: ${templateName.trim()}`,
+        promotion_message: null,
+        cta_link: null,
+        template_name: templateName.trim(),
         recipients_count: recipients.length,
         sent_count: results.sent,
         failed_count: results.failed,
