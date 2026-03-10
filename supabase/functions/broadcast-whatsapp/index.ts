@@ -175,12 +175,13 @@ serve(async (req: Request): Promise<Response> => {
     
     for (const recipient of recipients) {
       try {
-        const waSimpleUrl = `https://app.wasimple.in/api/v1/sendTemplateMessage?phoneId=${encodeURIComponent(wasimplePhoneId)}&apiKey=${encodeURIComponent(wasimpleApiKey)}&whatsappNumber=${encodeURIComponent(recipient.phone)}`;
+        const waSimpleUrl = `https://app.wasimple.in/api/v1/sendTemplateMessage?phoneId=${encodeURIComponent(wasimplePhoneId)}&apiKey=${encodeURIComponent(wasimpleApiKey)}`;
         
         const templateBody = {
-          template_name: templateName,
-          broadcast_name: "broadcast_campaign",
-          parameters: [
+          templateName: templateName,
+          language: "en",
+          to: recipient.phone,
+          templateVariables: [
             { name: "1", value: recipient.name },
             { name: "2", value: recipient.email },
           ],
