@@ -175,23 +175,24 @@ serve(async (req: Request): Promise<Response> => {
     
     for (const recipient of recipients) {
       try {
-        const waSimpleUrl = `https://app.wasimple.in/api/v1/sendTemplateMessage?phoneId=${encodeURIComponent(wasimplePhoneId)}&apiKey=${encodeURIComponent(wasimpleApiKey)}`;
+        const waSimpleUrl = `https://app.wasimple.in/api/v1/whatsapp/sendMessage?phoneId=${encodeURIComponent(wasimplePhoneId)}`;
         
         const templateBody = {
           templateName: templateName,
           language: "en",
           to: recipient.phone,
-          templateVariables: [
-            { name: "1", value: recipient.name },
-            { name: "2", value: recipient.email },
-          ],
+          templateVariables: [recipient.name, recipient.email],
         };
 
         console.log(`Sending template to ${recipient.phone}...`);
 
         const response = await fetch(waSimpleUrl, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "accept": "application/json",
+            "x-phone-id": wasimplePhoneId,
+          },
           body: JSON.stringify(templateBody),
         });
 

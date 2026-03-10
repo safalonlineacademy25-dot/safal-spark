@@ -171,20 +171,21 @@ serve(async (req) => {
         templateName: templateName,
         language: "en",
         to: formattedPhone,
-        templateVariables: [
-          { name: "1", value: toTitleCase(customer_name) },
-          { name: "2", value: customer_email },
-        ],
+        templateVariables: [toTitleCase(customer_name), customer_email],
       };
 
       let retryCount = 0;
       while (retryCount <= 2 && !whatsappSent) {
         try {
-          const url = `https://app.wasimple.in/api/v1/sendTemplateMessage?phoneId=${encodeURIComponent(wasimplePhoneId)}&apiKey=${encodeURIComponent(wasimpleApiKey)}`;
+          const url = `https://app.wasimple.in/api/v1/whatsapp/sendMessage?phoneId=${encodeURIComponent(wasimplePhoneId)}`;
 
           const response = await fetch(url, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              "accept": "application/json",
+              "x-phone-id": wasimplePhoneId,
+            },
             body: JSON.stringify(templateBody),
           });
 
