@@ -57,10 +57,10 @@ async function sendWaSimpleTemplate(
     templateName: templateName,
     language: "en",
     to: to,
-    templateVariables: [email],
+    templateVariables: [customerName, email],
   };
 
-  console.log("WaSimple template request:", JSON.stringify({ to, template: templateName, params: [email] }));
+  console.log("WaSimple template request:", JSON.stringify({ to, template: templateName, params: [customerName, email] }));
   
   const response = await fetch(url, {
     method: "POST",
