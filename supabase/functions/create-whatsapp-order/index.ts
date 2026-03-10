@@ -177,7 +177,7 @@ serve(async (req) => {
       let retryCount = 0;
       while (retryCount <= 2 && !whatsappSent) {
         try {
-          const url = `https://app.wasimple.in/api/v1/whatsapp/sendMessage?phoneId=${encodeURIComponent(wasimplePhoneId)}`;
+          const url = `https://app.wasimple.in/api/v1/whatsapp/sendMessage?phoneId=${encodeURIComponent(wasimplePhoneId)}&apiKey=${encodeURIComponent(wasimpleApiKey)}`;
 
           const response = await fetch(url, {
             method: "POST",
