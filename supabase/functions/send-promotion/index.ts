@@ -156,7 +156,7 @@ serve(async (req: Request): Promise<Response> => {
     
     for (const recipient of recipients) {
       try {
-        const waSimpleUrl = `https://app.wasimple.in/api/v1/whatsapp/sendMessage?phoneId=${encodeURIComponent(wasimplePhoneId)}`;
+        const waSimpleUrl = `https://app.wasimple.in/api/v1/whatsapp/sendMessage?phoneId=${encodeURIComponent(wasimplePhoneId)}&apiKey=${encodeURIComponent(wasimpleApiKey)}`;
         
         const templateBody = {
           templateName: templateName.trim(),

@@ -105,7 +105,7 @@ serve(async (req: Request): Promise<Response> => {
 
     console.log("Sending delivery failure notification via WaSimple template to:", formattedPhone);
 
-    const url = `https://app.wasimple.in/api/v1/whatsapp/sendMessage?phoneId=${encodeURIComponent(wasimplePhoneId)}`;
+    const url = `https://app.wasimple.in/api/v1/whatsapp/sendMessage?phoneId=${encodeURIComponent(wasimplePhoneId)}&apiKey=${encodeURIComponent(wasimpleApiKey)}`;
 
     const templateBody = {
       templateName: templateName,
