@@ -57,7 +57,7 @@ async function sendWaSimpleTemplate(
     templateName: templateName,
     language: "en",
     to: to,
-    templateVariables: [customerName, email],
+    templateVariables: [email],
   };
 
   console.log("WaSimple template request:", JSON.stringify({ to, template: templateName, params: [customerName, email] }));
