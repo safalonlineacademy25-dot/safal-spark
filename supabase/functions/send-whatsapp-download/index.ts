@@ -61,10 +61,20 @@ async function sendWaSimpleTemplate(
     templateVariables: [customerName, email],
   };
 
-  // Add media header URL if configured
+  // Add media header using components array (Meta WhatsApp API standard format)
   if (mediaUrl) {
-    body.headerMediaUrl = mediaUrl;
-    console.log("Including media header URL:", mediaUrl);
+    body.components = [
+      {
+        type: "header",
+        parameters: [
+          {
+            type: "image",
+            image: { link: mediaUrl }
+          }
+        ]
+      }
+    ];
+    console.log("Including media header URL via components:", mediaUrl);
   }
 
   console.log("WaSimple template request:", JSON.stringify({ to, template: templateName, params: [customerName, email] }));
