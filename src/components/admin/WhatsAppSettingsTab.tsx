@@ -86,6 +86,7 @@ const WhatsAppSettingsTab = () => {
           failureTemplateName: map['whatsapp_failure_template_name'] || '',
           broadcastTemplateName: map['whatsapp_broadcast_template_name'] || '',
           promotionTemplateName: map['whatsapp_promotion_template_name'] || '',
+          downloadMediaUrl: map['whatsapp_download_media_url'] || '',
         });
       }
     } catch (error) {
