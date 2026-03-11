@@ -37,6 +37,7 @@ interface WhatsAppSettings {
   failureTemplateName: string;
   broadcastTemplateName: string;
   promotionTemplateName: string;
+  downloadMediaUrl: string;
 }
 
 const WhatsAppSettingsTab = () => {
