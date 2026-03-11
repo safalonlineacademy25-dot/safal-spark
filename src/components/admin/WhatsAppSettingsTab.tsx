@@ -54,6 +54,7 @@ const WhatsAppSettingsTab = () => {
     failureTemplateName: '',
     broadcastTemplateName: '',
     promotionTemplateName: '',
+    downloadMediaUrl: '',
   });
   const [saving, setSaving] = useState(false);
   const [showResendKey, setShowResendKey] = useState(false);
