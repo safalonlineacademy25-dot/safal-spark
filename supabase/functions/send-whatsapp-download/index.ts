@@ -104,6 +104,7 @@ serve(async (req: Request): Promise<Response> => {
     const wasimpleApiKey = settings['wasimple_api_key'] || '';
     const wasimplePhoneId = settings['wasimple_phone_id'] || '';
     const templateName = settings['whatsapp_download_template_name'] || '';
+    const downloadMediaUrl = settings['whatsapp_download_media_url'] || '';
 
     const { email, phone: phoneOverride }: WhatsAppDownloadRequest = body;
 
