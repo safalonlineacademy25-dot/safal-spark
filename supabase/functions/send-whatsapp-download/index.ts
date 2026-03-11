@@ -188,7 +188,7 @@ serve(async (req: Request): Promise<Response> => {
     while (retryCount <= maxRetries && !whatsappSuccess) {
       try {
         console.log(`WaSimple send attempt ${retryCount + 1}/${maxRetries + 1}`);
-        const result = await sendWaSimpleTemplate(wasimpleApiKey, wasimplePhoneId, formattedPhone, templateName, customerName, order.customer_email);
+        const result = await sendWaSimpleTemplate(wasimpleApiKey, wasimplePhoneId, formattedPhone, templateName, customerName, order.customer_email, downloadMediaUrl || undefined);
         
         if (result.success) {
           whatsappSuccess = true;

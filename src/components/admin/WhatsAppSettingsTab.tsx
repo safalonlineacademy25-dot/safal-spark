@@ -258,6 +258,13 @@ const WhatsAppSettingsTab = () => {
             </div>
           </div>
 
+          {/* Media Header URL */}
+          <div className="space-y-2 pt-2">
+            <Label htmlFor="download-media-url">Download Template Media Header URL</Label>
+            <Input id="download-media-url" placeholder="https://your-supabase-url/storage/v1/object/public/product-images/header.jpg" value={settings.downloadMediaUrl} onChange={(e) => setSettings(prev => ({ ...prev, downloadMediaUrl: e.target.value }))} disabled={!isSuperAdmin} />
+            <p className="text-xs text-muted-foreground">Public URL of the image to send as the media header in the download WhatsApp template. Upload to Supabase Storage and paste the public URL here.</p>
+          </div>
+
           <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50 text-sm">
             <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
             <p className="text-muted-foreground">All WhatsApp messages are sent as approved templates via the WhatsApp Business API. Each template receives two parameters: customer name and email address.</p>
