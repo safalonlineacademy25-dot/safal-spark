@@ -49,16 +49,23 @@ function toTitleCase(name: string): string {
 
 async function sendWaSimpleTemplate(
   apiKey: string, phoneId: string, to: string,
-  templateName: string, customerName: string, email: string
+  templateName: string, customerName: string, email: string,
+  mediaUrl?: string
 ): Promise<{ success: boolean; error?: string }> {
   const url = `https://app.wasimple.in/api/v1/whatsapp/sendMessage?phoneId=${encodeURIComponent(phoneId)}&apiKey=${encodeURIComponent(apiKey)}`;
   
-  const body = {
+  const body: Record<string, any> = {
     templateName: templateName,
     language: "en",
     to: to,
     templateVariables: [customerName, email],
   };
+
+  // Add media header URL if configured
+  if (mediaUrl) {
+    body.headerMediaUrl = mediaUrl;
+    console.log("Including media header URL:", mediaUrl);
+  }
 
   console.log("WaSimple template request:", JSON.stringify({ to, template: templateName, params: [customerName, email] }));
   
