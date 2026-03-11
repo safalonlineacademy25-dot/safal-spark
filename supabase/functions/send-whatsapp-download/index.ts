@@ -49,16 +49,23 @@ function toTitleCase(name: string): string {
 
 async function sendWaSimpleTemplate(
   apiKey: string, phoneId: string, to: string,
-  templateName: string, customerName: string, email: string
+  templateName: string, customerName: string, email: string,
+  mediaUrl?: string
 ): Promise<{ success: boolean; error?: string }> {
   const url = `https://app.wasimple.in/api/v1/whatsapp/sendMessage?phoneId=${encodeURIComponent(phoneId)}&apiKey=${encodeURIComponent(apiKey)}`;
   
-  const body = {
+  const body: Record<string, any> = {
     templateName: templateName,
     language: "en",
     to: to,
     templateVariables: [customerName, email],
   };
+
+  // Add media header URL if configured
+  if (mediaUrl) {
+    body.headerMediaUrl = mediaUrl;
+    console.log("Including media header URL:", mediaUrl);
+  }
 
   console.log("WaSimple template request:", JSON.stringify({ to, template: templateName, params: [customerName, email] }));
   
@@ -97,6 +104,7 @@ serve(async (req: Request): Promise<Response> => {
     const wasimpleApiKey = settings['wasimple_api_key'] || '';
     const wasimplePhoneId = settings['wasimple_phone_id'] || '';
     const templateName = settings['whatsapp_download_template_name'] || '';
+    const downloadMediaUrl = settings['whatsapp_download_media_url'] || '';
 
     const { email, phone: phoneOverride }: WhatsAppDownloadRequest = body;
 
@@ -180,7 +188,7 @@ serve(async (req: Request): Promise<Response> => {
     while (retryCount <= maxRetries && !whatsappSuccess) {
       try {
         console.log(`WaSimple send attempt ${retryCount + 1}/${maxRetries + 1}`);
-        const result = await sendWaSimpleTemplate(wasimpleApiKey, wasimplePhoneId, formattedPhone, templateName, customerName, order.customer_email);
+        const result = await sendWaSimpleTemplate(wasimpleApiKey, wasimplePhoneId, formattedPhone, templateName, customerName, order.customer_email, downloadMediaUrl || undefined);
         
         if (result.success) {
           whatsappSuccess = true;

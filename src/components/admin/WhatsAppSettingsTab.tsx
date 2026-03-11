@@ -37,6 +37,7 @@ interface WhatsAppSettings {
   failureTemplateName: string;
   broadcastTemplateName: string;
   promotionTemplateName: string;
+  downloadMediaUrl: string;
 }
 
 const WhatsAppSettingsTab = () => {
@@ -53,6 +54,7 @@ const WhatsAppSettingsTab = () => {
     failureTemplateName: '',
     broadcastTemplateName: '',
     promotionTemplateName: '',
+    downloadMediaUrl: '',
   });
   const [saving, setSaving] = useState(false);
   const [showResendKey, setShowResendKey] = useState(false);
@@ -84,6 +86,7 @@ const WhatsAppSettingsTab = () => {
           failureTemplateName: map['whatsapp_failure_template_name'] || '',
           broadcastTemplateName: map['whatsapp_broadcast_template_name'] || '',
           promotionTemplateName: map['whatsapp_promotion_template_name'] || '',
+          downloadMediaUrl: map['whatsapp_download_media_url'] || '',
         });
       }
     } catch (error) {
@@ -115,6 +118,7 @@ const WhatsAppSettingsTab = () => {
         { key: 'whatsapp_failure_template_name', value: settings.failureTemplateName },
         { key: 'whatsapp_broadcast_template_name', value: settings.broadcastTemplateName },
         { key: 'whatsapp_promotion_template_name', value: settings.promotionTemplateName },
+        { key: 'whatsapp_download_media_url', value: settings.downloadMediaUrl },
       ];
       for (const s of settingsToSave) {
         await upsertSetting(s.key, s.value);
@@ -252,6 +256,13 @@ const WhatsAppSettingsTab = () => {
                 <p className="text-xs text-muted-foreground">Used for promotional broadcasts</p>
               </div>
             </div>
+          </div>
+
+          {/* Media Header URL */}
+          <div className="space-y-2 pt-2">
+            <Label htmlFor="download-media-url">Download Template Media Header URL</Label>
+            <Input id="download-media-url" placeholder="https://your-supabase-url/storage/v1/object/public/product-images/header.jpg" value={settings.downloadMediaUrl} onChange={(e) => setSettings(prev => ({ ...prev, downloadMediaUrl: e.target.value }))} disabled={!isSuperAdmin} />
+            <p className="text-xs text-muted-foreground">Public URL of the image to send as the media header in the download WhatsApp template. Upload to Supabase Storage and paste the public URL here.</p>
           </div>
 
           <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50 text-sm">
