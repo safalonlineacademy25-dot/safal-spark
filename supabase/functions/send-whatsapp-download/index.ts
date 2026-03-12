@@ -61,9 +61,9 @@ async function sendWaSimpleTemplate(
     templateVariables: [customerName, email],
   };
 
-  // Log media URL for debugging - NOT adding to payload as WaSimple rejects unknown fields
   if (mediaUrl) {
-    console.log("Media URL configured but not sent (WaSimple rejects unknown fields):", mediaUrl);
+    body.headerMediaUrl = mediaUrl;
+    console.log("Including media header URL:", mediaUrl);
   }
 
   console.log("WaSimple template request:", JSON.stringify({ to, template: templateName, params: [customerName, email] }));
