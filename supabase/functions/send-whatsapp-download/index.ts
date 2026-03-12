@@ -61,10 +61,9 @@ async function sendWaSimpleTemplate(
     templateVariables: [customerName, email],
   };
 
-  // WaSimple rejects unknown fields (headerMediaUrl, mediaUrl, components all cause 400).
-  // To add media, find the correct field name from WaSimple API docs and update here.
   if (mediaUrl) {
-    console.log("Media URL available but not sent (unknown WaSimple field name):", mediaUrl);
+    body.fileUrl = mediaUrl;
+    console.log("Including media via fileUrl:", mediaUrl);
   }
 
   console.log("WaSimple template request:", JSON.stringify({ to, template: templateName, params: [customerName, email] }));
