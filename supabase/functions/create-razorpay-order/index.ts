@@ -143,6 +143,13 @@ serve(async (req) => {
       throw new Error("Customer email and phone are required");
     }
 
+    // Validate phone number format (Indian mobile numbers: 10 digits, optional +91 or 91 prefix)
+    const phoneRegex = /^(\+91|91)?[6-9]\d{9}$/;
+    const cleanPhone = customer_phone.toString().trim().replace(/\s/g, '');
+    if (!phoneRegex.test(cleanPhone)) {
+      throw new Error("Invalid phone number. Please enter a valid 10-digit Indian mobile number (e.g., 9876543210).");
+    }
+
     // Rate limiting: Use email + IP as identifier
     const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
                      req.headers.get('cf-connecting-ip') || 
