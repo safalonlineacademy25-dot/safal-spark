@@ -6,7 +6,11 @@ import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/lib/store';
 import safalLogo from '@/assets/safal-logo.jpg';
 
-const Header = () => {
+interface HeaderProps {
+  hideCartButton?: boolean;
+}
+
+const Header = ({ hideCartButton = false }: HeaderProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
   const [isHoveringNav, setIsHoveringNav] = useState(false);
