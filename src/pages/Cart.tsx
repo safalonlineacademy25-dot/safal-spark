@@ -42,6 +42,7 @@ const Cart = () => {
   const [emailError, setEmailError] = useState('');
   const [phoneError, setPhoneError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isDirectCheckout, setIsDirectCheckout] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
