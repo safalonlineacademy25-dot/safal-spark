@@ -33,9 +33,16 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (newPassword.length < 6) {
+    if (newPassword.length < 12) {
       return new Response(
-        JSON.stringify({ error: 'Password must be at least 6 characters' }),
+        JSON.stringify({ error: 'Password must be at least 12 characters' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword) || !/[^A-Za-z0-9]/.test(newPassword)) {
+      return new Response(
+        JSON.stringify({ error: 'Password must contain uppercase, lowercase, number, and special character' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -109,6 +116,30 @@ Deno.serve(async (req) => {
     }
 
     console.log(`Password reset for user ${userId} by super admin ${user.email}`);
+
+    // Send password change notification to the target user
+    try {
+      const { data: targetUser } = await adminClient.auth.admin.getUserById(userId);
+      if (targetUser?.user?.email) {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const notifyRes = await fetch(`${supabaseUrl}/functions/v1/notify-password-change`, {
+          method: 'POST',
+          headers: {
+            'Authorization': authHeader,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'admin_reset',
+            targetEmail: targetUser.user.email,
+          }),
+        });
+        if (!notifyRes.ok) {
+          console.warn('Password change notification failed:', await notifyRes.text());
+        }
+      }
+    } catch (notifyErr) {
+      console.warn('Failed to send password change notification:', notifyErr);
+    }
 
     return new Response(
       JSON.stringify({ 

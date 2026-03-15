@@ -62,3 +62,6 @@ verify_jwt = false
 
 [functions.create-whatsapp-order]
 verify_jwt = false
+
+[functions.notify-password-change]
+verify_jwt = false

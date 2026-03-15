@@ -341,8 +341,12 @@ const SettingsTab = () => {
       return;
     }
 
-    if (newPassword.length < 6) {
-      toast.error('Password must be at least 6 characters');
+    const { validatePassword } = await import('@/lib/passwordValidation');
+    const validation = validatePassword(newPassword);
+    if (!validation.isValid) {
+      toast.error('Password does not meet requirements', {
+        description: validation.errors[0],
+      });
       return;
     }
 
