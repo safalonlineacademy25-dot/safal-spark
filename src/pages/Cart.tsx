@@ -591,7 +591,7 @@ const Cart = () => {
                   </div>
 
                   <div>
-                    <label className="text-xs font-extrabold uppercase tracking-widest text-foreground mb-1.5 block" style={{ textShadow: '0 1px 0 hsl(var(--muted)), 0 2px 4px rgba(0,0,0,0.15)' }}>
+                    <label className="text-[10px] font-extrabold uppercase tracking-widest text-foreground mb-1 block" style={{ textShadow: '0 1px 0 hsl(var(--muted)), 0 2px 4px rgba(0,0,0,0.15)' }}>
                       Email Address <span className="text-destructive">*</span>
                     </label>
                     <input
@@ -602,7 +602,7 @@ const Cart = () => {
                         if (emailError) setEmailError('');
                       }}
                       placeholder="Please enter your email here"
-                      className={`w-full px-3 py-2 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm ${
+                      className={`w-full px-3 py-1.5 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm ${
                         emailError ? 'border-destructive' : 'border-input'
                       }`}
                     />
