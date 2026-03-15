@@ -210,7 +210,11 @@ const Cart = () => {
       
       const errorText = error.message?.toLowerCase() || '';
       
-      if (errorText.includes('razorpay') || errorText.includes('payment gateway') || errorText.includes('api key') || errorText.includes('credentials')) {
+      if (errorText.includes('invalid phone') || errorText.includes('invalid mobile')) {
+        setPhoneError(error.message);
+        setIsProcessing(false);
+        return;
+      } else if (errorText.includes('razorpay') || errorText.includes('payment gateway') || errorText.includes('api key') || errorText.includes('credentials')) {
         errorTitle = 'Payment gateway not available';
         errorMessage = 'The payment system is currently being configured. Please try again later or contact support.';
       } else if (errorText.includes('rate limit') || errorText.includes('too many')) {
