@@ -276,9 +276,9 @@ const Cart = () => {
       <div className="min-h-screen flex flex-col">
         <Header />
         {/* Add bottom padding on mobile to account for fixed payment bar */}
-        <main className="flex-1 py-4 px-4 md:py-6 md:px-6 pb-44 md:pb-6">
+        <main className="flex-1 py-2 px-3 md:py-6 md:px-6 pb-44 md:pb-6">
           <div className="container-custom">
-            <h1 className="text-xl font-bold text-foreground mb-4">Shopping Cart</h1>
+            <h1 className="text-lg md:text-xl font-bold text-foreground mb-2 md:mb-4">Shopping Cart</h1>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               {/* Cart Items */}
