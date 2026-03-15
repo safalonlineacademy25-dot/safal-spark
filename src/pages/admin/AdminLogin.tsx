@@ -1,14 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
-import { BookOpen, Lock, Mail, Eye, EyeOff, Loader2, ArrowLeft } from 'lucide-react';
+import { BookOpen, Lock, Mail, Eye, EyeOff, Loader2, ArrowLeft, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth, signIn, signUp } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { validatePassword } from '@/lib/passwordValidation';
+import PasswordStrengthIndicator from '@/components/ui/PasswordStrengthIndicator';
 
 type AuthMode = 'login' | 'signup' | 'forgot' | 'reset';
+
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('');
@@ -19,6 +24,10 @@ const AdminLogin = () => {
   const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [signupEnabled, setSignupEnabled] = useState(true);
   const [loadingSettings, setLoadingSettings] = useState(true);
+  const [isLockedOut, setIsLockedOut] = useState(false);
+  const [lockoutRemaining, setLockoutRemaining] = useState(0);
+  const failedAttempts = useRef(0);
+  const lockoutUntil = useRef<number>(0);
   const navigate = useNavigate();
   const { user, isAdmin, isLoading: authLoading } = useAuth();
 
@@ -30,6 +39,36 @@ const AdminLogin = () => {
       setAuthMode('reset');
     }
   }, []);
+
+  // Load lockout state from sessionStorage
+  useEffect(() => {
+    const stored = sessionStorage.getItem('login_lockout');
+    if (stored) {
+      const { attempts, until } = JSON.parse(stored);
+      failedAttempts.current = attempts;
+      lockoutUntil.current = until;
+      if (until > Date.now()) {
+        setIsLockedOut(true);
+      }
+    }
+  }, []);
+
+  // Lockout countdown timer
+  useEffect(() => {
+    if (!isLockedOut) return;
+    const interval = setInterval(() => {
+      const remaining = lockoutUntil.current - Date.now();
+      if (remaining <= 0) {
+        setIsLockedOut(false);
+        setLockoutRemaining(0);
+        failedAttempts.current = 0;
+        sessionStorage.removeItem('login_lockout');
+      } else {
+        setLockoutRemaining(Math.ceil(remaining / 1000));
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isLockedOut]);
 
   // Load signup setting
   useEffect(() => {
@@ -55,6 +94,27 @@ const AdminLogin = () => {
       navigate('/admin/dashboard');
     }
   }, [user, isAdmin, authLoading, navigate, authMode]);
+
+  const recordFailedAttempt = () => {
+    failedAttempts.current++;
+    if (failedAttempts.current >= MAX_LOGIN_ATTEMPTS) {
+      lockoutUntil.current = Date.now() + LOCKOUT_DURATION_MS;
+      setIsLockedOut(true);
+      setLockoutRemaining(Math.ceil(LOCKOUT_DURATION_MS / 1000));
+      sessionStorage.setItem('login_lockout', JSON.stringify({
+        attempts: failedAttempts.current,
+        until: lockoutUntil.current,
+      }));
+      toast.error('Account temporarily locked', {
+        description: 'Too many failed attempts. Please try again in 15 minutes.',
+      });
+    }
+  };
+
+  const resetFailedAttempts = () => {
+    failedAttempts.current = 0;
+    sessionStorage.removeItem('login_lockout');
+  };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,8 +149,11 @@ const AdminLogin = () => {
       return;
     }
     
-    if (password.length < 6) {
-      toast.error('Password must be at least 6 characters');
+    const validation = validatePassword(password);
+    if (!validation.isValid) {
+      toast.error('Password does not meet requirements', {
+        description: validation.errors[0],
+      });
       return;
     }
 
@@ -100,6 +163,15 @@ const AdminLogin = () => {
       const { error } = await supabase.auth.updateUser({ password });
       
       if (error) throw error;
+
+      // Send password change notification
+      try {
+        await supabase.functions.invoke('notify-password-change', {
+          body: { action: 'self_reset' },
+        });
+      } catch (notifyErr) {
+        console.warn('Password change notification failed:', notifyErr);
+      }
       
       toast.success('Password updated successfully!', {
         description: 'You can now sign in with your new password.',
@@ -107,7 +179,6 @@ const AdminLogin = () => {
       setPassword('');
       setConfirmPassword('');
       setAuthMode('login');
-      // Clear the hash from URL
       window.history.replaceState(null, '', window.location.pathname);
     } catch (error: any) {
       console.error('Password update error:', error);
@@ -121,6 +192,25 @@ const AdminLogin = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isLockedOut) {
+      toast.error('Account temporarily locked', {
+        description: `Please wait ${Math.ceil(lockoutRemaining / 60)} minute(s) before trying again.`,
+      });
+      return;
+    }
+
+    // Validate password strength for signup
+    if (authMode === 'signup') {
+      const validation = validatePassword(password);
+      if (!validation.isValid) {
+        toast.error('Password does not meet requirements', {
+          description: validation.errors[0],
+        });
+        return;
+      }
+    }
+
     setIsLoading(true);
 
     try {
@@ -131,13 +221,40 @@ const AdminLogin = () => {
         });
         setAuthMode('login');
       } else {
+        // Server-side rate limiting
+        try {
+          const { data: allowed } = await supabase.rpc('check_rate_limit', {
+            _identifier: email.toLowerCase().trim(),
+            _endpoint: 'admin_login',
+            _max_requests: MAX_LOGIN_ATTEMPTS,
+            _window_seconds: 900, // 15 minutes
+          });
+
+          if (allowed === false) {
+            setIsLoading(false);
+            toast.error('Too many login attempts', {
+              description: 'Please try again in 15 minutes.',
+            });
+            lockoutUntil.current = Date.now() + LOCKOUT_DURATION_MS;
+            setIsLockedOut(true);
+            setLockoutRemaining(Math.ceil(LOCKOUT_DURATION_MS / 1000));
+            return;
+          }
+        } catch (rateLimitErr) {
+          console.warn('Rate limit check failed, proceeding:', rateLimitErr);
+        }
+
         await signIn(email, password);
+        resetFailedAttempts();
         toast.success('Login successful', {
           description: 'Checking admin permissions...',
         });
       }
     } catch (error: any) {
       console.error('Auth error:', error);
+      if (authMode === 'login') {
+        recordFailedAttempt();
+      }
       toast.error(authMode === 'signup' ? 'Sign up failed' : 'Login failed', {
         description: error.message || 'An error occurred.',
       });
@@ -172,6 +289,12 @@ const AdminLogin = () => {
     }
   };
 
+  const formatLockoutTime = () => {
+    const minutes = Math.floor(lockoutRemaining / 60);
+    const seconds = lockoutRemaining % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
   return (
     <>
       <Helmet>
@@ -197,6 +320,19 @@ const AdminLogin = () => {
                 {getSubtitle()}
               </p>
             </div>
+
+            {/* Lockout Warning */}
+            {isLockedOut && (
+              <div className="mb-6 p-4 rounded-lg bg-destructive/10 border border-destructive/20 flex items-start gap-3">
+                <ShieldAlert className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-destructive">Account Temporarily Locked</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Too many failed login attempts. Try again in {formatLockoutTime()}.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Forgot Password Form */}
             {authMode === 'forgot' && (
@@ -255,7 +391,6 @@ const AdminLogin = () => {
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
                       required
-                      minLength={6}
                       className="w-full pl-10 pr-12 py-3 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                     <button
@@ -266,6 +401,7 @@ const AdminLogin = () => {
                       {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
                   </div>
+                  <PasswordStrengthIndicator password={password} />
                 </div>
 
                 <div>
@@ -280,7 +416,6 @@ const AdminLogin = () => {
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="••••••••"
                       required
-                      minLength={6}
                       className="w-full pl-10 pr-12 py-3 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                   </div>
@@ -315,7 +450,8 @@ const AdminLogin = () => {
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="admin@example.com"
                         required
-                        className="w-full pl-10 pr-4 py-3 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                        disabled={isLockedOut}
+                        className="w-full pl-10 pr-4 py-3 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
                       />
                     </div>
                   </div>
@@ -332,8 +468,8 @@ const AdminLogin = () => {
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
                         required
-                        minLength={6}
-                        className="w-full pl-10 pr-12 py-3 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                        disabled={isLockedOut}
+                        className="w-full pl-10 pr-12 py-3 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
                       />
                       <button
                         type="button"
@@ -343,9 +479,10 @@ const AdminLogin = () => {
                         {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                       </button>
                     </div>
+                    {authMode === 'signup' && <PasswordStrengthIndicator password={password} />}
                   </div>
 
-                  <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
+                  <Button type="submit" size="lg" className="w-full" disabled={isLoading || isLockedOut}>
                     {isLoading ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
