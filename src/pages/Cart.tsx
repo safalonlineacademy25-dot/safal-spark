@@ -276,9 +276,9 @@ const Cart = () => {
       <div className="min-h-screen flex flex-col">
         <Header />
         {/* Add bottom padding on mobile to account for fixed payment bar */}
-        <main className="flex-1 py-4 px-4 md:py-6 md:px-6 pb-44 md:pb-6">
+        <main className="flex-1 py-2 px-3 md:py-6 md:px-6 pb-44 md:pb-6">
           <div className="container-custom">
-            <h1 className="text-xl font-bold text-foreground mb-4">Shopping Cart</h1>
+            <h1 className="text-lg md:text-xl font-bold text-foreground mb-2 md:mb-4">Shopping Cart</h1>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               {/* Cart Items */}
@@ -289,10 +289,10 @@ const Cart = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="bg-card rounded-lg border border-border p-3"
+                    className="bg-card rounded-lg border border-border p-2 md:p-3"
                   >
-                    <div className="flex gap-3">
-                      <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center shrink-0 overflow-hidden">
+                <div className="flex gap-2 md:gap-3">
+                      <div className="w-10 h-10 md:w-14 md:h-14 rounded-lg bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center shrink-0 overflow-hidden">
                         {item.product.image_url ? (
                           <img 
                             src={getImageUrl(item.product.image_url)} 
@@ -550,32 +550,23 @@ const Cart = () => {
               </div>
 
               {/* Order Summary - Mobile (inline, compact) */}
-              <div className="lg:hidden space-y-3">
-                <div className="bg-card rounded-xl border border-border p-4 space-y-3">
-                  <h2 className="text-base font-bold text-foreground">Contact Details</h2>
-
-                  {(!customerName || !email || !phone) && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, ease: 'easeOut' }}
-                      className="py-1"
-                    >
-                      <p className="text-sm text-foreground font-semibold">
-                        Enter your details to receive download link
-                      </p>
+              <div className="lg:hidden space-y-2">
+                <div className="bg-card rounded-xl border border-border p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-bold text-foreground">Enter your details to receive download link</h2>
+                    {(!customerName || !email || !phone) && (
                       <motion.span
-                        className="inline-block text-xl mt-1"
-                        animate={{ y: [0, 6, 0] }}
+                        className="inline-block text-base"
+                        animate={{ y: [0, 4, 0] }}
                         transition={{ repeat: Infinity, duration: 1, ease: 'easeInOut' }}
                       >
                         👇
                       </motion.span>
-                    </motion.div>
-                  )}
+                    )}
+                  </div>
 
                   <div>
-                    <label className="text-xs font-extrabold uppercase tracking-widest text-foreground mb-1.5 block" style={{ textShadow: '0 1px 0 hsl(var(--muted)), 0 2px 4px rgba(0,0,0,0.15)' }}>
+                    <label className="text-[10px] font-extrabold uppercase tracking-widest text-foreground mb-1 block" style={{ textShadow: '0 1px 0 hsl(var(--muted)), 0 2px 4px rgba(0,0,0,0.15)' }}>
                       Your Name <span className="text-destructive">*</span>
                     </label>
                     <input
@@ -587,7 +578,7 @@ const Cart = () => {
                       }}
                       placeholder="Enter your full name"
                       maxLength={100}
-                      className={`w-full px-3 py-2 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm ${
+                      className={`w-full px-3 py-1.5 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm ${
                         nameError ? 'border-destructive' : 'border-input'
                       }`}
                     />
@@ -600,7 +591,7 @@ const Cart = () => {
                   </div>
 
                   <div>
-                    <label className="text-xs font-extrabold uppercase tracking-widest text-foreground mb-1.5 block" style={{ textShadow: '0 1px 0 hsl(var(--muted)), 0 2px 4px rgba(0,0,0,0.15)' }}>
+                    <label className="text-[10px] font-extrabold uppercase tracking-widest text-foreground mb-1 block" style={{ textShadow: '0 1px 0 hsl(var(--muted)), 0 2px 4px rgba(0,0,0,0.15)' }}>
                       Email Address <span className="text-destructive">*</span>
                     </label>
                     <input
@@ -611,7 +602,7 @@ const Cart = () => {
                         if (emailError) setEmailError('');
                       }}
                       placeholder="Please enter your email here"
-                      className={`w-full px-3 py-2 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm ${
+                      className={`w-full px-3 py-1.5 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm ${
                         emailError ? 'border-destructive' : 'border-input'
                       }`}
                     />
@@ -623,7 +614,7 @@ const Cart = () => {
                     )}
                   </div>
                   <div>
-                    <label className="text-xs font-extrabold uppercase tracking-widest text-foreground mb-1.5 block" style={{ textShadow: '0 1px 0 hsl(var(--muted)), 0 2px 4px rgba(0,0,0,0.15)' }}>
+                    <label className="text-[10px] font-extrabold uppercase tracking-widest text-foreground mb-1 block" style={{ textShadow: '0 1px 0 hsl(var(--muted)), 0 2px 4px rgba(0,0,0,0.15)' }}>
                       Phone Number <span className="text-destructive">*</span>
                     </label>
                     <input
@@ -634,9 +625,9 @@ const Cart = () => {
                         setPhone(value);
                         if (phoneError) setPhoneError('');
                       }}
-                      placeholder="Please enter your 10-digit mobile number"
+                      placeholder="10-digit mobile number"
                       maxLength={10}
-                      className={`w-full px-3 py-2 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm ${
+                      className={`w-full px-3 py-1.5 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm ${
                         phoneError ? 'border-destructive' : 'border-input'
                       }`}
                     />
