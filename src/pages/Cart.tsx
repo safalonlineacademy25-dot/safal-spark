@@ -291,8 +291,8 @@ const Cart = () => {
                     transition={{ delay: index * 0.1 }}
                     className="bg-card rounded-lg border border-border p-3"
                   >
-                    <div className="flex gap-3">
-                      <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center shrink-0 overflow-hidden">
+                <div className="flex gap-2 md:gap-3">
+                      <div className="w-10 h-10 md:w-14 md:h-14 rounded-lg bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center shrink-0 overflow-hidden">
                         {item.product.image_url ? (
                           <img 
                             src={getImageUrl(item.product.image_url)} 
