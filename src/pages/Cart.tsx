@@ -114,7 +114,8 @@ const Cart = () => {
       setEmailError('');
     }
     
-    const phoneResult = z.string().trim().min(1, 'Phone number is required').min(10, 'Phone number must be at least 10 digits').max(15, 'Phone number must be less than 15 digits').regex(/^\+?[0-9]{10,15}$/, 'Please enter a valid phone number (digits only, 10-15 characters)').safeParse(phone);
+    const cleanPhone = phone.trim().replace(/\s/g, '');
+    const phoneResult = z.string().trim().min(1, 'Phone number is required').regex(/^(\+91|91)?[6-9]\d{9}$/, 'Please enter a valid 10-digit Indian mobile number (e.g., 9876543210)').safeParse(cleanPhone);
     if (!phoneResult.success) {
       setPhoneError(phoneResult.error.errors[0]?.message || 'Phone number is required');
       hasErrors = true;
