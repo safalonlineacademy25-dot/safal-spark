@@ -242,7 +242,7 @@ const Cart = () => {
     }
   };
 
-  if (items.length === 0) {
+  if (items.length === 0 && !isRedirecting) {
     return (
       <>
         <Helmet>
