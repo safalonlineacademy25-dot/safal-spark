@@ -43,6 +43,7 @@ const Cart = () => {
   const [phoneError, setPhoneError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDirectCheckout, setIsDirectCheckout] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -196,6 +197,9 @@ const Cart = () => {
         // sessionStorage might not be available
       }
 
+      // Set redirecting flag to prevent empty cart screen flash
+      setIsRedirecting(true);
+
       // Clear cart before redirect
       clearCart();
 
@@ -238,7 +242,7 @@ const Cart = () => {
     }
   };
 
-  if (items.length === 0) {
+  if (items.length === 0 && !isRedirecting) {
     return (
       <>
         <Helmet>
