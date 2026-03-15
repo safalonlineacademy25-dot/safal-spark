@@ -550,32 +550,23 @@ const Cart = () => {
               </div>
 
               {/* Order Summary - Mobile (inline, compact) */}
-              <div className="lg:hidden space-y-3">
-                <div className="bg-card rounded-xl border border-border p-4 space-y-3">
-                  <h2 className="text-base font-bold text-foreground">Contact Details</h2>
-
-                  {(!customerName || !email || !phone) && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, ease: 'easeOut' }}
-                      className="py-1"
-                    >
-                      <p className="text-sm text-foreground font-semibold">
-                        Enter your details to receive download link
-                      </p>
+              <div className="lg:hidden space-y-2">
+                <div className="bg-card rounded-xl border border-border p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-bold text-foreground">Enter your details to receive download link</h2>
+                    {(!customerName || !email || !phone) && (
                       <motion.span
-                        className="inline-block text-xl mt-1"
-                        animate={{ y: [0, 6, 0] }}
+                        className="inline-block text-base"
+                        animate={{ y: [0, 4, 0] }}
                         transition={{ repeat: Infinity, duration: 1, ease: 'easeInOut' }}
                       >
                         👇
                       </motion.span>
-                    </motion.div>
-                  )}
+                    )}
+                  </div>
 
                   <div>
-                    <label className="text-xs font-extrabold uppercase tracking-widest text-foreground mb-1.5 block" style={{ textShadow: '0 1px 0 hsl(var(--muted)), 0 2px 4px rgba(0,0,0,0.15)' }}>
+                    <label className="text-[10px] font-extrabold uppercase tracking-widest text-foreground mb-1 block" style={{ textShadow: '0 1px 0 hsl(var(--muted)), 0 2px 4px rgba(0,0,0,0.15)' }}>
                       Your Name <span className="text-destructive">*</span>
                     </label>
                     <input
@@ -587,7 +578,7 @@ const Cart = () => {
                       }}
                       placeholder="Enter your full name"
                       maxLength={100}
-                      className={`w-full px-3 py-2 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm ${
+                      className={`w-full px-3 py-1.5 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm ${
                         nameError ? 'border-destructive' : 'border-input'
                       }`}
                     />
