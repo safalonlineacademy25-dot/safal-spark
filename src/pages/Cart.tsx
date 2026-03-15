@@ -276,7 +276,7 @@ const Cart = () => {
       </Helmet>
 
       <div className="min-h-screen flex flex-col">
-        <Header />
+        <Header hideCartButton={isDirectCheckout} />
         {/* Add bottom padding on mobile to account for fixed payment bar */}
         <main className="flex-1 py-2 px-3 md:py-6 md:px-6 pb-44 md:pb-6">
           <div className="container-custom">
