@@ -346,14 +346,16 @@ const Cart = () => {
                   </motion.div>
                 ))}
 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={clearCart}
-                  className="text-muted-foreground text-xs"
-                >
-                  Clear Cart
-                </Button>
+                {!isDirectCheckout && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearCart}
+                    className="text-muted-foreground text-xs"
+                  >
+                    Clear Cart
+                  </Button>
+                )}
               </div>
 
               {/* Order Summary - Desktop */}
