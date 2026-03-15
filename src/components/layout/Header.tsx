@@ -258,6 +258,7 @@ const Header = ({ hideCartButton = false }: HeaderProps) => {
 
           {/* Actions */}
           <div className="flex items-center gap-3">
+            {!hideCartButton && (
             <Link to="/cart" className="relative">
               <motion.div
                 whileHover={{ 
@@ -337,6 +338,7 @@ const Header = ({ hideCartButton = false }: HeaderProps) => {
                 )}
               </motion.div>
             </Link>
+            )}
 
             <Link to="/admin" className="hidden md:block">
               <motion.div
