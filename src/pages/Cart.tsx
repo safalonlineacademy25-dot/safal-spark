@@ -289,7 +289,7 @@ const Cart = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="bg-card rounded-lg border border-border p-3"
+                    className="bg-card rounded-lg border border-border p-2 md:p-3"
                   >
                 <div className="flex gap-2 md:gap-3">
                       <div className="w-10 h-10 md:w-14 md:h-14 rounded-lg bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center shrink-0 overflow-hidden">
