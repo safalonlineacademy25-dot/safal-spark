@@ -197,6 +197,9 @@ const Cart = () => {
         // sessionStorage might not be available
       }
 
+      // Set redirecting flag to prevent empty cart screen flash
+      setIsRedirecting(true);
+
       // Clear cart before redirect
       clearCart();
 
