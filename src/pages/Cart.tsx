@@ -90,6 +90,7 @@ const Cart = () => {
         for (const product of productsToAdd) {
           addItem(product);
         }
+        setIsDirectCheckout(true);
       }
       searchParams.delete('add');
       setSearchParams(searchParams, { replace: true });
