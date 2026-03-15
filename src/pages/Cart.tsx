@@ -42,6 +42,7 @@ const Cart = () => {
   const [emailError, setEmailError] = useState('');
   const [phoneError, setPhoneError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isDirectCheckout, setIsDirectCheckout] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -89,6 +90,7 @@ const Cart = () => {
         for (const product of productsToAdd) {
           addItem(product);
         }
+        setIsDirectCheckout(true);
       }
       searchParams.delete('add');
       setSearchParams(searchParams, { replace: true });
@@ -274,7 +276,7 @@ const Cart = () => {
       </Helmet>
 
       <div className="min-h-screen flex flex-col">
-        <Header />
+        <Header hideCartButton={isDirectCheckout} />
         {/* Add bottom padding on mobile to account for fixed payment bar */}
         <main className="flex-1 py-2 px-3 md:py-6 md:px-6 pb-44 md:pb-6">
           <div className="container-custom">
@@ -330,26 +332,30 @@ const Cart = () => {
                           )}
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeItem(item.product.id)}
-                        className="text-muted-foreground hover:text-destructive h-8 w-8 p-0"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {!isDirectCheckout && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeItem(item.product.id)}
+                          className="text-muted-foreground hover:text-destructive h-8 w-8 p-0"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </motion.div>
                 ))}
 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={clearCart}
-                  className="text-muted-foreground text-xs"
-                >
-                  Clear Cart
-                </Button>
+                {!isDirectCheckout && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearCart}
+                    className="text-muted-foreground text-xs"
+                  >
+                    Clear Cart
+                  </Button>
+                )}
               </div>
 
               {/* Order Summary - Desktop */}

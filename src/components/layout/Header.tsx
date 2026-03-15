@@ -6,7 +6,11 @@ import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/lib/store';
 import safalLogo from '@/assets/safal-logo.jpg';
 
-const Header = () => {
+interface HeaderProps {
+  hideCartButton?: boolean;
+}
+
+const Header = ({ hideCartButton = false }: HeaderProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
   const [isHoveringNav, setIsHoveringNav] = useState(false);
@@ -254,6 +258,7 @@ const Header = () => {
 
           {/* Actions */}
           <div className="flex items-center gap-3">
+            {!hideCartButton && (
             <Link to="/cart" className="relative">
               <motion.div
                 whileHover={{ 
@@ -333,6 +338,7 @@ const Header = () => {
                 )}
               </motion.div>
             </Link>
+            )}
 
             <Link to="/admin" className="hidden md:block">
               <motion.div
