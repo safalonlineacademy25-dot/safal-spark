@@ -278,7 +278,7 @@ const DemoManagementTab = () => {
         </div>
         <Button onClick={() => { resetForm(); setShowAddDialog(true); }} className="gap-2">
           <Plus className="h-4 w-4" />
-          Add Demo Audio
+          Add Demo Media
         </Button>
       </div>
 
