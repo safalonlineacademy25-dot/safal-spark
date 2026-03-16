@@ -431,7 +431,7 @@ const DemoManagementTab = () => {
             </DialogClose>
             <Button onClick={handleSubmit} disabled={isSaving}>
               {isSaving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              {editingDemo ? 'Save Changes' : 'Add Demo'}
+              {editingDemo ? 'Save Changes' : 'Add Media'}
             </Button>
           </DialogFooter>
         </DialogContent>
