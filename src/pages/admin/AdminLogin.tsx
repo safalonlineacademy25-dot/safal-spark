@@ -90,10 +90,10 @@ const AdminLogin = () => {
   }, []);
 
   useEffect(() => {
-    if (!authLoading && user && isAdmin && authMode !== 'reset') {
+    if (!authLoading && isRoleCheckComplete && user && isAdmin && authMode !== 'reset') {
       navigate('/admin/dashboard');
     }
-  }, [user, isAdmin, authLoading, navigate, authMode]);
+  }, [user, isAdmin, authLoading, isRoleCheckComplete, navigate, authMode]);
 
   const recordFailedAttempt = () => {
     failedAttempts.current++;
