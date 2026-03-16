@@ -99,24 +99,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "combo_pack_files_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "combo_pack_files_source_product_id_fkey"
             columns: ["source_product_id"]
             isOneToOne: false
             referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "combo_pack_files_source_product_id_fkey"
-            columns: ["source_product_id"]
-            isOneToOne: false
-            referencedRelation: "products_public"
             referencedColumns: ["id"]
           },
         ]
@@ -230,13 +216,6 @@ export type Database = {
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "download_tokens_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       email_delivery_logs: {
@@ -297,13 +276,6 @@ export type Database = {
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "email_delivery_logs_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       order_items: {
@@ -347,13 +319,6 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "order_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products_public"
             referencedColumns: ["id"]
           },
         ]
@@ -466,24 +431,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "product_audio_files_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "product_audio_files_source_product_id_fkey"
             columns: ["source_product_id"]
             isOneToOne: false
             referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "product_audio_files_source_product_id_fkey"
-            columns: ["source_product_id"]
-            isOneToOne: false
-            referencedRelation: "products_public"
             referencedColumns: ["id"]
           },
         ]
@@ -750,63 +701,7 @@ export type Database = {
       }
     }
     Views: {
-      products_public: {
-        Row: {
-          badge: string | null
-          category: string | null
-          created_at: string | null
-          description: string | null
-          download_count: number | null
-          features: string[] | null
-          id: string | null
-          image_url: string | null
-          is_active: boolean | null
-          name: string | null
-          original_price: number | null
-          price: number | null
-          seo_description: string | null
-          seo_title: string | null
-          show_on_ui: boolean | null
-          updated_at: string | null
-        }
-        Insert: {
-          badge?: string | null
-          category?: string | null
-          created_at?: string | null
-          description?: string | null
-          download_count?: number | null
-          features?: string[] | null
-          id?: string | null
-          image_url?: string | null
-          is_active?: boolean | null
-          name?: string | null
-          original_price?: number | null
-          price?: number | null
-          seo_description?: string | null
-          seo_title?: string | null
-          show_on_ui?: boolean | null
-          updated_at?: string | null
-        }
-        Update: {
-          badge?: string | null
-          category?: string | null
-          created_at?: string | null
-          description?: string | null
-          download_count?: number | null
-          features?: string[] | null
-          id?: string | null
-          image_url?: string | null
-          is_active?: boolean | null
-          name?: string | null
-          original_price?: number | null
-          price?: number | null
-          seo_description?: string | null
-          seo_title?: string | null
-          show_on_ui?: boolean | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       check_rate_limit: {
