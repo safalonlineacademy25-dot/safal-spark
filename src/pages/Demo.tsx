@@ -228,7 +228,7 @@ const Demo = () => {
             <div className="space-y-6">
               {demoFiles.map((demo) => (
                 <div key={demo.id} className="relative">
-                  <DemoAudioPlayer demo={demo} />
+                  {isVideoFile(demo.file_name) ? <DemoVideoPlayer demo={demo} /> : <DemoAudioPlayer demo={demo} />}
                   <div className="flex justify-center mt-2">
                     <Link
                       to={`/demo/${demo.id}`}
