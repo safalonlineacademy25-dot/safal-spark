@@ -19,6 +19,8 @@ interface DemoFile {
   is_active: boolean;
 }
 
+const isVideoFile = (fileName: string) => /\.(mp4|webm|mov)$/i.test(fileName);
+
 const DemoSingle = () => {
   const { id } = useParams<{ id: string }>();
   const audioRef = useRef<HTMLAudioElement>(null);
