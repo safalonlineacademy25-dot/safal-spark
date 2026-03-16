@@ -21,6 +21,7 @@
    const { files, isLoading } = useProductAudioFiles(productId);
    const { uploadFile, cancelUpload, isUploading, uploadProgress } = useProductAudioFileUpload();
    const removeFile = useRemoveProductAudioFile();
+   const { data: storageCheck, isLoading: isVerifying } = useVerifyStorageFiles(productId);
  
    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
      const selectedFiles = Array.from(e.target.files || []);
