@@ -206,11 +206,11 @@ const Demo = () => {
       <main className="min-h-screen bg-background pt-24 pb-16">
         <div className="container max-w-2xl mx-auto px-4">
           <div className="text-center mb-8">
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
-              🎧 Demo Audio
+          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
+              🎧 Demo Media
             </h1>
             <p className="text-muted-foreground">
-              Listen to sample previews of our study materials
+              Listen to & watch sample previews of our study materials
             </p>
           </div>
 
