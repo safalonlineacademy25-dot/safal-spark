@@ -221,7 +221,7 @@ const Demo = () => {
           ) : !demoFiles || demoFiles.length === 0 ? (
             <div className="text-center py-12 bg-card rounded-2xl border border-border">
               <Volume2 className="h-12 w-12 text-muted-foreground/40 mx-auto mb-3" />
-              <p className="text-muted-foreground">No demo audios available yet</p>
+              <p className="text-muted-foreground">No demos available yet</p>
               <p className="text-sm text-muted-foreground/70 mt-1">Check back soon!</p>
             </div>
           ) : (
