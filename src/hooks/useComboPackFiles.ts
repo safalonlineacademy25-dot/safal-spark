@@ -148,10 +148,24 @@ export function useComboPackFileUpload(): {
               fileName: file.name,
             });
           },
-          onSuccess: () => {
-            const url = `https://${SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/${BUCKET_NAME}/${fileName}`;
-            resolve(url);
-          },
+          onSuccess: async () => {
+              // Verify file exists in storage before confirming success
+              const { data: headData, error: headError } = await supabase.storage
+                .from(BUCKET_NAME)
+                .list(fileName.substring(0, fileName.lastIndexOf('/')), {
+                  search: fileName.substring(fileName.lastIndexOf('/') + 1),
+                  limit: 1,
+                });
+              
+              if (headError || !headData || headData.length === 0) {
+                console.error('File upload verification failed - file not found in storage:', fileName);
+                reject(new Error('File upload could not be verified. The file may not have been saved. Please try again.'));
+                return;
+              }
+              
+              const url = `https://${SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/${BUCKET_NAME}/${fileName}`;
+              resolve(url);
+            },
         });
 
         uploadRef.current = upload;
