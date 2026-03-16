@@ -52,18 +52,56 @@
          .select('*')
          .eq('product_id', productId)
          .order('file_order', { ascending: true });
- 
+
        if (error) throw error;
        return data as ProductAudioFile[];
      },
      enabled: !!productId,
    });
- 
+
    return {
      files: data || [],
      isLoading,
      refetch,
    };
+ }
+
+ // Hook to verify which files actually exist in storage
+ export function useVerifyStorageFiles(productId: string | null) {
+   const { files } = useProductAudioFiles(productId);
+   
+   return useQuery({
+     queryKey: ['verify-audio-storage', productId],
+     queryFn: async () => {
+       if (!files || files.length === 0) return { missing: [] as string[], total: 0 };
+       
+       const missingFiles: string[] = [];
+       
+       for (const file of files) {
+         const match = file.file_url.match(/product-files\/(.+)/);
+         if (!match) {
+           missingFiles.push(file.file_name);
+           continue;
+         }
+         
+         const fullPath = match[1];
+         const folder = fullPath.substring(0, fullPath.lastIndexOf('/'));
+         const fileName = fullPath.substring(fullPath.lastIndexOf('/') + 1);
+         
+         const { data, error } = await supabase.storage
+           .from('product-files')
+           .list(folder, { search: fileName, limit: 1 });
+         
+         if (error || !data || data.length === 0) {
+           missingFiles.push(file.file_name);
+         }
+       }
+       
+       return { missing: missingFiles, total: files.length };
+     },
+     enabled: !!productId && files.length > 0,
+     staleTime: 5 * 60 * 1000,
+   });
  }
  
  // Hook for managing product audio file uploads
