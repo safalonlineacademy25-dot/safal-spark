@@ -80,7 +80,7 @@
        <input
          ref={fileInputRef}
          type="file"
-         accept=".mp3,.wav,.m4a,.ogg,.aac"
+         accept=".mp3,.wav,.m4a,.ogg,.aac,.mp4"
          multiple
          onChange={handleFileSelect}
          className="hidden"
