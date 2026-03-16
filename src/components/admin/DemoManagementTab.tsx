@@ -441,9 +441,9 @@ const DemoManagementTab = () => {
       <AlertDialog open={!!deletingDemo} onOpenChange={(open) => !open && setDeletingDemo(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Demo Audio</AlertDialogTitle>
+            <AlertDialogTitle>Delete Demo Media</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{deletingDemo?.title}"? This will also remove the audio file from storage. This action cannot be undone.
+              Are you sure you want to delete "{deletingDemo?.title}"? This will also remove the file from storage. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
