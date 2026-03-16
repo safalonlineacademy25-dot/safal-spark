@@ -1,8 +1,8 @@
  import { useRef } from 'react';
  import { Button } from '@/components/ui/button';
  import { Progress } from '@/components/ui/progress';
- import { Loader2, Upload, Trash2, Music, GripVertical } from 'lucide-react';
- import { useProductAudioFiles, useProductAudioFileUpload, useRemoveProductAudioFile, formatBytes } from '@/hooks/useProductAudioFiles';
+ import { Loader2, Upload, Trash2, Music, GripVertical, AlertTriangle } from 'lucide-react';
+ import { useProductAudioFiles, useProductAudioFileUpload, useRemoveProductAudioFile, formatBytes, useVerifyStorageFiles } from '@/hooks/useProductAudioFiles';
  
  interface ProductAudioFilesManagerProps {
    productId: string | null;
@@ -21,6 +21,7 @@
    const { files, isLoading } = useProductAudioFiles(productId);
    const { uploadFile, cancelUpload, isUploading, uploadProgress } = useProductAudioFileUpload();
    const removeFile = useRemoveProductAudioFile();
+   const { data: storageCheck, isLoading: isVerifying } = useVerifyStorageFiles(productId);
  
    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
      const selectedFiles = Array.from(e.target.files || []);
@@ -76,7 +77,23 @@
          </span>
        </div>
  
-       {/* Upload Area */}
+       {/* Storage Health Warning */}
+       {!isNewProduct && storageCheck && storageCheck.missing.length > 0 && (
+         <div className="p-3 rounded-lg border border-destructive/50 bg-destructive/10 space-y-1">
+           <div className="flex items-center gap-2 text-sm font-medium text-destructive">
+             <AlertTriangle className="h-4 w-4" />
+             <span>{storageCheck.missing.length} of {storageCheck.total} files missing from storage!</span>
+           </div>
+           <p className="text-xs text-destructive/80">
+             These files were not saved properly. Delete them and re-upload:
+           </p>
+           <ul className="text-xs text-destructive/70 list-disc list-inside">
+             {storageCheck.missing.map((name, i) => (
+               <li key={i} className="truncate">{name}</li>
+             ))}
+           </ul>
+         </div>
+       )}
        <input
          ref={fileInputRef}
          type="file"

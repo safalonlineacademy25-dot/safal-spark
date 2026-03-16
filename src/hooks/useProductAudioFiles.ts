@@ -52,18 +52,56 @@
          .select('*')
          .eq('product_id', productId)
          .order('file_order', { ascending: true });
- 
+
        if (error) throw error;
        return data as ProductAudioFile[];
      },
      enabled: !!productId,
    });
- 
+
    return {
      files: data || [],
      isLoading,
      refetch,
    };
+ }
+
+ // Hook to verify which files actually exist in storage
+ export function useVerifyStorageFiles(productId: string | null) {
+   const { files } = useProductAudioFiles(productId);
+   
+   return useQuery({
+     queryKey: ['verify-audio-storage', productId],
+     queryFn: async () => {
+       if (!files || files.length === 0) return { missing: [] as string[], total: 0 };
+       
+       const missingFiles: string[] = [];
+       
+       for (const file of files) {
+         const match = file.file_url.match(/product-files\/(.+)/);
+         if (!match) {
+           missingFiles.push(file.file_name);
+           continue;
+         }
+         
+         const fullPath = match[1];
+         const folder = fullPath.substring(0, fullPath.lastIndexOf('/'));
+         const fileName = fullPath.substring(fullPath.lastIndexOf('/') + 1);
+         
+         const { data, error } = await supabase.storage
+           .from('product-files')
+           .list(folder, { search: fileName, limit: 1 });
+         
+         if (error || !data || data.length === 0) {
+           missingFiles.push(file.file_name);
+         }
+       }
+       
+       return { missing: missingFiles, total: files.length };
+     },
+     enabled: !!productId && files.length > 0,
+     staleTime: 5 * 60 * 1000,
+   });
  }
  
  // Hook for managing product audio file uploads
@@ -150,10 +188,24 @@
                fileName: file.name,
              });
            },
-           onSuccess: () => {
-             const url = `https://${SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/${BUCKET_NAME}/${fileName}`;
-             resolve(url);
-           },
+          onSuccess: async () => {
+              // Verify file exists in storage before confirming success
+              const { data: headData, error: headError } = await supabase.storage
+                .from(BUCKET_NAME)
+                .list(fileName.substring(0, fileName.lastIndexOf('/')), {
+                  search: fileName.substring(fileName.lastIndexOf('/') + 1),
+                  limit: 1,
+                });
+              
+              if (headError || !headData || headData.length === 0) {
+                console.error('File upload verification failed - file not found in storage:', fileName);
+                reject(new Error('File upload could not be verified. The file may not have been saved. Please try again.'));
+                return;
+              }
+              
+              const url = `https://${SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/${BUCKET_NAME}/${fileName}`;
+              resolve(url);
+            },
          });
  
          uploadRef.current = upload;

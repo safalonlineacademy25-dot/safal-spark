@@ -278,8 +278,29 @@ serve(async (req: Request): Promise<Response> => {
         
         if (signedUrlError || !signedUrlData?.signedUrl) {
           console.error("Error generating signed URL:", signedUrlError);
+          console.error("File path attempted:", filePath);
+          console.error("Product:", product.name, "File:", fileName);
+          
+          // Check if the file actually exists in storage
+          const pathParts = filePath.split('/');
+          const folder = pathParts.slice(0, -1).join('/');
+          const fileBaseName = pathParts[pathParts.length - 1];
+          
+          const { data: listData } = await supabase.storage
+            .from('product-files')
+            .list(folder, { search: fileBaseName, limit: 1 });
+          
+          const fileExists = listData && listData.length > 0;
+          console.error("File exists in storage:", fileExists);
+          
           return new Response(
-            JSON.stringify({ error: "Failed to generate download link" }),
+            JSON.stringify({ 
+              error: fileExists 
+                ? "Failed to generate download link. Please try again later." 
+                : "The file for this download is currently unavailable. Please contact support for assistance.",
+              product_name: product.name,
+              file_name: fileName
+            }),
             { 
               status: 500, 
               headers: { ...corsHeaders, "Content-Type": "application/json" } 
