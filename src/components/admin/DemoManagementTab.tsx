@@ -273,8 +273,8 @@ const DemoManagementTab = () => {
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-foreground">Demo Audio Management</h2>
-          <p className="text-sm text-muted-foreground">Add, edit, or remove demo audio files visible on the Demo page</p>
+          <h2 className="text-xl font-bold text-foreground">Demo Media Management</h2>
+          <p className="text-sm text-muted-foreground">Add, edit, or remove demo audio/video files visible on the Demo page</p>
         </div>
         <Button onClick={() => { resetForm(); setShowAddDialog(true); }} className="gap-2">
           <Plus className="h-4 w-4" />
