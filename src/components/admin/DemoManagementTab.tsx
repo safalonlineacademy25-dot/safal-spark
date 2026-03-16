@@ -123,7 +123,7 @@ const DemoManagementTab = () => {
   // Add demo
   const addMutation = useMutation({
     mutationFn: async () => {
-      if (!audioFile) throw new Error('Please select an audio file');
+      if (!audioFile) throw new Error('Please select a file');
 
       setIsUploading(true);
       const { url, fileName } = await uploadAudioFile(audioFile);
