@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
-import { Plus, Pencil, Trash2, GripVertical, Music, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, GripVertical, Music, Video, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -123,7 +123,7 @@ const DemoManagementTab = () => {
   // Add demo
   const addMutation = useMutation({
     mutationFn: async () => {
-      if (!audioFile) throw new Error('Please select an audio file');
+      if (!audioFile) throw new Error('Please select a file');
 
       setIsUploading(true);
       const { url, fileName } = await uploadAudioFile(audioFile);
@@ -260,7 +260,7 @@ const DemoManagementTab = () => {
       editMutation.mutate();
     } else {
       if (!audioFile) {
-        toast.error('Please select an audio file');
+        toast.error('Please select an audio or video file');
         return;
       }
       addMutation.mutate();
@@ -273,12 +273,12 @@ const DemoManagementTab = () => {
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-foreground">Demo Audio Management</h2>
-          <p className="text-sm text-muted-foreground">Add, edit, or remove demo audio files visible on the Demo page</p>
+          <h2 className="text-xl font-bold text-foreground">Demo Media Management</h2>
+          <p className="text-sm text-muted-foreground">Add, edit, or remove demo audio/video files visible on the Demo page</p>
         </div>
         <Button onClick={() => { resetForm(); setShowAddDialog(true); }} className="gap-2">
           <Plus className="h-4 w-4" />
-          Add Demo Audio
+          Add Demo Media
         </Button>
       </div>
 
@@ -290,8 +290,8 @@ const DemoManagementTab = () => {
       ) : !demoFiles || demoFiles.length === 0 ? (
         <div className="text-center py-12 bg-card rounded-xl border border-border">
           <Music className="h-12 w-12 text-muted-foreground/40 mx-auto mb-3" />
-          <p className="text-muted-foreground">No demo audios added yet</p>
-          <p className="text-sm text-muted-foreground/70 mt-1">Click "Add Demo Audio" to get started</p>
+          <p className="text-muted-foreground">No demo files added yet</p>
+          <p className="text-sm text-muted-foreground/70 mt-1">Click "Add Demo Media" to get started</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -303,7 +303,11 @@ const DemoManagementTab = () => {
               }`}
             >
               <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10 shrink-0">
-                <Music className="h-5 w-5 text-primary" />
+                {/\.(mp4|webm|mov)$/i.test(demo.file_name) ? (
+                  <Video className="h-5 w-5 text-primary" />
+                ) : (
+                  <Music className="h-5 w-5 text-primary" />
+                )}
               </div>
 
               <div className="flex-1 min-w-0">
@@ -361,7 +365,7 @@ const DemoManagementTab = () => {
       }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingDemo ? 'Edit Demo Audio' : 'Add Demo Audio'}</DialogTitle>
+            <DialogTitle>{editingDemo ? 'Edit Demo Media' : 'Add Demo Media'}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
@@ -387,11 +391,11 @@ const DemoManagementTab = () => {
             </div>
 
             <div>
-              <Label htmlFor="demo-audio">Audio File {!editingDemo && '*'}</Label>
+              <Label htmlFor="demo-audio">Audio/Video File {!editingDemo && '*'}</Label>
               <Input
                 id="demo-audio"
                 type="file"
-                accept="audio/*"
+                accept="audio/*,video/mp4,video/webm"
                 onChange={(e) => setAudioFile(e.target.files?.[0] || null)}
                 className="cursor-pointer"
               />
@@ -427,7 +431,7 @@ const DemoManagementTab = () => {
             </DialogClose>
             <Button onClick={handleSubmit} disabled={isSaving}>
               {isSaving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              {editingDemo ? 'Save Changes' : 'Add Demo'}
+              {editingDemo ? 'Save Changes' : 'Add Media'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -437,9 +441,9 @@ const DemoManagementTab = () => {
       <AlertDialog open={!!deletingDemo} onOpenChange={(open) => !open && setDeletingDemo(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Demo Audio</AlertDialogTitle>
+            <AlertDialogTitle>Delete Demo Media</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{deletingDemo?.title}"? This will also remove the audio file from storage. This action cannot be undone.
+              Are you sure you want to delete "{deletingDemo?.title}"? This will also remove the file from storage. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

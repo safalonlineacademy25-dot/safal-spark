@@ -30,6 +30,32 @@ const AudioManagerContext = createContext<AudioManagerContextType>({
 
 const useAudioManager = () => useContext(AudioManagerContext);
 
+const isVideoFile = (fileName: string) => /\.(mp4|webm|mov)$/i.test(fileName);
+
+const DemoVideoPlayer = ({ demo }: { demo: DemoFile }) => {
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+  const videoSrc = demo.file_url.startsWith('http')
+    ? demo.file_url
+    : `https://${projectId}.supabase.co/storage/v1/object/public/demo-files/${demo.file_url}`;
+
+  return (
+    <div className="rounded-2xl border border-border bg-card shadow-lg p-6 md:p-8">
+      <h2 className="text-lg font-semibold text-foreground text-center mb-1">{demo.title}</h2>
+      {demo.description && (
+        <p className="text-sm text-muted-foreground text-center mb-4">{demo.description}</p>
+      )}
+      {!demo.description && <p className="text-sm text-muted-foreground text-center mb-4">Safal Online Academy</p>}
+      <video
+        src={videoSrc}
+        controls
+        preload="metadata"
+        className="w-full rounded-xl"
+        controlsList="nodownload"
+      />
+    </div>
+  );
+};
+
 const DemoAudioPlayer = ({ demo }: { demo: DemoFile }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -44,7 +70,6 @@ const DemoAudioPlayer = ({ demo }: { demo: DemoFile }) => {
     ? demo.file_url
     : `https://${projectId}.supabase.co/storage/v1/object/public/demo-files/${demo.file_url}`;
 
-  // Register this player's pause function
   const pauseCallback = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
@@ -63,11 +88,7 @@ const DemoAudioPlayer = ({ demo }: { demo: DemoFile }) => {
       setIsPlaying(false);
     } else {
       notifyPlaying(demo.id);
-      audioRef.current.play().then(() => {
-        setIsPlaying(true);
-      }).catch((err) => {
-        console.error('Playback failed:', err);
-      });
+      audioRef.current.play().then(() => setIsPlaying(true)).catch(console.error);
     }
   };
 
@@ -81,15 +102,8 @@ const DemoAudioPlayer = ({ demo }: { demo: DemoFile }) => {
     if (!audioRef.current) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
-    const percentage = x / rect.width;
-    audioRef.current.currentTime = percentage * audioRef.current.duration;
+    audioRef.current.currentTime = (x / rect.width) * audioRef.current.duration;
   };
-
-  const handleLoadedMetadata = () => {
-    if (audioRef.current) setDuration(audioRef.current.duration);
-  };
-
-  const handleEnded = () => setIsPlaying(false);
 
   const formatTime = (time: number) => {
     const mins = Math.floor(time / 60);
@@ -103,8 +117,8 @@ const DemoAudioPlayer = ({ demo }: { demo: DemoFile }) => {
         ref={audioRef}
         src={audioSrc}
         onTimeUpdate={handleTimeUpdate}
-        onLoadedMetadata={handleLoadedMetadata}
-        onEnded={handleEnded}
+        onLoadedMetadata={() => audioRef.current && setDuration(audioRef.current.duration)}
+        onEnded={() => setIsPlaying(false)}
         onWaiting={() => setIsBuffering(true)}
         onPlaying={() => setIsBuffering(false)}
         preload="metadata"
@@ -122,7 +136,6 @@ const DemoAudioPlayer = ({ demo }: { demo: DemoFile }) => {
       )}
       {!demo.description && <p className="text-sm text-muted-foreground text-center mb-4">Safal Online Academy</p>}
 
-      {/* Progress bar */}
       <div
         className="w-full h-2 bg-muted rounded-full cursor-pointer mb-2 group"
         onClick={handleSeek}
@@ -139,7 +152,6 @@ const DemoAudioPlayer = ({ demo }: { demo: DemoFile }) => {
         <span>{formatTime(duration)}</span>
       </div>
 
-      {/* Controls */}
       <div className="flex items-center justify-center">
         <button
           onClick={togglePlay}
@@ -194,11 +206,11 @@ const Demo = () => {
       <main className="min-h-screen bg-background pt-24 pb-16">
         <div className="container max-w-2xl mx-auto px-4">
           <div className="text-center mb-8">
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
-              🎧 Demo Audio
+          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
+              🎧 Demo Media
             </h1>
             <p className="text-muted-foreground">
-              Listen to sample previews of our study materials
+              Listen to & watch sample previews of our study materials
             </p>
           </div>
 
@@ -209,14 +221,14 @@ const Demo = () => {
           ) : !demoFiles || demoFiles.length === 0 ? (
             <div className="text-center py-12 bg-card rounded-2xl border border-border">
               <Volume2 className="h-12 w-12 text-muted-foreground/40 mx-auto mb-3" />
-              <p className="text-muted-foreground">No demo audios available yet</p>
+              <p className="text-muted-foreground">No demos available yet</p>
               <p className="text-sm text-muted-foreground/70 mt-1">Check back soon!</p>
             </div>
           ) : (
             <div className="space-y-6">
               {demoFiles.map((demo) => (
                 <div key={demo.id} className="relative">
-                  <DemoAudioPlayer demo={demo} />
+                  {isVideoFile(demo.file_name) ? <DemoVideoPlayer demo={demo} /> : <DemoAudioPlayer demo={demo} />}
                   <div className="flex justify-center mt-2">
                     <Link
                       to={`/demo/${demo.id}`}

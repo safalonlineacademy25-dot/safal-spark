@@ -19,6 +19,8 @@ interface DemoFile {
   is_active: boolean;
 }
 
+const isVideoFile = (fileName: string) => /\.(mp4|webm|mov)$/i.test(fileName);
+
 const DemoSingle = () => {
   const { id } = useParams<{ id: string }>();
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -119,62 +121,80 @@ const DemoSingle = () => {
             </div>
           ) : (
             <div className="rounded-2xl border border-border bg-card shadow-lg p-6 md:p-10">
-              <audio
-                ref={audioRef}
-                src={audioSrc}
-                onTimeUpdate={handleTimeUpdate}
-                onLoadedMetadata={() => audioRef.current && setDuration(audioRef.current.duration)}
-                onEnded={() => setIsPlaying(false)}
-                onWaiting={() => setIsBuffering(true)}
-                onPlaying={() => setIsBuffering(false)}
-                preload="metadata"
-              />
+              {isVideoFile(demo.file_name) ? (
+                <>
+                  <h1 className="text-xl md:text-2xl font-bold text-foreground text-center mb-1">
+                    {demo.title}
+                  </h1>
+                  <p className="text-sm text-muted-foreground text-center mb-6">
+                    {demo.description || "Safal Online Academy"}
+                  </p>
+                  <video
+                    src={audioSrc}
+                    controls
+                    preload="metadata"
+                    className="w-full rounded-xl"
+                    controlsList="nodownload"
+                  />
+                </>
+              ) : (
+                <>
+                  <audio
+                    ref={audioRef}
+                    src={audioSrc}
+                    onTimeUpdate={handleTimeUpdate}
+                    onLoadedMetadata={() => audioRef.current && setDuration(audioRef.current.duration)}
+                    onEnded={() => setIsPlaying(false)}
+                    onWaiting={() => setIsBuffering(true)}
+                    onPlaying={() => setIsBuffering(false)}
+                    preload="metadata"
+                  />
 
-              <div className="flex items-center justify-center mb-6">
-                <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-primary/10 flex items-center justify-center">
-                  <Volume2 className="w-10 h-10 md:w-12 md:h-12 text-primary" />
-                </div>
-              </div>
+                  <div className="flex items-center justify-center mb-6">
+                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-primary/10 flex items-center justify-center">
+                      <Volume2 className="w-10 h-10 md:w-12 md:h-12 text-primary" />
+                    </div>
+                  </div>
 
-              <h1 className="text-xl md:text-2xl font-bold text-foreground text-center mb-1">
-                {demo.title}
-              </h1>
-              <p className="text-sm text-muted-foreground text-center mb-6">
-                {demo.description || "Safal Online Academy"}
-              </p>
+                  <h1 className="text-xl md:text-2xl font-bold text-foreground text-center mb-1">
+                    {demo.title}
+                  </h1>
+                  <p className="text-sm text-muted-foreground text-center mb-6">
+                    {demo.description || "Safal Online Academy"}
+                  </p>
 
-              {/* Progress bar */}
-              <div
-                className="w-full h-2.5 bg-muted rounded-full cursor-pointer mb-2 group"
-                onClick={handleSeek}
-              >
-                <div
-                  className="h-full bg-primary rounded-full transition-all relative"
-                  style={{ width: `${progress}%` }}
-                >
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow" />
-                </div>
-              </div>
-              <div className="flex justify-between text-xs text-muted-foreground mb-6">
-                <span>{formatTime(currentTime)}</span>
-                <span>{formatTime(duration)}</span>
-              </div>
+                  <div
+                    className="w-full h-2.5 bg-muted rounded-full cursor-pointer mb-2 group"
+                    onClick={handleSeek}
+                  >
+                    <div
+                      className="h-full bg-primary rounded-full transition-all relative"
+                      style={{ width: `${progress}%` }}
+                    >
+                      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow" />
+                    </div>
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground mb-6">
+                    <span>{formatTime(currentTime)}</span>
+                    <span>{formatTime(duration)}</span>
+                  </div>
 
-              {/* Controls */}
-              <div className="flex items-center justify-center gap-4">
-                <button
-                  onClick={togglePlay}
-                  className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:opacity-90 transition-opacity shadow-md"
-                >
-                  {isBuffering ? (
-                    <Loader2 className="w-7 h-7 animate-spin" />
-                  ) : isPlaying ? (
-                    <Pause className="w-7 h-7" />
-                  ) : (
-                    <Play className="w-7 h-7 ml-0.5" />
-                  )}
-                </button>
-              </div>
+                  <div className="flex items-center justify-center gap-4">
+                    <button
+                      onClick={togglePlay}
+                      className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:opacity-90 transition-opacity shadow-md"
+                    >
+                      {isBuffering ? (
+                        <Loader2 className="w-7 h-7 animate-spin" />
+                      ) : isPlaying ? (
+                        <Pause className="w-7 h-7" />
+                      ) : (
+                        <Play className="w-7 h-7 ml-0.5" />
+                      )}
+                    </button>
+                  </div>
+                </>
+              )}
 
               {/* Share button */}
               <div className="flex justify-center mt-6">
