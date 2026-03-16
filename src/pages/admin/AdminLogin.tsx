@@ -29,7 +29,7 @@ const AdminLogin = () => {
   const failedAttempts = useRef(0);
   const lockoutUntil = useRef<number>(0);
   const navigate = useNavigate();
-  const { user, isAdmin, isLoading: authLoading } = useAuth();
+  const { user, isAdmin, isLoading: authLoading, isRoleCheckComplete } = useAuth();
 
   // Check for password reset token in URL
   useEffect(() => {
