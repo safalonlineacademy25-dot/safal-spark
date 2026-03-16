@@ -1,8 +1,8 @@
  import { useRef } from 'react';
  import { Button } from '@/components/ui/button';
  import { Progress } from '@/components/ui/progress';
- import { Loader2, Upload, Trash2, Music, GripVertical } from 'lucide-react';
- import { useProductAudioFiles, useProductAudioFileUpload, useRemoveProductAudioFile, formatBytes } from '@/hooks/useProductAudioFiles';
+ import { Loader2, Upload, Trash2, Music, GripVertical, AlertTriangle } from 'lucide-react';
+ import { useProductAudioFiles, useProductAudioFileUpload, useRemoveProductAudioFile, formatBytes, useVerifyStorageFiles } from '@/hooks/useProductAudioFiles';
  
  interface ProductAudioFilesManagerProps {
    productId: string | null;
