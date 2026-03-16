@@ -365,7 +365,7 @@ const DemoManagementTab = () => {
       }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingDemo ? 'Edit Demo Audio' : 'Add Demo Audio'}</DialogTitle>
+            <DialogTitle>{editingDemo ? 'Edit Demo Media' : 'Add Demo Media'}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
