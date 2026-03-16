@@ -260,7 +260,7 @@ const DemoManagementTab = () => {
       editMutation.mutate();
     } else {
       if (!audioFile) {
-        toast.error('Please select an audio file');
+        toast.error('Please select an audio or video file');
         return;
       }
       addMutation.mutate();
