@@ -391,11 +391,11 @@ const DemoManagementTab = () => {
             </div>
 
             <div>
-              <Label htmlFor="demo-audio">Audio File {!editingDemo && '*'}</Label>
+              <Label htmlFor="demo-audio">Audio/Video File {!editingDemo && '*'}</Label>
               <Input
                 id="demo-audio"
                 type="file"
-                accept="audio/*"
+                accept="audio/*,video/mp4,video/webm"
                 onChange={(e) => setAudioFile(e.target.files?.[0] || null)}
                 className="cursor-pointer"
               />
