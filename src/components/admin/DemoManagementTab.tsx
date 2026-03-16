@@ -290,8 +290,8 @@ const DemoManagementTab = () => {
       ) : !demoFiles || demoFiles.length === 0 ? (
         <div className="text-center py-12 bg-card rounded-xl border border-border">
           <Music className="h-12 w-12 text-muted-foreground/40 mx-auto mb-3" />
-          <p className="text-muted-foreground">No demo audios added yet</p>
-          <p className="text-sm text-muted-foreground/70 mt-1">Click "Add Demo Audio" to get started</p>
+          <p className="text-muted-foreground">No demo files added yet</p>
+          <p className="text-sm text-muted-foreground/70 mt-1">Click "Add Demo Media" to get started</p>
         </div>
       ) : (
         <div className="space-y-3">
