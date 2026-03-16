@@ -303,7 +303,11 @@ const DemoManagementTab = () => {
               }`}
             >
               <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10 shrink-0">
-                <Music className="h-5 w-5 text-primary" />
+                {/\.(mp4|webm|mov)$/i.test(demo.file_name) ? (
+                  <Video className="h-5 w-5 text-primary" />
+                ) : (
+                  <Music className="h-5 w-5 text-primary" />
+                )}
               </div>
 
               <div className="flex-1 min-w-0">
