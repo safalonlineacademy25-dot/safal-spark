@@ -32,6 +32,7 @@ import {
   Gift,
   Send,
   Music,
+  Activity,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -60,6 +61,7 @@ import ErrorBoundary from '@/components/ui/ErrorBoundary';
 import DemoManagementTab from '@/components/admin/DemoManagementTab';
 import ManualDownloadTab from '@/components/admin/ManualDownloadTab';
 import FailedEmailsTab from '@/components/admin/FailedEmailsTab';
+import CampaignMonitorTab from '@/components/admin/CampaignMonitorTab';
 import OrdersChart from '@/components/admin/OrdersChart';
 import { usePagination } from '@/hooks/usePagination';
 import { toast } from 'sonner';
@@ -228,6 +230,7 @@ const AdminDashboard = () => {
     { id: 'broadcasts', label: 'Broadcast History', icon: History },
     { id: 'promotions', label: 'Promotions', icon: Sparkles },
     { id: 'campaigns', label: 'Combo Offers', icon: Gift },
+    { id: 'campaign-monitor', label: 'Campaign Monitor', icon: Activity },
     { id: 'manual-download', label: 'Send Download', icon: FileDown },
     { id: 'demo', label: 'Demo Audio', icon: Music },
     { id: 'dbsnapshot', label: 'DB Snapshot', icon: Database },
@@ -1421,6 +1424,12 @@ const AdminDashboard = () => {
             {activeTab === 'campaigns' && (
               <ErrorBoundary>
                 <CampaignOffersTab products={products} isLoading={productsLoading} isSuperAdmin={isSuperAdmin} />
+              </ErrorBoundary>
+            )}
+
+            {activeTab === 'campaign-monitor' && (
+              <ErrorBoundary>
+                <CampaignMonitorTab />
               </ErrorBoundary>
             )}
 
