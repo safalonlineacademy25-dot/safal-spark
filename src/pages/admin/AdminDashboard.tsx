@@ -1426,6 +1426,12 @@ const AdminDashboard = () => {
               </ErrorBoundary>
             )}
 
+            {activeTab === 'campaign-monitor' && (
+              <ErrorBoundary>
+                <CampaignMonitorTab />
+              </ErrorBoundary>
+            )}
+
             {activeTab === 'manual-download' && (
               <ErrorBoundary>
                 <ManualDownloadTab />
