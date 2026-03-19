@@ -229,6 +229,7 @@ const AdminDashboard = () => {
     { id: 'broadcasts', label: 'Broadcast History', icon: History },
     { id: 'promotions', label: 'Promotions', icon: Sparkles },
     { id: 'campaigns', label: 'Combo Offers', icon: Gift },
+    { id: 'campaign-monitor', label: 'Campaign Monitor', icon: Activity },
     { id: 'manual-download', label: 'Send Download', icon: FileDown },
     { id: 'demo', label: 'Demo Audio', icon: Music },
     { id: 'dbsnapshot', label: 'DB Snapshot', icon: Database },
