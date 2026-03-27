@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.notify-password-change]
 verify_jwt = false
+
+[functions.send-payment-reminder]
+verify_jwt = false

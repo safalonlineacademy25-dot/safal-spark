@@ -62,6 +62,7 @@ import DemoManagementTab from '@/components/admin/DemoManagementTab';
 import ManualDownloadTab from '@/components/admin/ManualDownloadTab';
 import FailedEmailsTab from '@/components/admin/FailedEmailsTab';
 import CampaignMonitorTab from '@/components/admin/CampaignMonitorTab';
+import PaymentRemindersTab from '@/components/admin/PaymentRemindersTab';
 import OrdersChart from '@/components/admin/OrdersChart';
 import { usePagination } from '@/hooks/usePagination';
 import { toast } from 'sonner';
@@ -92,7 +93,7 @@ const AdminDashboard = () => {
   
   // Determine which data needs to be fetched based on active tab
   const needsProducts = activeTab === 'dashboard' || activeTab === 'products' || activeTab === 'campaigns';
-  const needsOrders = activeTab === 'dashboard' || activeTab === 'orders' || activeTab === 'payments' || activeTab === 'email' || activeTab === 'whatsapp';
+  const needsOrders = activeTab === 'dashboard' || activeTab === 'orders' || activeTab === 'payments' || activeTab === 'payment-reminders' || activeTab === 'email' || activeTab === 'whatsapp';
   const needsCustomers = activeTab === 'customers';
   
   // Only fetch data when the relevant tab is active - improves initial load performance
@@ -229,6 +230,7 @@ const AdminDashboard = () => {
     { id: 'whatsapp', label: 'WhatsApp Logs', icon: MessageCircle },
     { id: 'broadcasts', label: 'Broadcast History', icon: History },
     { id: 'promotions', label: 'Promotions', icon: Sparkles },
+    { id: 'payment-reminders', label: 'Payment Reminders', icon: MessageCircle },
     { id: 'campaigns', label: 'Combo Offers', icon: Gift },
     { id: 'campaign-monitor', label: 'Campaign Monitor', icon: Activity },
     { id: 'manual-download', label: 'Send Download', icon: FileDown },
@@ -1173,6 +1175,16 @@ const AdminDashboard = () => {
                     </>
                   )}
                 </div>
+              </motion.div>
+            )}
+
+            {activeTab === 'payment-reminders' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+              >
+                <PaymentRemindersTab orders={orders} isLoading={ordersLoading} />
               </motion.div>
             )}
 

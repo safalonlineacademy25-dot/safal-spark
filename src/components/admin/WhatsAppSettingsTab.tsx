@@ -37,6 +37,7 @@ interface WhatsAppSettings {
   failureTemplateName: string;
   broadcastTemplateName: string;
   promotionTemplateName: string;
+  paymentReminderTemplateName: string;
   downloadMediaUrl: string;
 }
 
@@ -54,6 +55,7 @@ const WhatsAppSettingsTab = () => {
     failureTemplateName: '',
     broadcastTemplateName: '',
     promotionTemplateName: '',
+    paymentReminderTemplateName: '',
     downloadMediaUrl: '',
   });
   const [saving, setSaving] = useState(false);
@@ -86,6 +88,7 @@ const WhatsAppSettingsTab = () => {
           failureTemplateName: map['whatsapp_failure_template_name'] || '',
           broadcastTemplateName: map['whatsapp_broadcast_template_name'] || '',
           promotionTemplateName: map['whatsapp_promotion_template_name'] || '',
+          paymentReminderTemplateName: map['whatsapp_payment_reminder_template'] || '',
           downloadMediaUrl: map['whatsapp_download_media_url'] || '',
         });
       }
@@ -118,6 +121,7 @@ const WhatsAppSettingsTab = () => {
         { key: 'whatsapp_failure_template_name', value: settings.failureTemplateName },
         { key: 'whatsapp_broadcast_template_name', value: settings.broadcastTemplateName },
         { key: 'whatsapp_promotion_template_name', value: settings.promotionTemplateName },
+        { key: 'whatsapp_payment_reminder_template', value: settings.paymentReminderTemplateName },
         { key: 'whatsapp_download_media_url', value: settings.downloadMediaUrl },
       ];
       for (const s of settingsToSave) {
@@ -254,6 +258,11 @@ const WhatsAppSettingsTab = () => {
                 <Label htmlFor="promotion-template">Promotion Template</Label>
                 <Input id="promotion-template" placeholder="e.g. promotional_offer" value={settings.promotionTemplateName} onChange={(e) => setSettings(prev => ({ ...prev, promotionTemplateName: e.target.value }))} disabled={!isSuperAdmin} />
                 <p className="text-xs text-muted-foreground">Used for promotional broadcasts</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="payment-reminder-template">Payment Reminder Template</Label>
+                <Input id="payment-reminder-template" placeholder="e.g. payment_reminder" value={settings.paymentReminderTemplateName} onChange={(e) => setSettings(prev => ({ ...prev, paymentReminderTemplateName: e.target.value }))} disabled={!isSuperAdmin} />
+                <p className="text-xs text-muted-foreground">Used for reminding customers about failed/pending payments. Variables: customer_name, customer_email</p>
               </div>
             </div>
           </div>
