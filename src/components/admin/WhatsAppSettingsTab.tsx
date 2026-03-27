@@ -88,6 +88,7 @@ const WhatsAppSettingsTab = () => {
           failureTemplateName: map['whatsapp_failure_template_name'] || '',
           broadcastTemplateName: map['whatsapp_broadcast_template_name'] || '',
           promotionTemplateName: map['whatsapp_promotion_template_name'] || '',
+          paymentReminderTemplateName: map['whatsapp_payment_reminder_template'] || '',
           downloadMediaUrl: map['whatsapp_download_media_url'] || '',
         });
       }
