@@ -121,6 +121,7 @@ const WhatsAppSettingsTab = () => {
         { key: 'whatsapp_failure_template_name', value: settings.failureTemplateName },
         { key: 'whatsapp_broadcast_template_name', value: settings.broadcastTemplateName },
         { key: 'whatsapp_promotion_template_name', value: settings.promotionTemplateName },
+        { key: 'whatsapp_payment_reminder_template', value: settings.paymentReminderTemplateName },
         { key: 'whatsapp_download_media_url', value: settings.downloadMediaUrl },
       ];
       for (const s of settingsToSave) {
