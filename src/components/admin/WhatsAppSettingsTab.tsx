@@ -259,6 +259,11 @@ const WhatsAppSettingsTab = () => {
                 <Input id="promotion-template" placeholder="e.g. promotional_offer" value={settings.promotionTemplateName} onChange={(e) => setSettings(prev => ({ ...prev, promotionTemplateName: e.target.value }))} disabled={!isSuperAdmin} />
                 <p className="text-xs text-muted-foreground">Used for promotional broadcasts</p>
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="payment-reminder-template">Payment Reminder Template</Label>
+                <Input id="payment-reminder-template" placeholder="e.g. payment_reminder" value={settings.paymentReminderTemplateName} onChange={(e) => setSettings(prev => ({ ...prev, paymentReminderTemplateName: e.target.value }))} disabled={!isSuperAdmin} />
+                <p className="text-xs text-muted-foreground">Used for reminding customers about failed/pending payments. Variables: customer_name, customer_email</p>
+              </div>
             </div>
           </div>
 
