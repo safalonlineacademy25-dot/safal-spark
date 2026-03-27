@@ -175,8 +175,7 @@ const PaymentRemindersTab = ({ orders, isLoading }: PaymentRemindersTabProps) =>
       <Card className="border-primary/20 bg-primary/5">
         <CardContent className="py-3 px-4">
           <p className="text-sm text-muted-foreground">
-            💡 Configure the WhatsApp template name in <strong>WhatsApp Settings</strong> → "Payment Reminder Template Name".
-            Template should accept 2 variables: <code className="bg-muted px-1 rounded">customer_name</code> and <code className="bg-muted px-1 rounded">customer_email</code>.
+            💡 A direct text message will be sent to the customer reminding them to retry the payment. No template setup needed.
           </p>
         </CardContent>
       </Card>

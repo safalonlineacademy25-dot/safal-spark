@@ -73,14 +73,9 @@ serve(async (req) => {
     const whatsappEnabled = settings['whatsapp_enabled'] === 'true';
     const apiKey = settings['wasimple_api_key'];
     const phoneId = settings['wasimple_phone_id'];
-    const templateName = settings['whatsapp_payment_reminder_template'] || settings['whatsapp_failure_template_name'];
 
     if (!whatsappEnabled || !apiKey || !phoneId) {
       throw new Error('WhatsApp is not configured. Please check WhatsApp settings.');
-    }
-
-    if (!templateName) {
-      throw new Error('Payment reminder template name not configured. Please set it in WhatsApp Settings.');
     }
 
     // Fetch order details
@@ -94,18 +89,19 @@ serve(async (req) => {
 
     const customerName = toTitleCase(order.customer_name || order.customer_email.split('@')[0]);
     const customerPhone = formatPhoneNumber(order.customer_phone);
-    const customerEmail = order.customer_email;
 
-    // Send WhatsApp message via WaSimple
+    // Build the plain text reminder message
+    const reminderMessage = `🙏 नमस्कार ${customerName},\n\nWe noticed that you showed interest in our product and visited the payment screen, but the payment was not completed.\n\nIf you faced any issue during payment, please feel free to retry. A demo video on how to complete the payment has already been shared in our previous messages.\n\nFor any assistance, you can reply to this message or contact us directly.\n\nThank you!\n~ Safal Online Solutions`;
+
+    // Send WhatsApp text message via WaSimple
     const waUrl = `https://app.wasimple.in/api/v1/whatsapp/sendMessage?apiKey=${apiKey}&phoneId=${phoneId}`;
     const waPayload = {
-      templateName,
-      language: 'en',
       to: customerPhone,
-      templateVariables: [customerName, customerEmail],
+      type: 'text',
+      message: reminderMessage,
     };
 
-    console.log('Sending payment reminder WhatsApp to:', customerPhone, 'template:', templateName);
+    console.log('Sending payment reminder WhatsApp text to:', customerPhone);
 
     const waResponse = await fetch(waUrl, {
       method: 'POST',
