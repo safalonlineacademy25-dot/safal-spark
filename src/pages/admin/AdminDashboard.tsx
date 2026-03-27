@@ -93,7 +93,7 @@ const AdminDashboard = () => {
   
   // Determine which data needs to be fetched based on active tab
   const needsProducts = activeTab === 'dashboard' || activeTab === 'products' || activeTab === 'campaigns';
-  const needsOrders = activeTab === 'dashboard' || activeTab === 'orders' || activeTab === 'payments' || activeTab === 'email' || activeTab === 'whatsapp';
+  const needsOrders = activeTab === 'dashboard' || activeTab === 'orders' || activeTab === 'payments' || activeTab === 'payment-reminders' || activeTab === 'email' || activeTab === 'whatsapp';
   const needsCustomers = activeTab === 'customers';
   
   // Only fetch data when the relevant tab is active - improves initial load performance
