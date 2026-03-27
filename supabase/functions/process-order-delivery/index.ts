@@ -241,6 +241,7 @@ serve(async (req) => {
           customer_name: order.customer_name,
           items_count: orderItems?.length || 0,
           currency: order.currency || 'INR',
+          product_names: orderItems?.map(i => i.product_name) || [],
         },
       }),
     }).catch(err => console.error('Telegram notification failed:', err));

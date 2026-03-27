@@ -44,13 +44,17 @@ serve(async (req) => {
     let message = '';
 
     if (type === 'new_order') {
-      const { order_number, total_amount, customer_email, customer_name, items_count, currency } = data;
+      const { order_number, total_amount, customer_email, customer_name, items_count, currency, product_names } = data;
+      const productList = Array.isArray(product_names) && product_names.length > 0
+        ? product_names.map((n: string) => `• ${n}`).join('\n')
+        : 'N/A';
       message = `🛒 *New Order Received!*\n\n` +
         `📋 Order: \`${order_number}\`\n` +
         `💰 Amount: ${currency || 'INR'} ${total_amount}\n` +
         `👤 Customer: ${customer_name || 'N/A'}\n` +
         `📧 Email: ${customer_email}\n` +
-        `📦 Items: ${items_count}`;
+        `📦 Items: ${items_count}\n\n` +
+        `📝 *Products:*\n${productList}`;
     } else if (type === 'daily_summary') {
       const { today_visits, weekly_visits, total_visits_30d, avg_daily, today_orders, today_revenue, date, cron_jobs, db_size_mb } = data;
       message = `📊 *Daily Summary — ${date}*\n\n` +
