@@ -1178,7 +1178,16 @@ const AdminDashboard = () => {
               </motion.div>
             )}
 
-            {activeTab === 'whatsapp' && (
+            {activeTab === 'payment-reminders' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+              >
+                <PaymentRemindersTab orders={orders} isLoading={ordersLoading} />
+              </motion.div>
+            )}
+
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
