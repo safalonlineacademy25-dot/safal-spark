@@ -55,6 +55,7 @@ const WhatsAppSettingsTab = () => {
     failureTemplateName: '',
     broadcastTemplateName: '',
     promotionTemplateName: '',
+    paymentReminderTemplateName: '',
     downloadMediaUrl: '',
   });
   const [saving, setSaving] = useState(false);
