@@ -90,15 +90,19 @@ serve(async (req) => {
     const customerName = toTitleCase(order.customer_name || order.customer_email.split('@')[0]);
     const customerPhone = formatPhoneNumber(order.customer_phone);
 
-    // Build the plain text reminder message
-    const reminderMessage = `🙏 नमस्कार ${customerName},\n\nWe noticed that you showed interest in our product and visited the payment screen, but the payment was not completed.\n\nIf you faced any issue during payment, please feel free to retry. A demo video on how to complete the payment has already been shared in our previous messages.\n\nFor any assistance, you can reply to this message or contact us directly.\n\nThank you!\n~ Safal Online Solutions`;
+    // Get payment reminder template name from settings
+    const templateName = settings['whatsapp_payment_reminder_template'];
+    if (!templateName) {
+      throw new Error('Payment reminder template name not configured. Please set it in WhatsApp Settings.');
+    }
 
-    // Send WhatsApp text message via WaSimple
+    // Send WhatsApp template message via WaSimple with only customer name as {{1}}
     const waUrl = `https://app.wasimple.in/api/v1/whatsapp/sendMessage?apiKey=${apiKey}&phoneId=${phoneId}`;
     const waPayload = {
+      templateName,
+      language: 'en',
       to: customerPhone,
-      type: 'text',
-      message: reminderMessage,
+      templateVariables: [customerName],
     };
 
     console.log('Sending payment reminder WhatsApp text to:', customerPhone);
