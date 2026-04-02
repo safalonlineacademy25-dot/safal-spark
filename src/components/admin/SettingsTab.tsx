@@ -114,6 +114,7 @@ const SettingsTab = () => {
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>({
     razorpayKeyId: '',
     razorpayKeySecret: '',
+    razorpayWebhookSecret: '',
     testMode: true,
   });
   const [showSecretKey, setShowSecretKey] = useState(false);
