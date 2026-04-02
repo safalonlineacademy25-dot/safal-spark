@@ -90,6 +90,16 @@ serve(async (req) => {
         `❌ Failed: ${failed_parts}\n` +
         `✅ Sent: ${successful_emails}/${total_emails}\n\n` +
         `⚠️ Refund entry created. Please check admin dashboard.`;
+    } else if (type === 'webhook_recovery') {
+      const { order_number, customer_name, customer_email, amount, payment_id } = data;
+      message = `🔄 *Webhook Recovery!*\n\n` +
+        `A missed payment was recovered via Razorpay webhook.\n\n` +
+        `📋 Order: \`${order_number}\`\n` +
+        `👤 Customer: ${customer_name || 'N/A'}\n` +
+        `📧 Email: ${customer_email}\n` +
+        `💰 Amount: INR ${amount}\n` +
+        `💳 Payment: \`${payment_id}\`\n\n` +
+        `✅ Order marked as paid & delivery triggered automatically.`;
     } else {
       message = data?.message || 'Notification from Safal Spark';
     }
