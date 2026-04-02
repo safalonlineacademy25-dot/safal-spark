@@ -765,6 +765,38 @@ const SettingsTab = () => {
             </div>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="razorpay-webhook-secret">Razorpay Webhook Secret</Label>
+            <div className="relative">
+              <Input
+                id="razorpay-webhook-secret"
+                type={showSecretKey ? 'text' : 'password'}
+                placeholder="••••••••••••••••••••"
+                value={paymentSettings.razorpayWebhookSecret}
+                onChange={(e) =>
+                  setPaymentSettings((prev) => ({ ...prev, razorpayWebhookSecret: e.target.value }))
+                }
+                disabled={!isSuperAdmin}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                onClick={() => setShowSecretKey(!showSecretKey)}
+              >
+                {showSecretKey ? (
+                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <Eye className="h-4 w-4 text-muted-foreground" />
+                )}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Found in Razorpay Dashboard → Webhooks → Edit → Secret. Used to verify webhook signatures.
+            </p>
+          </div>
+
           <div className="flex items-center justify-between p-3 rounded-lg border border-border">
             <div>
               <p className="text-sm font-medium text-foreground">Test Mode</p>
