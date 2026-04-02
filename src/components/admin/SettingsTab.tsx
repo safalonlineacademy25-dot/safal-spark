@@ -415,6 +415,7 @@ const SettingsTab = () => {
       await Promise.all([
         upsertSetting('razorpay_key_id', paymentSettings.razorpayKeyId),
         upsertSetting('razorpay_key_secret', paymentSettings.razorpayKeySecret),
+        upsertSetting('razorpay_webhook_secret', paymentSettings.razorpayWebhookSecret),
         upsertSetting('razorpay_test_mode', paymentSettings.testMode.toString()),
       ]);
       
