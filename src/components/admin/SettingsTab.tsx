@@ -83,6 +83,7 @@ interface DeliverySettings {
 interface PaymentSettings {
   razorpayKeyId: string;
   razorpayKeySecret: string;
+  razorpayWebhookSecret: string;
   testMode: boolean;
 }
 
