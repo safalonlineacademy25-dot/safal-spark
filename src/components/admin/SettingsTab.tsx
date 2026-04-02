@@ -201,6 +201,7 @@ const SettingsTab = () => {
         setPaymentSettings({
           razorpayKeyId: settingsMap['razorpay_key_id'] || '',
           razorpayKeySecret: settingsMap['razorpay_key_secret'] || '',
+          razorpayWebhookSecret: settingsMap['razorpay_webhook_secret'] || '',
           testMode: settingsMap['razorpay_test_mode'] === 'true',
         });
 
