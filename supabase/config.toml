@@ -69,5 +69,8 @@ verify_jwt = false
 [functions.send-payment-reminder]
 verify_jwt = false
 
+[functions.approve-upi-order]
+verify_jwt = false
+
 [functions.razorpay-webhook]
 verify_jwt = false

@@ -233,6 +233,7 @@ const AdminDashboard = () => {
     // { id: 'broadcasts', label: 'Broadcast History', icon: History },
     // { id: 'promotions', label: 'Promotions', icon: Sparkles },
     { id: 'payment-reminders', label: 'Payment Reminders', icon: MessageCircle },
+    { id: 'upi-orders', label: 'UPI Orders', icon: QrCode },
     { id: 'campaigns', label: 'Combo Offers', icon: Gift },
     { id: 'campaign-monitor', label: 'Campaign Monitor', icon: Activity },
     { id: 'manual-download', label: 'Send Download', icon: FileDown },
