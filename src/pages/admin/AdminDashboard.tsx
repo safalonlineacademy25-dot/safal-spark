@@ -63,6 +63,7 @@ import ManualDownloadTab from '@/components/admin/ManualDownloadTab';
 import FailedEmailsTab from '@/components/admin/FailedEmailsTab';
 import CampaignMonitorTab from '@/components/admin/CampaignMonitorTab';
 import PaymentRemindersTab from '@/components/admin/PaymentRemindersTab';
+import UPIOrdersTab from '@/components/admin/UPIOrdersTab';
 import OrdersChart from '@/components/admin/OrdersChart';
 import { usePagination } from '@/hooks/usePagination';
 import { toast } from 'sonner';
