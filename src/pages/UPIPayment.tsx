@@ -2,14 +2,13 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
-import { QrCode, ShoppingBag, User, Mail, Phone, Loader2, Shield, CheckCircle, Upload, Camera } from "lucide-react";
+import { QrCode, ShoppingBag, User, Mail, Phone, Loader2, Shield, CheckCircle, Hash } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -23,52 +22,49 @@ interface Product {
   image_url: string | null;
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  "Competitive Exam Notes": "🏆 Competitive Exam Notes",
-  "Mock Papers": "📝 Mock Papers",
-  "Pune University Notes": "🎓 Pune University Notes",
-  "Engineering Notes": "⚙️ Engineering Notes",
-  "IIT Notes": "🔬 IIT Notes",
-  "Mumbai University Notes": "🏛️ Mumbai University Notes",
-  "Audio Notes": "🎧 Audio Notes",
-  "Combo Packs": "📦 Combo Packs",
-  "Others": "📚 Others",
-};
-
 export default function UPIPayment() {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loadingProducts, setLoadingProducts] = useState(true);
-  const [selectedProductId, setSelectedProductId] = useState("");
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loadingProduct, setLoadingProduct] = useState(true);
+  const [noProduct, setNoProduct] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [transactionId, setTransactionId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [qrImageUrl, setQrImageUrl] = useState("");
   const [upiId, setUpiId] = useState("");
-  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
-  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
-      // Fetch products
+      const productId = searchParams.get("product");
+
+      if (!productId) {
+        setNoProduct(true);
+        setLoadingProduct(false);
+        return;
+      }
+
+      // Fetch the specific product
       const { data } = await supabase
         .from("products")
         .select("id, name, price, original_price, category, description, image_url")
+        .eq("id", productId)
         .eq("is_active", true)
-        .order("category")
-        .order("name");
-      setProducts(data || []);
-      setLoadingProducts(false);
+        .single();
 
-      const productParam = searchParams.get("product");
-      if (productParam && data?.some((p) => p.id === productParam)) {
-        setSelectedProductId(productParam);
+      if (!data) {
+        setNoProduct(true);
+        setLoadingProduct(false);
+        return;
       }
 
-      // Fetch UPI settings using public RPC
+      setProduct(data);
+      setLoadingProduct(false);
+
+      // Fetch UPI settings
       const [qrRes, upiIdRes] = await Promise.all([
         supabase.rpc("get_public_setting", { setting_key: "upi_qr_image_url" }),
         supabase.rpc("get_public_setting", { setting_key: "upi_id" }),
@@ -80,63 +76,21 @@ export default function UPIPayment() {
     fetchData();
   }, [searchParams]);
 
-  const selectedProduct = products.find((p) => p.id === selectedProductId);
-  const isPreSelected = !!searchParams.get("product") && !!selectedProduct;
-
-  const productsByCategory = products.reduce<Record<string, Product[]>>((acc, p) => {
-    if (!acc[p.category]) acc[p.category] = [];
-    acc[p.category].push(p);
-    return acc;
-  }, {});
-
-  const handleScreenshotChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast({ title: "File too large", description: "Please upload a file smaller than 5MB", variant: "destructive" });
-        return;
-      }
-      setScreenshotFile(file);
-      const reader = new FileReader();
-      reader.onload = () => setScreenshotPreview(reader.result as string);
-      reader.readAsDataURL(file);
-    }
-  };
-
   const validateForm = () => {
-    if (!selectedProductId) { toast({ title: "Please select a product", variant: "destructive" }); return false; }
     if (!name.trim()) { toast({ title: "Please enter your name", variant: "destructive" }); return false; }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) { toast({ title: "Please enter a valid email", variant: "destructive" }); return false; }
     const phoneClean = phone.replace(/\D/g, "");
     if (phoneClean.length < 10) { toast({ title: "Please enter a valid 10-digit phone number", variant: "destructive" }); return false; }
+    if (!transactionId.trim()) { toast({ title: "Please enter your UPI Transaction ID", variant: "destructive" }); return false; }
     return true;
   };
 
   const handleSubmit = async () => {
-    if (!validateForm() || !selectedProduct) return;
+    if (!validateForm() || !product) return;
     setSubmitting(true);
 
     try {
-      let screenshotUrl: string | null = null;
-
-      // Upload screenshot if provided
-      if (screenshotFile) {
-        const fileExt = screenshotFile.name.split('.').pop();
-        const fileName = `upi-screenshots/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from("product-images")
-          .upload(fileName, screenshotFile);
-
-        if (!uploadError) {
-          const { data: { publicUrl } } = supabase.storage
-            .from("product-images")
-            .getPublicUrl(fileName);
-          screenshotUrl = publicUrl;
-        }
-      }
-
       // Create UPI order entry
       const { error } = await supabase
         .from("upi_orders")
@@ -144,14 +98,14 @@ export default function UPIPayment() {
           customer_name: name.trim(),
           customer_email: email.trim().toLowerCase(),
           customer_phone: phone.trim(),
-          product_id: selectedProduct.id,
-          product_name: selectedProduct.name,
-          product_price: selectedProduct.price,
-          amount: selectedProduct.price,
-          screenshot_url: screenshotUrl,
+          product_id: product.id,
+          product_name: product.name,
+          product_price: product.price,
+          amount: product.price,
+          transaction_id: transactionId.trim(),
           whatsapp_optin: true,
           status: "pending",
-        });
+        } as any);
 
       if (error) throw error;
 
@@ -159,7 +113,7 @@ export default function UPIPayment() {
       try {
         await supabase.functions.invoke("send-telegram-notification", {
           body: {
-            message: `🔔 *New UPI Payment Received*\n\n👤 ${name.trim()}\n📧 ${email.trim()}\n📱 ${phone.trim()}\n📦 ${selectedProduct.name}\n💰 ₹${selectedProduct.price}\n📸 Screenshot: ${screenshotUrl ? 'Yes' : 'No'}\n\n⏳ Pending admin approval`,
+            message: `🔔 *New UPI Payment Received*\n\n👤 ${name.trim()}\n📧 ${email.trim()}\n📱 ${phone.trim()}\n📦 ${product.name}\n💰 ₹${product.price}\n🔢 Txn ID: ${transactionId.trim()}\n\n⏳ Pending admin approval`,
           },
         });
       } catch (e) {
@@ -185,7 +139,7 @@ export default function UPIPayment() {
             </div>
             <h2 className="text-2xl font-bold text-foreground mb-2">Payment Details Submitted!</h2>
             <p className="text-muted-foreground mb-4">
-              Thank you, <strong>{name}</strong>! We have received your payment details for <strong>{selectedProduct?.name}</strong>.
+              Thank you, <strong>{name}</strong>! We have received your payment details for <strong>{product?.name}</strong>.
             </p>
             <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground space-y-2 mb-6">
               <p>✅ Our team will verify your payment shortly.</p>
@@ -197,6 +151,39 @@ export default function UPIPayment() {
               Back to Home
             </Button>
           </motion.div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  if (loadingProduct) {
+    return (
+      <>
+        <Header />
+        <main className="min-h-screen bg-background flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  if (noProduct) {
+    return (
+      <>
+        <Header />
+        <main className="min-h-screen bg-background flex items-center justify-center">
+          <div className="max-w-md mx-auto text-center p-8">
+            <ShoppingBag className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <h2 className="text-xl font-bold text-foreground mb-2">No Product Selected</h2>
+            <p className="text-muted-foreground mb-6">
+              Please use the payment link shared with you or visit our products page to select a product.
+            </p>
+            <Button onClick={() => window.location.href = "/products"} className="w-full">
+              Browse Products
+            </Button>
+          </div>
         </main>
         <Footer />
       </>
@@ -223,9 +210,9 @@ export default function UPIPayment() {
                 Scan & Pay — Easy UPI Payment
               </h1>
               <div className="flex items-center justify-center gap-3 md:gap-6 text-primary-foreground/90 text-sm md:text-base mt-4">
-                <span className="flex items-center gap-1.5"><span className="bg-primary-foreground/20 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">1</span> Select Product</span>
+                <span className="flex items-center gap-1.5"><span className="bg-primary-foreground/20 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">1</span> Scan & Pay</span>
                 <span className="text-primary-foreground/40">→</span>
-                <span className="flex items-center gap-1.5"><span className="bg-primary-foreground/20 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">2</span> Scan & Pay</span>
+                <span className="flex items-center gap-1.5"><span className="bg-primary-foreground/20 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">2</span> Enter Details</span>
                 <span className="text-primary-foreground/40">→</span>
                 <span className="flex items-center gap-1.5"><span className="bg-primary-foreground/20 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">3</span> Get Download</span>
               </div>
@@ -235,138 +222,94 @@ export default function UPIPayment() {
 
         <div className="container-custom py-8 md:py-12">
           <div className="max-w-2xl mx-auto grid gap-6">
-            {/* Product Selection */}
+            {/* Product Info */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <ShoppingBag className="h-5 w-5 text-primary" />
-                    {isPreSelected ? "Selected Product" : "Step 1: Select Product"}
+                    Selected Product
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {loadingProducts ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : isPreSelected ? (
-                    <div className="p-4 rounded-lg bg-muted/50 border border-border">
-                      <h3 className="font-semibold text-foreground">{selectedProduct!.name}</h3>
-                      {selectedProduct!.description && (
-                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{selectedProduct!.description}</p>
+                  <div className="p-4 rounded-lg bg-muted/50 border border-border">
+                    <h3 className="font-semibold text-foreground">{product!.name}</h3>
+                    {product!.description && (
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{product!.description}</p>
+                    )}
+                    <div className="mt-2 flex items-baseline gap-2">
+                      <span className="text-xl font-bold price-text">₹{product!.price}</span>
+                      {product!.original_price && product!.original_price > product!.price && (
+                        <span className="text-sm price-original">₹{product!.original_price}</span>
                       )}
-                      <div className="mt-2 flex items-baseline gap-2">
-                        <span className="text-xl font-bold price-text">₹{selectedProduct!.price}</span>
-                        {selectedProduct!.original_price && selectedProduct!.original_price > selectedProduct!.price && (
-                          <span className="text-sm price-original">₹{selectedProduct!.original_price}</span>
-                        )}
-                      </div>
                     </div>
-                  ) : (
-                    <>
-                      <Select value={selectedProductId} onValueChange={setSelectedProductId}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choose a product..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(productsByCategory).map(([category, prods]) => (
-                            <div key={category}>
-                              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                                {CATEGORY_LABELS[category] || category}
-                              </div>
-                              {prods.map((p) => (
-                                <SelectItem key={p.id} value={p.id}>
-                                  {p.name} — ₹{p.price}
-                                </SelectItem>
-                              ))}
-                            </div>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {selectedProduct && (
-                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-4 p-4 rounded-lg bg-muted/50 border border-border">
-                          <h3 className="font-semibold text-foreground">{selectedProduct.name}</h3>
-                          {selectedProduct.description && (
-                            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{selectedProduct.description}</p>
-                          )}
-                          <div className="mt-2 flex items-baseline gap-2">
-                            <span className="text-xl font-bold price-text">₹{selectedProduct.price}</span>
-                            {selectedProduct.original_price && selectedProduct.original_price > selectedProduct.price && (
-                              <span className="text-sm price-original">₹{selectedProduct.original_price}</span>
-                            )}
-                          </div>
-                        </motion.div>
-                      )}
-                    </>
-                  )}
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
 
             {/* QR Code Scanner */}
-            {selectedProduct && (
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-                <Card className="border-primary/20">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <QrCode className="h-5 w-5 text-primary" />
-                      Step 2: Scan & Pay ₹{selectedProduct.price}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-center">
-                    {qrImageUrl ? (
-                      <div className="space-y-3">
-                        <div className="bg-background border-2 border-dashed border-primary/30 rounded-xl p-4 inline-block mx-auto">
-                          <img 
-                            src={qrImageUrl} 
-                            alt="UPI QR Code" 
-                            className="w-56 h-56 object-contain mx-auto"
-                          />
-                        </div>
-                        <p className="text-sm font-medium text-foreground">
-                          Scan this QR code using any UPI app
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+              <Card className="border-primary/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <QrCode className="h-5 w-5 text-primary" />
+                    Step 1: Scan & Pay ₹{product!.price}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  {qrImageUrl ? (
+                    <div className="space-y-3">
+                      <div className="bg-background border-2 border-dashed border-primary/30 rounded-xl p-4 inline-block mx-auto">
+                        <img
+                          src={qrImageUrl}
+                          alt="UPI QR Code"
+                          className="w-56 h-56 object-contain mx-auto"
+                        />
+                      </div>
+                      <p className="text-sm font-medium text-foreground">
+                        Scan this QR code using any UPI app
+                      </p>
+                      {upiId && (
+                        <p className="text-xs text-muted-foreground">
+                          UPI ID: <span className="font-mono font-semibold text-foreground">{upiId}</span>
                         </p>
-                        {upiId && (
-                          <p className="text-xs text-muted-foreground">
-                            UPI ID: <span className="font-mono font-semibold text-foreground">{upiId}</span>
-                          </p>
-                        )}
-                        <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-sm text-amber-800 dark:text-amber-200">
-                          <p className="font-medium">💡 Important:</p>
-                          <p>Pay exact amount: <strong>₹{selectedProduct.price}</strong></p>
-                        </div>
-                        <div className="flex items-center justify-center gap-3 pt-1">
-                          {["GPay", "PhonePe", "Paytm", "UPI"].map((method) => (
-                            <span key={method} className="text-[10px] font-medium bg-muted px-2 py-1 rounded text-muted-foreground">
-                              {method}
-                            </span>
-                          ))}
-                        </div>
+                      )}
+                      <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-sm text-amber-800 dark:text-amber-200">
+                        <p className="font-medium">💡 Important:</p>
+                        <p>Pay exact amount: <strong>₹{product!.price}</strong></p>
                       </div>
-                    ) : (
-                      <div className="py-8 text-muted-foreground">
-                        <QrCode className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                        <p>UPI QR code not configured yet.</p>
-                        <p className="text-xs mt-1">Please contact support for payment assistance.</p>
+                      <div className="flex items-center justify-center gap-3 pt-1">
+                        {["GPay", "PhonePe", "Paytm", "UPI"].map((method) => (
+                          <span key={method} className="text-[10px] font-medium bg-muted px-2 py-1 rounded text-muted-foreground">
+                            {method}
+                          </span>
+                        ))}
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
+                    </div>
+                  ) : (
+                    <div className="py-8 text-muted-foreground">
+                      <QrCode className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                      <p>UPI QR code not configured yet.</p>
+                      <p className="text-xs mt-1">Please contact support for payment assistance.</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
 
-            {/* Customer Details */}
+            {/* Customer Details & Transaction ID */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <User className="h-5 w-5 text-primary" />
-                    Step 3: Your Details & Payment Confirmation
+                    Step 2: Your Details & Transaction ID
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-xs text-muted-foreground">
-                    Fill your details below. After we verify your payment, download links will be sent to your email.
+                    Fill your details and transaction ID below. After we verify your payment, download links will be sent to your email.
                   </p>
                   <div className="space-y-2">
                     <Label htmlFor="upi-name" className="flex items-center gap-1.5">
@@ -387,32 +330,12 @@ export default function UPIPayment() {
                     </Label>
                     <Input id="upi-phone" type="tel" placeholder="10-digit mobile number" value={phone} onChange={(e) => setPhone(e.target.value)} />
                   </div>
-
-                  {/* Screenshot Upload (Optional) */}
                   <div className="space-y-2">
-                    <Label className="flex items-center gap-1.5">
-                      <Camera className="h-3.5 w-3.5" /> Payment Screenshot <span className="text-xs text-muted-foreground">(Optional)</span>
+                    <Label htmlFor="upi-txn" className="flex items-center gap-1.5">
+                      <Hash className="h-3.5 w-3.5" /> UPI Transaction ID <span className="text-destructive">*</span>
                     </Label>
-                    <div className="flex items-center gap-3">
-                      <label className="flex-1 cursor-pointer">
-                        <div className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary/50 transition-colors">
-                          {screenshotPreview ? (
-                            <img src={screenshotPreview} alt="Screenshot" className="max-h-32 mx-auto rounded" />
-                          ) : (
-                            <div className="text-muted-foreground">
-                              <Upload className="h-6 w-6 mx-auto mb-1" />
-                              <p className="text-xs">Upload payment screenshot</p>
-                            </div>
-                          )}
-                        </div>
-                        <input type="file" accept="image/*" className="hidden" onChange={handleScreenshotChange} />
-                      </label>
-                      {screenshotFile && (
-                        <Button variant="ghost" size="sm" onClick={() => { setScreenshotFile(null); setScreenshotPreview(null); }}>
-                          Remove
-                        </Button>
-                      )}
-                    </div>
+                    <Input id="upi-txn" placeholder="e.g. 412345678901" value={transactionId} onChange={(e) => setTransactionId(e.target.value)} />
+                    <p className="text-xs text-muted-foreground">📋 You can find this in your UPI app payment history</p>
                   </div>
                 </CardContent>
               </Card>
@@ -422,7 +345,7 @@ export default function UPIPayment() {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
               <Button
                 onClick={handleSubmit}
-                disabled={submitting || !selectedProductId || !qrImageUrl}
+                disabled={submitting || !qrImageUrl}
                 className="w-full h-14 text-base font-semibold gap-2"
                 size="lg"
               >
