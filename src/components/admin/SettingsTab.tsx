@@ -223,6 +223,10 @@ const SettingsTab = () => {
 
         // Load signup setting
         setSignupEnabled(settingsMap['admin_signup_enabled'] !== 'false');
+
+        // Load UPI settings
+        setUpiQrImageUrl(settingsMap['upi_qr_image_url'] || '');
+        setUpiId(settingsMap['upi_id'] || '');
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
