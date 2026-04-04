@@ -189,6 +189,9 @@ const UPIOrdersTab = () => {
                         <span className="flex items-center gap-1.5"><Package className="h-3.5 w-3.5 text-muted-foreground" />{order.product_name}</span>
                       </div>
                       <p className="text-lg font-bold text-foreground mt-1">₹{order.amount}</p>
+                      {order.transaction_id && (
+                        <p className="text-xs text-muted-foreground mt-1">🔢 Txn ID: <span className="font-mono font-semibold text-foreground">{order.transaction_id}</span></p>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       {order.screenshot_url && (
