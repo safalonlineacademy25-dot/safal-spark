@@ -47,6 +47,7 @@ interface UPIOrder {
   product_price: number;
   amount: number;
   screenshot_url: string | null;
+  transaction_id: string | null;
   status: string;
   admin_notes: string | null;
   whatsapp_optin: boolean | null;
