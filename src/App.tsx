@@ -19,6 +19,7 @@ import NotFound from "./pages/NotFound";
 import Demo from "./pages/Demo";
 import DemoSingle from "./pages/DemoSingle";
 import WhatsAppOrder from "./pages/WhatsAppOrder";
+import UPIPayment from "./pages/UPIPayment";
 
 const queryClient = new QueryClient();
 
