@@ -68,18 +68,14 @@ export default function UPIPayment() {
         setSelectedProductId(productParam);
       }
 
-      // Fetch UPI settings
-      const { data: settings } = await supabase
-        .from("settings")
-        .select("key, value")
-        .in("key", ["upi_qr_image_url", "upi_id"]);
+      // Fetch UPI settings using public RPC
+      const [qrRes, upiIdRes] = await Promise.all([
+        supabase.rpc("get_public_setting", { setting_key: "upi_qr_image_url" }),
+        supabase.rpc("get_public_setting", { setting_key: "upi_id" }),
+      ]);
 
-      if (settings) {
-        settings.forEach((s) => {
-          if (s.key === "upi_qr_image_url" && s.value) setQrImageUrl(s.value);
-          if (s.key === "upi_id" && s.value) setUpiId(s.value);
-        });
-      }
+      if (qrRes.data) setQrImageUrl(qrRes.data);
+      if (upiIdRes.data) setUpiId(upiIdRes.data);
     };
     fetchData();
   }, [searchParams]);
