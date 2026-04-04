@@ -1,0 +1,1 @@
+ALTER TABLE public.upi_orders ADD COLUMN transaction_id text;

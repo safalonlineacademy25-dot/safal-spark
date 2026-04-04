@@ -669,6 +669,7 @@ export type Database = {
           product_price: number
           screenshot_url: string | null
           status: string
+          transaction_id: string | null
           updated_at: string
           whatsapp_optin: boolean | null
         }
@@ -686,6 +687,7 @@ export type Database = {
           product_price: number
           screenshot_url?: string | null
           status?: string
+          transaction_id?: string | null
           updated_at?: string
           whatsapp_optin?: boolean | null
         }
@@ -703,6 +705,7 @@ export type Database = {
           product_price?: number
           screenshot_url?: string | null
           status?: string
+          transaction_id?: string | null
           updated_at?: string
           whatsapp_optin?: boolean | null
         }
