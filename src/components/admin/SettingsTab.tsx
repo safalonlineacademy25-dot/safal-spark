@@ -437,6 +437,23 @@ const SettingsTab = () => {
     }
   };
 
+  const handleSaveUpiSettings = async () => {
+    if (!isSuperAdmin) {
+      toast.error('Permission denied', { description: 'Only Super Admins can modify settings.' });
+      return;
+    }
+    setSavingUpi(true);
+    try {
+      await upsertSetting('upi_qr_image_url', upiQrImageUrl);
+      await upsertSetting('upi_id', upiId);
+      toast.success('UPI settings saved');
+    } catch (error: any) {
+      toast.error('Failed to save UPI settings', { description: error.message });
+    } finally {
+      setSavingUpi(false);
+    }
+  };
+
   const handleSaveDeliverySettings = async () => {
     if (!isSuperAdmin) {
       toast.error('Permission denied', {
