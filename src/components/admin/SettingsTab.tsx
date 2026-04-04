@@ -137,7 +137,10 @@ const SettingsTab = () => {
   const [showResendWebhookSecret, setShowResendWebhookSecret] = useState(false);
   const [showWasimpleApiKey, setShowWasimpleApiKey] = useState(false);
 
-
+  // UPI Settings State
+  const [upiQrImageUrl, setUpiQrImageUrl] = useState('');
+  const [upiId, setUpiId] = useState('');
+  const [savingUpi, setSavingUpi] = useState(false);
 
 
   // Load admin users
