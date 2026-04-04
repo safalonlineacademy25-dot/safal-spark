@@ -19,6 +19,7 @@ import NotFound from "./pages/NotFound";
 import Demo from "./pages/Demo";
 import DemoSingle from "./pages/DemoSingle";
 import WhatsAppOrder from "./pages/WhatsAppOrder";
+import UPIPayment from "./pages/UPIPayment";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +45,7 @@ const App = () => (
             <Route path="/disclaimer" element={<Disclaimer />} />
             <Route path="/about" element={<AboutUs />} />
             <Route path="/order-whatsapp" element={<WhatsAppOrder />} />
+            <Route path="/pay-upi" element={<UPIPayment />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

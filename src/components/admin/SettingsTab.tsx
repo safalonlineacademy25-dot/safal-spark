@@ -137,7 +137,10 @@ const SettingsTab = () => {
   const [showResendWebhookSecret, setShowResendWebhookSecret] = useState(false);
   const [showWasimpleApiKey, setShowWasimpleApiKey] = useState(false);
 
-
+  // UPI Settings State
+  const [upiQrImageUrl, setUpiQrImageUrl] = useState('');
+  const [upiId, setUpiId] = useState('');
+  const [savingUpi, setSavingUpi] = useState(false);
 
 
   // Load admin users
@@ -220,6 +223,10 @@ const SettingsTab = () => {
 
         // Load signup setting
         setSignupEnabled(settingsMap['admin_signup_enabled'] !== 'false');
+
+        // Load UPI settings
+        setUpiQrImageUrl(settingsMap['upi_qr_image_url'] || '');
+        setUpiId(settingsMap['upi_id'] || '');
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
@@ -427,6 +434,23 @@ const SettingsTab = () => {
       });
     } finally {
       setSavingPayment(false);
+    }
+  };
+
+  const handleSaveUpiSettings = async () => {
+    if (!isSuperAdmin) {
+      toast.error('Permission denied', { description: 'Only Super Admins can modify settings.' });
+      return;
+    }
+    setSavingUpi(true);
+    try {
+      await upsertSetting('upi_qr_image_url', upiQrImageUrl);
+      await upsertSetting('upi_id', upiId);
+      toast.success('UPI settings saved');
+    } catch (error: any) {
+      toast.error('Failed to save UPI settings', { description: error.message });
+    } finally {
+      setSavingUpi(false);
     }
   };
 
@@ -827,6 +851,60 @@ const SettingsTab = () => {
               <Save className="h-4 w-4 mr-2" />
             )}
             {isSuperAdmin ? 'Save Payment Settings' : 'View Only'}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* UPI Scanner Settings */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <CreditCard className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle>UPI Scanner Settings</CardTitle>
+              <CardDescription>Configure UPI QR code for manual payment option</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>UPI QR Code Image URL</Label>
+            <Input
+              value={upiQrImageUrl}
+              onChange={(e) => setUpiQrImageUrl(e.target.value)}
+              placeholder="https://... (paste your QR code image URL)"
+              disabled={!isSuperAdmin}
+            />
+            <p className="text-xs text-muted-foreground">
+              Upload your UPI QR code image somewhere and paste the URL here. This will be shown to customers on the /pay-upi page.
+            </p>
+            {upiQrImageUrl && (
+              <div className="mt-2">
+                <img src={upiQrImageUrl} alt="UPI QR Preview" className="w-32 h-32 object-contain border rounded" />
+              </div>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label>UPI ID (Optional)</Label>
+            <Input
+              value={upiId}
+              onChange={(e) => setUpiId(e.target.value)}
+              placeholder="yourname@upi"
+              disabled={!isSuperAdmin}
+            />
+            <p className="text-xs text-muted-foreground">
+              Your UPI ID will be displayed below the QR code for manual entry.
+            </p>
+          </div>
+          <Button onClick={handleSaveUpiSettings} disabled={savingUpi || !isSuperAdmin}>
+            {savingUpi ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
+            {isSuperAdmin ? 'Save UPI Settings' : 'View Only'}
           </Button>
         </CardContent>
       </Card>

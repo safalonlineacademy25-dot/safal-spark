@@ -33,6 +33,7 @@ import {
   Send,
   Music,
   Activity,
+  QrCode,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -63,6 +64,7 @@ import ManualDownloadTab from '@/components/admin/ManualDownloadTab';
 import FailedEmailsTab from '@/components/admin/FailedEmailsTab';
 import CampaignMonitorTab from '@/components/admin/CampaignMonitorTab';
 import PaymentRemindersTab from '@/components/admin/PaymentRemindersTab';
+import UPIOrdersTab from '@/components/admin/UPIOrdersTab';
 import OrdersChart from '@/components/admin/OrdersChart';
 import { usePagination } from '@/hooks/usePagination';
 import { toast } from 'sonner';
@@ -232,6 +234,7 @@ const AdminDashboard = () => {
     // { id: 'broadcasts', label: 'Broadcast History', icon: History },
     // { id: 'promotions', label: 'Promotions', icon: Sparkles },
     { id: 'payment-reminders', label: 'Payment Reminders', icon: MessageCircle },
+    { id: 'upi-orders', label: 'UPI Orders', icon: QrCode },
     { id: 'campaigns', label: 'Combo Offers', icon: Gift },
     { id: 'campaign-monitor', label: 'Campaign Monitor', icon: Activity },
     { id: 'manual-download', label: 'Send Download', icon: FileDown },
@@ -1186,6 +1189,16 @@ const AdminDashboard = () => {
                 transition={{ duration: 0.4, ease: "easeOut" }}
               >
                 <PaymentRemindersTab orders={orders} isLoading={ordersLoading} />
+              </motion.div>
+            )}
+
+            {activeTab === 'upi-orders' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+              >
+                <UPIOrdersTab />
               </motion.div>
             )}
 
