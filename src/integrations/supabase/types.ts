@@ -654,6 +654,68 @@ export type Database = {
         }
         Relationships: []
       }
+      upi_orders: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          approved_by: string | null
+          created_at: string
+          customer_email: string
+          customer_name: string | null
+          customer_phone: string
+          id: string
+          product_id: string | null
+          product_name: string
+          product_price: number
+          screenshot_url: string | null
+          status: string
+          updated_at: string
+          whatsapp_optin: boolean | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          approved_by?: string | null
+          created_at?: string
+          customer_email: string
+          customer_name?: string | null
+          customer_phone: string
+          id?: string
+          product_id?: string | null
+          product_name: string
+          product_price: number
+          screenshot_url?: string | null
+          status?: string
+          updated_at?: string
+          whatsapp_optin?: boolean | null
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          approved_by?: string | null
+          created_at?: string
+          customer_email?: string
+          customer_name?: string | null
+          customer_phone?: string
+          id?: string
+          product_id?: string | null
+          product_name?: string
+          product_price?: number
+          screenshot_url?: string | null
+          status?: string
+          updated_at?: string
+          whatsapp_optin?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "upi_orders_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string | null
