@@ -141,6 +141,7 @@ const SettingsTab = () => {
   // UPI Settings State
   const [upiQrImageUrl, setUpiQrImageUrl] = useState('');
   const [upiId, setUpiId] = useState('');
+  const [upiApprovalEmail, setUpiApprovalEmail] = useState('');
   const [savingUpi, setSavingUpi] = useState(false);
   const { uploadImage, isUploading: isUploadingQr } = useImageUpload();
   const qrFileInputRef = useRef<HTMLInputElement>(null);
