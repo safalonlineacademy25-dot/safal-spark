@@ -242,6 +242,7 @@ const SettingsTab = () => {
         // Load UPI settings
         setUpiQrImageUrl(settingsMap['upi_qr_image_url'] || '');
         setUpiId(settingsMap['upi_id'] || '');
+        setUpiApprovalEmail(settingsMap['upi_approval_email'] || '');
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
@@ -461,6 +462,7 @@ const SettingsTab = () => {
     try {
       await upsertSetting('upi_qr_image_url', upiQrImageUrl);
       await upsertSetting('upi_id', upiId);
+      await upsertSetting('upi_approval_email', upiApprovalEmail);
       toast.success('UPI settings saved');
     } catch (error: any) {
       toast.error('Failed to save UPI settings', { description: error.message });
