@@ -654,6 +654,44 @@ export type Database = {
         }
         Relationships: []
       }
+      upi_approval_tokens: {
+        Row: {
+          action: string
+          created_at: string
+          expires_at: string
+          id: string
+          token: string
+          upi_order_id: string
+          used: boolean
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          token: string
+          upi_order_id: string
+          used?: boolean
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          token?: string
+          upi_order_id?: string
+          used?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "upi_approval_tokens_upi_order_id_fkey"
+            columns: ["upi_order_id"]
+            isOneToOne: false
+            referencedRelation: "upi_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       upi_orders: {
         Row: {
           admin_notes: string | null
