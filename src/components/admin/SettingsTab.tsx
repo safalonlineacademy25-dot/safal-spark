@@ -949,6 +949,19 @@ const SettingsTab = () => {
               Your UPI ID will be displayed below the QR code for manual entry.
             </p>
           </div>
+          <div className="space-y-2">
+            <Label>UPI Approval Email</Label>
+            <Input
+              type="email"
+              value={upiApprovalEmail}
+              onChange={(e) => setUpiApprovalEmail(e.target.value)}
+              placeholder="admin@example.com"
+              disabled={!isSuperAdmin}
+            />
+            <p className="text-xs text-muted-foreground">
+              When a UPI payment is submitted, an approval email with Approve/Reject links will be sent to this email. You can approve orders from your phone!
+            </p>
+          </div>
           <Button onClick={handleSaveUpiSettings} disabled={savingUpi || !isSuperAdmin}>
             {savingUpi ? (
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
