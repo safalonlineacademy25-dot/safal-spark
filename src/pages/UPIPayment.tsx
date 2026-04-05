@@ -91,10 +91,14 @@ export default function UPIPayment() {
     setSubmitting(true);
 
     try {
+      // Generate a UUID for the order so we can reference it
+      const upiOrderId = crypto.randomUUID();
+
       // Create UPI order entry
       const { error } = await supabase
         .from("upi_orders")
         .insert({
+          id: upiOrderId,
           customer_name: name.trim(),
           customer_email: email.trim().toLowerCase(),
           customer_phone: phone.trim(),
@@ -118,6 +122,23 @@ export default function UPIPayment() {
         });
       } catch (e) {
         console.error("Telegram notification failed:", e);
+      }
+
+      // Send approval email to admin
+      try {
+        await supabase.functions.invoke("send-upi-approval-email", {
+          body: {
+            upi_order_id: upiOrderId,
+            customer_name: name.trim(),
+            customer_email: email.trim().toLowerCase(),
+            customer_phone: phone.trim(),
+            product_name: product.name,
+            amount: product.price,
+            transaction_id: transactionId.trim(),
+          },
+        });
+      } catch (e) {
+        console.error("Approval email failed:", e);
       }
 
       setSubmitted(true);

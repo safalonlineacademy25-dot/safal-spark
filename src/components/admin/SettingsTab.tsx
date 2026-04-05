@@ -141,6 +141,7 @@ const SettingsTab = () => {
   // UPI Settings State
   const [upiQrImageUrl, setUpiQrImageUrl] = useState('');
   const [upiId, setUpiId] = useState('');
+  const [upiApprovalEmail, setUpiApprovalEmail] = useState('');
   const [savingUpi, setSavingUpi] = useState(false);
   const { uploadImage, isUploading: isUploadingQr } = useImageUpload();
   const qrFileInputRef = useRef<HTMLInputElement>(null);
@@ -241,6 +242,7 @@ const SettingsTab = () => {
         // Load UPI settings
         setUpiQrImageUrl(settingsMap['upi_qr_image_url'] || '');
         setUpiId(settingsMap['upi_id'] || '');
+        setUpiApprovalEmail(settingsMap['upi_approval_email'] || '');
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
@@ -460,6 +462,7 @@ const SettingsTab = () => {
     try {
       await upsertSetting('upi_qr_image_url', upiQrImageUrl);
       await upsertSetting('upi_id', upiId);
+      await upsertSetting('upi_approval_email', upiApprovalEmail);
       toast.success('UPI settings saved');
     } catch (error: any) {
       toast.error('Failed to save UPI settings', { description: error.message });
@@ -944,6 +947,19 @@ const SettingsTab = () => {
             />
             <p className="text-xs text-muted-foreground">
               Your UPI ID will be displayed below the QR code for manual entry.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label>UPI Approval Email</Label>
+            <Input
+              type="email"
+              value={upiApprovalEmail}
+              onChange={(e) => setUpiApprovalEmail(e.target.value)}
+              placeholder="admin@example.com"
+              disabled={!isSuperAdmin}
+            />
+            <p className="text-xs text-muted-foreground">
+              When a UPI payment is submitted, an approval email with Approve/Reject links will be sent to this email. You can approve orders from your phone!
             </p>
           </div>
           <Button onClick={handleSaveUpiSettings} disabled={savingUpi || !isSuperAdmin}>
