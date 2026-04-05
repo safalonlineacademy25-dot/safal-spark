@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   Users,
@@ -26,6 +26,7 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth, UserRole } from '@/hooks/useAuth';
+import { useImageUpload } from '@/hooks/useImageUpload';
 import {
   Card,
   CardContent,
@@ -141,6 +142,19 @@ const SettingsTab = () => {
   const [upiQrImageUrl, setUpiQrImageUrl] = useState('');
   const [upiId, setUpiId] = useState('');
   const [savingUpi, setSavingUpi] = useState(false);
+  const { uploadImage, isUploading: isUploadingQr } = useImageUpload();
+  const qrFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleQrImageSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = await uploadImage(file);
+    if (url) {
+      setUpiQrImageUrl(url);
+    }
+    // Reset input so same file can be re-selected
+    if (qrFileInputRef.current) qrFileInputRef.current.value = '';
+  }, [uploadImage]);
 
 
   // Load admin users
@@ -870,19 +884,53 @@ const SettingsTab = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>UPI QR Code Image URL</Label>
-            <Input
-              value={upiQrImageUrl}
-              onChange={(e) => setUpiQrImageUrl(e.target.value)}
-              placeholder="https://... (paste your QR code image URL)"
-              disabled={!isSuperAdmin}
-            />
+            <Label>UPI QR Code Image</Label>
+            <div className="flex gap-2">
+              <Input
+                value={upiQrImageUrl}
+                onChange={(e) => setUpiQrImageUrl(e.target.value)}
+                placeholder="https://... (paste URL or upload below)"
+                disabled={!isSuperAdmin}
+                className="flex-1"
+              />
+              <input
+                type="file"
+                ref={qrFileInputRef}
+                onChange={handleQrImageSelect}
+                accept="image/*"
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => qrFileInputRef.current?.click()}
+                disabled={!isSuperAdmin || isUploadingQr}
+              >
+                {isUploadingQr ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Upload className="h-4 w-4 mr-2" />
+                )}
+                {isUploadingQr ? 'Uploading...' : 'Upload'}
+              </Button>
+            </div>
             <p className="text-xs text-muted-foreground">
-              Upload your UPI QR code image somewhere and paste the URL here. This will be shown to customers on the /pay-upi page.
+              Upload your UPI QR code image or paste a URL. This will be shown to customers on the /pay-upi page.
             </p>
             {upiQrImageUrl && (
-              <div className="mt-2">
+              <div className="mt-2 relative inline-block">
                 <img src={upiQrImageUrl} alt="UPI QR Preview" className="w-32 h-32 object-contain border rounded" />
+                {isSuperAdmin && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute -top-2 -right-2 h-6 w-6"
+                    onClick={() => setUpiQrImageUrl('')}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                )}
               </div>
             )}
           </div>
