@@ -91,10 +91,14 @@ export default function UPIPayment() {
     setSubmitting(true);
 
     try {
+      // Generate a UUID for the order so we can reference it
+      const upiOrderId = crypto.randomUUID();
+
       // Create UPI order entry
       const { error } = await supabase
         .from("upi_orders")
         .insert({
+          id: upiOrderId,
           customer_name: name.trim(),
           customer_email: email.trim().toLowerCase(),
           customer_phone: phone.trim(),
