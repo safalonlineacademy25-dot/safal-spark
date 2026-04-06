@@ -142,6 +142,7 @@ export default function UPIPayment() {
       }
 
       setSubmitted(true);
+      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
     } catch (error: any) {
       toast({ title: "Submission failed", description: error.message || "Please try again.", variant: "destructive" });
     } finally {
