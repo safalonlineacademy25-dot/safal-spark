@@ -20,6 +20,7 @@ import Demo from "./pages/Demo";
 import DemoSingle from "./pages/DemoSingle";
 import WhatsAppOrder from "./pages/WhatsAppOrder";
 import UPIPayment from "./pages/UPIPayment";
+import ScrollToTop from "./components/ScrollToTop";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <ScrollToTop />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/products" element={<Products />} />
