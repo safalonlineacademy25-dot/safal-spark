@@ -75,6 +75,27 @@ serve(async (req) => {
       }
 
       // Maintenance tasks removed from daily summary for brevity
+    } else if (type === 'upi_order_submitted') {
+      const { customer_name, customer_email, customer_phone, product_name, amount, transaction_id } = data;
+      message = `🔔 *New UPI Payment Submitted*\n\n` +
+        `A customer has made a UPI payment and is awaiting approval.\n\n` +
+        `👤 Customer: ${customer_name || 'N/A'}\n` +
+        `📧 Email: ${customer_email}\n` +
+        `📱 Phone: ${customer_phone}\n` +
+        `📦 Product: ${product_name}\n` +
+        `💰 Amount: ₹${amount}\n` +
+        `🔢 Txn ID: ${transaction_id || 'N/A'}\n\n` +
+        `📩 Approval email has been sent. Please check your email to approve or reject this order.`;
+    } else if (type === 'upi_order_approved') {
+      const { order_number, customer_name, customer_email, product_name, amount, transaction_id } = data;
+      message = `✅ *UPI Order Approved*\n\n` +
+        `📋 Order: \`${order_number}\`\n` +
+        `👤 Customer: ${customer_name || 'N/A'}\n` +
+        `📧 Email: ${customer_email}\n` +
+        `📦 Product: ${product_name}\n` +
+        `💰 Amount: ₹${amount}\n` +
+        `🔢 Txn ID: ${transaction_id || 'N/A'}\n\n` +
+        `📨 Delivery pipeline triggered automatically.`;
     } else if (type === 'delivery_failed') {
       const { order_number, customer_email, failed_parts, total_emails, successful_emails } = data;
       message = `🚨 *Email Delivery Failed!*\n\n` +
