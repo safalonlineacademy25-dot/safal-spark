@@ -74,14 +74,7 @@ serve(async (req) => {
         message += `\n\n💾 *Database*\n• Size: ${db_size_mb} MB / 500 MB (${usagePercent}%)${warn}`;
       }
 
-      // Append cron job summary if available
-      if (cron_jobs && Array.isArray(cron_jobs) && cron_jobs.length > 0) {
-        message += `\n\n⚙️ *Maintenance Tasks*`;
-        for (const job of cron_jobs) {
-          const statusIcon = job.is_active ? '✅' : '❌';
-          message += `\n${statusIcon} \`${job.job_name}\` — ${job.description}`;
-        }
-      }
+      // Maintenance tasks removed from daily summary for brevity
     } else if (type === 'delivery_failed') {
       const { order_number, customer_email, failed_parts, total_emails, successful_emails } = data;
       message = `🚨 *Email Delivery Failed!*\n\n` +
