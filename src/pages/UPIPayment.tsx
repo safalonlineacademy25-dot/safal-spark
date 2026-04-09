@@ -117,7 +117,15 @@ export default function UPIPayment() {
       try {
         await supabase.functions.invoke("send-telegram-notification", {
           body: {
-            message: `🔔 *New UPI Payment Received*\n\n👤 ${name.trim()}\n📧 ${email.trim()}\n📱 ${phone.trim()}\n📦 ${product.name}\n💰 ₹${product.price}\n🔢 Txn ID: ${transactionId.trim()}\n\n⏳ Pending admin approval`,
+            type: 'upi_order_submitted',
+            data: {
+              customer_name: name.trim(),
+              customer_email: email.trim(),
+              customer_phone: phone.trim(),
+              product_name: product.name,
+              amount: product.price,
+              transaction_id: transactionId.trim(),
+            },
           },
         });
       } catch (e) {

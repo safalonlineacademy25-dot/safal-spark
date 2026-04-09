@@ -188,7 +188,15 @@ serve(async (req) => {
           'Authorization': `Bearer ${supabaseServiceKey}`,
         },
         body: JSON.stringify({
-          message: `✅ *UPI Order Approved*\n\n📋 Order: ${orderNumber}\n👤 ${upiOrder.customer_name || 'N/A'}\n📧 ${upiOrder.customer_email}\n📦 ${upiOrder.product_name}\n💰 ₹${upiOrder.amount}\n🔢 Txn ID: ${upiOrder.transaction_id || 'N/A'}\n\n📨 Delivery pipeline triggered`,
+          type: 'upi_order_approved',
+          data: {
+            order_number: orderNumber,
+            customer_name: upiOrder.customer_name,
+            customer_email: upiOrder.customer_email,
+            product_name: upiOrder.product_name,
+            amount: upiOrder.amount,
+            transaction_id: upiOrder.transaction_id,
+          },
         }),
       }).catch(err => console.error('Telegram error:', err));
     } catch (e) {
