@@ -24,9 +24,11 @@ const getImageUrl = (url: string | null): string | null => {
 };
 
 const Products = () => {
+  const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const { data: products, isLoading, error } = useActiveProducts();
   const addItem = useCartStore((state) => state.addItem);
+  const clearCart = useCartStore((state) => state.clearCart);
   const items = useCartStore((state) => state.items);
   const { toast } = useToast();
 
