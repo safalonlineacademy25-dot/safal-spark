@@ -34,8 +34,10 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const ProductsSection = () => {
+  const navigate = useNavigate();
   const { data: products, isLoading, error } = useActiveProducts();
   const addItem = useCartStore((state) => state.addItem);
+  const clearCart = useCartStore((state) => state.clearCart);
   const items = useCartStore((state) => state.items);
   const { toast } = useToast();
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -92,6 +94,12 @@ const ProductsSection = () => {
       title: 'Added to cart!',
       description: `${product.name} has been added to your cart.`,
     });
+  };
+
+  const handleBuyNow = (product: Product) => {
+    clearCart();
+    addItem(product);
+    navigate(`/cart?add=${product.id}`);
   };
 
   const cardVariants = {
