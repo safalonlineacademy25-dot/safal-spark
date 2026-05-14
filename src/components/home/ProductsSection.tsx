@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ShoppingCart, Check, Download, Star, Loader2 } from 'lucide-react';
+import { ShoppingCart, Check, Download, Star, Loader2, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/lib/store';
 import { useToast } from '@/hooks/use-toast';
@@ -33,8 +34,10 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const ProductsSection = () => {
+  const navigate = useNavigate();
   const { data: products, isLoading, error } = useActiveProducts();
   const addItem = useCartStore((state) => state.addItem);
+  const clearCart = useCartStore((state) => state.clearCart);
   const items = useCartStore((state) => state.items);
   const { toast } = useToast();
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -91,6 +94,12 @@ const ProductsSection = () => {
       title: 'Added to cart!',
       description: `${product.name} has been added to your cart.`,
     });
+  };
+
+  const handleBuyNow = (product: Product) => {
+    clearCart();
+    addItem(product);
+    navigate(`/cart?add=${product.id}`);
   };
 
   const cardVariants = {
@@ -266,7 +275,7 @@ const ProductsSection = () => {
                     </div>
 
                     {/* Price & CTA */}
-                    <div className="flex items-end justify-between gap-4 pt-4 border-t border-border">
+                    <div className="flex items-end justify-between gap-3 pt-4 border-t border-border">
                       <div>
                         <div className="flex items-baseline gap-2">
                           <span className="text-2xl font-bold price-text">
@@ -284,27 +293,36 @@ const ProductsSection = () => {
                           </span>
                         )}
                       </div>
-                      <Button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAddToCart(product);
-                        }}
-                        variant={isInCart(product.id) ? 'secondary' : 'default'}
-                        size="sm"
-                        className="relative z-10"
-                      >
-                        {isInCart(product.id) ? (
-                          <>
-                            <Check className="h-4 w-4 mr-1" />
-                            Added
-                          </>
-                        ) : (
-                          <>
-                            <ShoppingCart className="h-4 w-4 mr-1" />
-                            Add to Cart
-                          </>
-                        )}
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAddToCart(product);
+                          }}
+                          variant={isInCart(product.id) ? 'secondary' : 'outline'}
+                          size="sm"
+                          className="relative z-10"
+                          title={isInCart(product.id) ? 'Already in cart' : 'Add to cart'}
+                        >
+                          {isInCart(product.id) ? (
+                            <Check className="h-4 w-4" />
+                          ) : (
+                            <ShoppingCart className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleBuyNow(product);
+                          }}
+                          variant="default"
+                          size="sm"
+                          className="relative z-10 gap-1"
+                        >
+                          <Zap className="h-3.5 w-3.5" />
+                          Buy Now
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>

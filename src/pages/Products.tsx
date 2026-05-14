@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
-import { ShoppingCart, Check, Download, Star, Filter, Loader2 } from 'lucide-react';
+import { ShoppingCart, Check, Download, Star, Filter, Loader2, Zap } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
@@ -23,9 +24,11 @@ const getImageUrl = (url: string | null): string | null => {
 };
 
 const Products = () => {
+  const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const { data: products, isLoading, error } = useActiveProducts();
   const addItem = useCartStore((state) => state.addItem);
+  const clearCart = useCartStore((state) => state.clearCart);
   const items = useCartStore((state) => state.items);
   const { toast } = useToast();
 
@@ -78,6 +81,12 @@ const Products = () => {
       title: 'Added to cart!',
       description: `${product.name} has been added to your cart.`,
     });
+  };
+
+  const handleBuyNow = (product: Product) => {
+    clearCart();
+    addItem(product);
+    navigate(`/cart?add=${product.id}`);
   };
 
   return (
@@ -216,7 +225,7 @@ const Products = () => {
                         </div>
 
                         {/* Price & CTA */}
-                        <div className="flex items-end justify-between gap-4 pt-4 border-t border-border">
+                        <div className="flex items-end justify-between gap-3 pt-4 border-t border-border">
                           <div>
                             <div className="flex items-baseline gap-2">
                               <span className="text-2xl font-bold price-text">
@@ -234,23 +243,29 @@ const Products = () => {
                               </span>
                             )}
                           </div>
-                          <Button
-                            onClick={() => handleAddToCart(product)}
-                            variant={isInCart(product.id) ? 'secondary' : 'default'}
-                            size="sm"
-                          >
-                            {isInCart(product.id) ? (
-                              <>
-                                <Check className="h-4 w-4 mr-1" />
-                                Added
-                              </>
-                            ) : (
-                              <>
-                                <ShoppingCart className="h-4 w-4 mr-1" />
-                                Add to Cart
-                              </>
-                            )}
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              onClick={() => handleAddToCart(product)}
+                              variant={isInCart(product.id) ? 'secondary' : 'outline'}
+                              size="sm"
+                              title={isInCart(product.id) ? 'Already in cart' : 'Add to cart'}
+                            >
+                              {isInCart(product.id) ? (
+                                <Check className="h-4 w-4" />
+                              ) : (
+                                <ShoppingCart className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              onClick={() => handleBuyNow(product)}
+                              variant="default"
+                              size="sm"
+                              className="gap-1"
+                            >
+                              <Zap className="h-3.5 w-3.5" />
+                              Buy Now
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </div>
