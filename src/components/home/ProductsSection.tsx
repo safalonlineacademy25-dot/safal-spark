@@ -275,7 +275,7 @@ const ProductsSection = () => {
                     </div>
 
                     {/* Price & CTA */}
-                    <div className="flex items-end justify-between gap-4 pt-4 border-t border-border">
+                    <div className="flex items-end justify-between gap-3 pt-4 border-t border-border">
                       <div>
                         <div className="flex items-baseline gap-2">
                           <span className="text-2xl font-bold price-text">
@@ -293,27 +293,36 @@ const ProductsSection = () => {
                           </span>
                         )}
                       </div>
-                      <Button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAddToCart(product);
-                        }}
-                        variant={isInCart(product.id) ? 'secondary' : 'default'}
-                        size="sm"
-                        className="relative z-10"
-                      >
-                        {isInCart(product.id) ? (
-                          <>
-                            <Check className="h-4 w-4 mr-1" />
-                            Added
-                          </>
-                        ) : (
-                          <>
-                            <ShoppingCart className="h-4 w-4 mr-1" />
-                            Add to Cart
-                          </>
-                        )}
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAddToCart(product);
+                          }}
+                          variant={isInCart(product.id) ? 'secondary' : 'outline'}
+                          size="sm"
+                          className="relative z-10"
+                          title={isInCart(product.id) ? 'Already in cart' : 'Add to cart'}
+                        >
+                          {isInCart(product.id) ? (
+                            <Check className="h-4 w-4" />
+                          ) : (
+                            <ShoppingCart className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleBuyNow(product);
+                          }}
+                          variant="default"
+                          size="sm"
+                          className="relative z-10 gap-1"
+                        >
+                          <Zap className="h-3.5 w-3.5" />
+                          Buy Now
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
