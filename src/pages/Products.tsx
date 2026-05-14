@@ -83,6 +83,12 @@ const Products = () => {
     });
   };
 
+  const handleBuyNow = (product: Product) => {
+    clearCart();
+    addItem(product);
+    navigate(`/cart?add=${product.id}`);
+  };
+
   return (
     <>
       <Helmet>
