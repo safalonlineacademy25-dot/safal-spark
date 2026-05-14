@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ShoppingCart, Check, Download, Star, Loader2 } from 'lucide-react';
+import { ShoppingCart, Check, Download, Star, Loader2, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/lib/store';
 import { useToast } from '@/hooks/use-toast';
