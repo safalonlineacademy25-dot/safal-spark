@@ -96,6 +96,26 @@ serve(async (req) => {
         `💰 Amount: ₹${amount}\n` +
         `🔢 Txn ID: ${transaction_id || 'N/A'}\n\n` +
         `📨 Delivery pipeline triggered automatically.`;
+    } else if (type === 'hardcopy_order_paid') {
+      const { order_number, product_name, amount, customer_name, customer_phone, customer_email, address } = data;
+      message = `📚 *New Book/Hard Copy Order Paid*\n\n` +
+        `📋 Order: \`${order_number}\`\n` +
+        `📦 Item: ${product_name}\n` +
+        `💰 Amount: ₹${amount}\n\n` +
+        `👤 Customer: ${customer_name || 'N/A'}\n` +
+        `📱 Phone: ${customer_phone}\n` +
+        `📧 Email: ${customer_email}\n\n` +
+        `🏠 Ship to:\n${address}\n\n` +
+        `📦 Please pack and dispatch via courier/post, then mark as Shipped in admin.`;
+    } else if (type === 'hardcopy_order_shipped') {
+      const { order_number, product_name, customer_name, courier_name, tracking_id } = data;
+      message = `🚚 *Book Order Shipped*\n\n` +
+        `📋 Order: \`${order_number}\`\n` +
+        `📦 Item: ${product_name}\n` +
+        `👤 Customer: ${customer_name || 'N/A'}\n` +
+        `🚛 Courier: ${courier_name}\n` +
+        `🔢 Tracking: \`${tracking_id}\`\n\n` +
+        `📲 Customer notified via WhatsApp.`;
     } else if (type === 'delivery_failed') {
       const { order_number, customer_email, failed_parts, total_emails, successful_emails } = data;
       message = `🚨 *Email Delivery Failed!*\n\n` +
