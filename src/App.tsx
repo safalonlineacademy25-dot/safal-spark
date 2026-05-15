@@ -20,6 +20,8 @@ import Demo from "./pages/Demo";
 import DemoSingle from "./pages/DemoSingle";
 import WhatsAppOrder from "./pages/WhatsAppOrder";
 import UPIPayment from "./pages/UPIPayment";
+import Books from "./pages/Books";
+import BookOrderSuccess from "./pages/BookOrderSuccess";
 import ScrollToTop from "./components/ScrollToTop";
 
 const queryClient = new QueryClient();

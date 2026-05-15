@@ -278,6 +278,162 @@ export type Database = {
           },
         ]
       }
+      hard_copy_orders: {
+        Row: {
+          address_line1: string
+          address_line2: string | null
+          admin_notes: string | null
+          city: string
+          courier_name: string | null
+          created_at: string | null
+          currency: string | null
+          customer_email: string
+          customer_name: string
+          customer_phone: string
+          delivered_at: string | null
+          id: string
+          landmark: string | null
+          order_number: string
+          payment_status: string
+          pincode: string
+          product_id: string | null
+          product_name: string
+          product_price: number
+          quantity: number
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
+          razorpay_signature: string | null
+          shipped_at: string | null
+          state: string
+          status: string
+          total_amount: number
+          tracking_id: string | null
+          updated_at: string | null
+          whatsapp_optin: boolean | null
+        }
+        Insert: {
+          address_line1: string
+          address_line2?: string | null
+          admin_notes?: string | null
+          city: string
+          courier_name?: string | null
+          created_at?: string | null
+          currency?: string | null
+          customer_email: string
+          customer_name: string
+          customer_phone: string
+          delivered_at?: string | null
+          id?: string
+          landmark?: string | null
+          order_number: string
+          payment_status?: string
+          pincode: string
+          product_id?: string | null
+          product_name: string
+          product_price: number
+          quantity?: number
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          razorpay_signature?: string | null
+          shipped_at?: string | null
+          state: string
+          status?: string
+          total_amount: number
+          tracking_id?: string | null
+          updated_at?: string | null
+          whatsapp_optin?: boolean | null
+        }
+        Update: {
+          address_line1?: string
+          address_line2?: string | null
+          admin_notes?: string | null
+          city?: string
+          courier_name?: string | null
+          created_at?: string | null
+          currency?: string | null
+          customer_email?: string
+          customer_name?: string
+          customer_phone?: string
+          delivered_at?: string | null
+          id?: string
+          landmark?: string | null
+          order_number?: string
+          payment_status?: string
+          pincode?: string
+          product_id?: string | null
+          product_name?: string
+          product_price?: number
+          quantity?: number
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          razorpay_signature?: string | null
+          shipped_at?: string | null
+          state?: string
+          status?: string
+          total_amount?: number
+          tracking_id?: string | null
+          updated_at?: string | null
+          whatsapp_optin?: boolean | null
+        }
+        Relationships: []
+      }
+      hard_copy_products: {
+        Row: {
+          badge: string | null
+          category: string
+          created_at: string | null
+          description: string | null
+          features: string[] | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          name: string
+          original_price: number | null
+          price: number
+          seo_description: string | null
+          seo_title: string | null
+          show_on_ui: boolean | null
+          updated_at: string | null
+          weight_grams: number | null
+        }
+        Insert: {
+          badge?: string | null
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          features?: string[] | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name: string
+          original_price?: number | null
+          price: number
+          seo_description?: string | null
+          seo_title?: string | null
+          show_on_ui?: boolean | null
+          updated_at?: string | null
+          weight_grams?: number | null
+        }
+        Update: {
+          badge?: string | null
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          features?: string[] | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name?: string
+          original_price?: number | null
+          price?: number
+          seo_description?: string | null
+          seo_title?: string | null
+          show_on_ui?: boolean | null
+          updated_at?: string | null
+          weight_grams?: number | null
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string | null
