@@ -141,27 +141,139 @@ const Books = () => {
 
       <Header hideCartButton />
 
-      <main className="flex-1 container-custom py-10 md:py-14">
-        {/* Hero */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-10 max-w-3xl mx-auto"
-        >
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
-            <BookOpen className="h-4 w-4" /> Hard Copy / Books
-          </div>
-          <h1 className="text-3xl md:text-5xl font-bold mb-3">
-            Printed Books, <span className="text-gradient">Delivered Home</span>
-          </h1>
-          <p className="text-muted-foreground text-base md:text-lg">
-            Get our study notes and books as printed copies, shipped to your address by courier or post — all across India.
-          </p>
-          <div className="flex items-center justify-center gap-6 mt-5 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1.5"><Truck className="h-4 w-4 text-primary" /> Delivered to your doorstep</span>
-            <span className="flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-primary" /> Secure UPI / Card payment</span>
-          </div>
-        </motion.div>
+      {/* Corporate Hero Banner */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary/95 to-primary/90">
+        {/* Animated gradient orbs */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <motion.div
+            className="absolute -top-20 -right-20 w-72 h-72 md:w-96 md:h-96 rounded-full"
+            style={{ background: 'radial-gradient(circle, hsl(160 84% 39% / 0.18) 0%, transparent 70%)' }}
+            animate={{ x: [0, 30, -20, 0], y: [0, -20, 15, 0], scale: [1, 1.1, 0.95, 1] }}
+            transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <motion.div
+            className="absolute -bottom-32 -left-20 w-80 h-80 md:w-[28rem] md:h-[28rem] rounded-full"
+            style={{ background: 'radial-gradient(circle, hsl(221 83% 70% / 0.14) 0%, transparent 70%)' }}
+            animate={{ x: [0, -25, 20, 0], y: [0, 25, -15, 0], scale: [1, 0.95, 1.1, 1] }}
+            transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+          />
+        </div>
 
+        {/* Subtle grid */}
+        <div className="absolute inset-0 opacity-[0.04]" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h40v40H0z' fill='none'/%3E%3Cpath d='M0 20h40M20 0v40' stroke='%23fff' stroke-width='0.5'/%3E%3C/svg%3E")`,
+        }} />
+
+        <div className="relative container-custom py-10 md:py-14">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+            className="max-w-4xl mx-auto text-center"
+          >
+            <motion.div
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 mb-4"
+              whileHover={{ scale: 1.05 }}
+            >
+              <motion.div animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 2, repeat: Infinity }}>
+                <Sparkles className="h-3.5 w-3.5 text-secondary" />
+              </motion.div>
+              <span className="text-xs font-semibold text-primary-foreground tracking-wide">
+                Printed Books & Hard Copy Notes — Pan India Delivery
+              </span>
+            </motion.div>
+
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-primary-foreground leading-tight tracking-tight mb-3">
+              Premium Study Material,
+              <span className="block mt-1"
+                style={{
+                  background: 'linear-gradient(135deg, hsl(160 84% 55%), hsl(120 70% 60%))',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  filter: 'drop-shadow(0 2px 8px hsl(160 84% 39% / 0.3))',
+                }}
+              >
+                Delivered to Your Doorstep
+              </span>
+            </h1>
+            <p className="text-sm md:text-base text-white/80 max-w-2xl mx-auto mb-6">
+              Quality printed books and hard copy notes for MPSC, Banking, SSC & more — couriered safely across India with free shipping.
+            </p>
+
+            {/* Floating book icons row */}
+            <motion.div className="flex items-center justify-center gap-5 md:gap-8 my-4">
+              {[
+                { Icon: BookOpen, label: 'Books' },
+                { Icon: FileText, label: 'Notes' },
+                { Icon: Award, label: 'Quality' },
+              ].map((item, index) => {
+                const floatY = index === 1 ? [-5, 5, -5] : [5, -5, 5];
+                return (
+                  <motion.div
+                    key={index}
+                    className="relative"
+                    initial={{ opacity: 0, y: 20, scale: 0.85 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ delay: 0.3 + index * 0.15, duration: 0.5 }}
+                  >
+                    <motion.div
+                      animate={{ y: floatY }}
+                      transition={{ duration: 5 + index * 0.8, repeat: Infinity, ease: 'easeInOut', delay: index * 0.4 }}
+                      whileHover={{ scale: 1.15, y: -8 }}
+                    >
+                      <motion.div
+                        className="absolute -inset-1.5 rounded-2xl"
+                        style={{ background: 'linear-gradient(135deg, hsl(160 84% 39% / 0.3), hsl(221 83% 53% / 0.3))', filter: 'blur(6px)' }}
+                        animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.08, 1] }}
+                        transition={{ duration: 3, repeat: Infinity, delay: index * 0.4 }}
+                      />
+                      <div className="relative w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-white/15 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-lg">
+                        <item.Icon className="h-7 w-7 md:h-8 md:w-8 text-white" />
+                      </div>
+                      <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 bg-white rounded-full shadow-md whitespace-nowrap">
+                        <span className="text-[10px] font-bold text-primary">{item.label}</span>
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+
+            {/* Trust badges */}
+            <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3 mt-7">
+              {[
+                { Icon: Truck, text: 'Free Doorstep Delivery' },
+                { Icon: ShieldCheck, text: 'Secure UPI / Card Payment' },
+                { Icon: Package, text: 'Tracked Shipping' },
+              ].map((t, i) => (
+                <motion.div
+                  key={i}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 rounded-full border border-white/10 backdrop-blur-sm"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.8 + i * 0.1 }}
+                  whileHover={{ backgroundColor: 'rgba(255,255,255,0.12)', scale: 1.05 }}
+                >
+                  <div className="w-5 h-5 rounded-full bg-secondary/20 flex items-center justify-center">
+                    <t.Icon className="h-3 w-3 text-secondary" />
+                  </div>
+                  <span className="text-xs font-medium text-primary-foreground">{t.text}</span>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Wave separator */}
+        <div className="absolute bottom-0 left-0 right-0">
+          <svg viewBox="0 0 1440 50" fill="none" className="w-full h-auto" preserveAspectRatio="none">
+            <path
+              d="M0 50L48 46C96 42 192 34 288 30C384 26 480 26 576 28C672 30 768 34 864 35C960 36 1056 34 1152 30C1248 26 1344 26 1392 26L1440 26V50H0Z"
+              fill="hsl(var(--background))"
+            />
+          </svg>
+        </div>
+      </section>
+
+      <main className="flex-1 container-custom py-10 md:py-14">
         {/* Book Grid */}
         {loading ? (
           <div className="flex items-center justify-center py-20">
