@@ -22,6 +22,7 @@ const Header = ({ hideCartButton = false }: HeaderProps) => {
   const navLinks = [
     { href: '/', label: 'Home' },
     { href: '/products', label: 'Products' },
+    { href: '/books', label: 'Books' },
     { href: '/demo', label: 'Demo' },
     { href: '/#how-it-works', label: 'How It Works', isAnchor: true },
     { href: '/#faq', label: 'FAQ', isAnchor: true },
