@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
-import { BookOpen, Truck, Loader2, ShieldCheck, Package } from 'lucide-react';
+import { BookOpen, Truck, Loader2, ShieldCheck, Package, Sparkles, FileText, Headphones, Award, IndianRupee } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
