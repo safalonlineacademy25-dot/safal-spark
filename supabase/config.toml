@@ -74,3 +74,12 @@ verify_jwt = false
 
 [functions.razorpay-webhook]
 verify_jwt = false
+
+[functions.create-hardcopy-order]
+verify_jwt = false
+
+[functions.verify-hardcopy-payment]
+verify_jwt = false
+
+[functions.ship-hardcopy-order]
+verify_jwt = false
