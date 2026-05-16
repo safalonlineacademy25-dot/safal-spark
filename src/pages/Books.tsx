@@ -139,7 +139,7 @@ const Books = () => {
         <link rel="canonical" href="https://safalonlinesolutions.com/books" />
       </Helmet>
 
-      <Header />
+      <Header hideCartButton />
 
       <main className="flex-1 container-custom py-10 md:py-14">
         {/* Hero */}
