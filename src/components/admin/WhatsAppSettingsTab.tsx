@@ -93,6 +93,8 @@ const WhatsAppSettingsTab = () => {
           broadcastTemplateName: map['whatsapp_broadcast_template_name'] || '',
           promotionTemplateName: map['whatsapp_promotion_template_name'] || '',
           paymentReminderTemplateName: map['whatsapp_payment_reminder_template'] || '',
+          hardcopyOrderTemplateName: map['whatsapp_hardcopy_order_template'] || '',
+          hardcopyShippedTemplateName: map['whatsapp_hardcopy_shipped_template'] || '',
           downloadMediaUrl: map['whatsapp_download_media_url'] || '',
         });
       }
