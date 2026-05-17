@@ -272,6 +272,18 @@ const WhatsAppSettingsTab = () => {
                 <Input id="payment-reminder-template" placeholder="e.g. payment_reminder" value={settings.paymentReminderTemplateName} onChange={(e) => setSettings(prev => ({ ...prev, paymentReminderTemplateName: e.target.value }))} disabled={!isSuperAdmin} />
                 <p className="text-xs text-muted-foreground">Used for reminding customers about failed/pending payments. Variables: customer_name, customer_email</p>
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="hardcopy-order-template">Hard Copy Order Confirmation Template</Label>
+                <Input id="hardcopy-order-template" placeholder="e.g. hardcopy_order_confirmed" value={settings.hardcopyOrderTemplateName} onChange={(e) => setSettings(prev => ({ ...prev, hardcopyOrderTemplateName: e.target.value }))} disabled={!isSuperAdmin} />
+                <p className="text-xs text-muted-foreground">Sent when a book order is paid/confirmed. Variables: {"{{1}}"}=Name, {"{{2}}"}=Order #, {"{{3}}"}=Product</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="hardcopy-shipped-template">Hard Copy Shipped Template</Label>
+                <Input id="hardcopy-shipped-template" placeholder="e.g. hardcopy_shipped" value={settings.hardcopyShippedTemplateName} onChange={(e) => setSettings(prev => ({ ...prev, hardcopyShippedTemplateName: e.target.value }))} disabled={!isSuperAdmin} />
+                <p className="text-xs text-muted-foreground">Sent when a book is shipped. Variables: {"{{1}}"}=Name, {"{{2}}"}=Product, {"{{3}}"}=Courier, {"{{4}}"}=Tracking ID</p>
+              </div>
             </div>
           </div>
 
