@@ -142,7 +142,7 @@ const Books = () => {
       <Header hideCartButton />
 
       {/* Corporate Hero Banner */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary/95 to-primary/90">
+      <section className="relative overflow-hidden bg-gradient-to-br from-[hsl(160,40%,16%)] via-[hsl(175,35%,22%)] to-[hsl(215,40%,20%)]">
         {/* Animated gradient orbs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <motion.div
