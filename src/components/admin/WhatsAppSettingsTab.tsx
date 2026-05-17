@@ -128,6 +128,8 @@ const WhatsAppSettingsTab = () => {
         { key: 'whatsapp_broadcast_template_name', value: settings.broadcastTemplateName },
         { key: 'whatsapp_promotion_template_name', value: settings.promotionTemplateName },
         { key: 'whatsapp_payment_reminder_template', value: settings.paymentReminderTemplateName },
+        { key: 'whatsapp_hardcopy_order_template', value: settings.hardcopyOrderTemplateName },
+        { key: 'whatsapp_hardcopy_shipped_template', value: settings.hardcopyShippedTemplateName },
         { key: 'whatsapp_download_media_url', value: settings.downloadMediaUrl },
       ];
       for (const s of settingsToSave) {
