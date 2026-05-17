@@ -58,6 +58,8 @@ const WhatsAppSettingsTab = () => {
     broadcastTemplateName: '',
     promotionTemplateName: '',
     paymentReminderTemplateName: '',
+    hardcopyOrderTemplateName: '',
+    hardcopyShippedTemplateName: '',
     downloadMediaUrl: '',
   });
   const [saving, setSaving] = useState(false);
