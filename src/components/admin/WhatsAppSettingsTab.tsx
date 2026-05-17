@@ -38,6 +38,8 @@ interface WhatsAppSettings {
   broadcastTemplateName: string;
   promotionTemplateName: string;
   paymentReminderTemplateName: string;
+  hardcopyOrderTemplateName: string;
+  hardcopyShippedTemplateName: string;
   downloadMediaUrl: string;
 }
 
