@@ -118,6 +118,44 @@ serve(async (req) => {
       body: JSON.stringify(telegramPayload),
     }).catch(err => console.error('Telegram notify failed:', err));
 
+    // Fire-and-forget: WhatsApp order confirmation to customer
+    if (updated.whatsapp_optin !== false) {
+      (async () => {
+        try {
+          const apiKey = settings['wasimple_api_key'] || '';
+          const phoneId = settings['wasimple_phone_id'] || '';
+          const templateName = settings['whatsapp_hardcopy_order_template'] || '';
+          const whatsappEnabled = settings['whatsapp_enabled'] !== 'false';
+          if (!whatsappEnabled || !apiKey || !phoneId || !templateName) {
+            console.warn('Hardcopy order WhatsApp not configured; skipping');
+            return;
+          }
+          let p = String(updated.customer_phone).replace(/\D/g, '');
+          if (p.startsWith('0')) p = '91' + p.substring(1);
+          if (p.length === 10) p = '91' + p;
+          const url = `https://app.wasimple.in/api/v1/whatsapp/sendMessage?phoneId=${encodeURIComponent(phoneId)}&apiKey=${encodeURIComponent(apiKey)}`;
+          const body = {
+            templateName, language: 'en', to: p,
+            templateVariables: [
+              updated.customer_name || 'Customer',
+              updated.order_number,
+              updated.product_name,
+            ],
+          };
+          const r = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', accept: 'application/json', 'x-phone-id': phoneId },
+            body: JSON.stringify(body),
+          });
+          const j = await r.json().catch(() => ({}));
+          if (!r.ok || j?.error) console.error('Hardcopy order WA send failed:', j?.error?.message || j?.message || r.status);
+          else console.log('✅ Hardcopy order WhatsApp sent');
+        } catch (e: any) {
+          console.error('Hardcopy order WA exception:', e?.message);
+        }
+      })();
+    }
+
     return new Response(JSON.stringify({
       success: true,
       order_number: updated.order_number,
