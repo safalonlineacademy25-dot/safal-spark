@@ -34,7 +34,8 @@ import {
   Music,
   Activity,
   QrCode,
-} from 'lucide-react';
+  Truck,
+
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useAuth, signOut } from '@/hooks/useAuth';
