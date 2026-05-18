@@ -307,12 +307,12 @@ export default function CourierExportTab() {
                       <div className="text-muted-foreground">{format(new Date(o.created_at), 'dd MMM')}</div>
                     </TableCell>
                     <TableCell className="text-xs">
-                      <div className="font-medium">{o.customer_name}</div>
+                      <div className="font-medium">{toTitleCase(o.customer_name)}</div>
                       <div className="text-muted-foreground">{o.customer_phone}</div>
                     </TableCell>
                     <TableCell className="text-xs max-w-[280px]">
-                      <div>{o.address_line1}{o.address_line2 ? `, ${o.address_line2}` : ''}</div>
-                      <div className="text-muted-foreground">{o.city}, {o.state} - {o.pincode}</div>
+                      <div>{toTitleCase(o.address_line1)}{o.address_line2 ? `, ${toTitleCase(o.address_line2)}` : ''}</div>
+                      <div className="text-muted-foreground">{toTitleCase(o.city)}, {toTitleCase(o.state)} - {o.pincode}</div>
                     </TableCell>
                     <TableCell className="text-xs">{o.product_name} × {o.quantity}</TableCell>
                     <TableCell>
