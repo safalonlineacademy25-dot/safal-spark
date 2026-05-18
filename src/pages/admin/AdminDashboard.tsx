@@ -240,6 +240,7 @@ const AdminDashboard = () => {
     { id: 'upi-orders', label: 'UPI Orders', icon: QrCode },
     { id: 'hardcopy-products', label: 'Books / Hard Copies', icon: BookOpen },
     { id: 'hardcopy-orders', label: 'Book Orders', icon: Package },
+    { id: 'courier-export', label: 'Courier Export', icon: Truck },
     { id: 'campaigns', label: 'Combo Offers', icon: Gift },
     { id: 'campaign-monitor', label: 'Campaign Monitor', icon: Activity },
     { id: 'manual-download', label: 'Send Download', icon: FileDown },
