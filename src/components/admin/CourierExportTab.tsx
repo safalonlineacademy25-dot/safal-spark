@@ -12,6 +12,15 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { FileDown, FileText, Truck, RefreshCw, Loader2 } from 'lucide-react';
 
+function toTitleCase(str: string | null | undefined): string {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .split(/\s+/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
 interface HCOrder {
   id: string;
   order_number: string;
