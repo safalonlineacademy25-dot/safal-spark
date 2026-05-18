@@ -34,6 +34,7 @@ import {
   Music,
   Activity,
   QrCode,
+  Truck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -67,6 +68,7 @@ import PaymentRemindersTab from '@/components/admin/PaymentRemindersTab';
 import UPIOrdersTab from '@/components/admin/UPIOrdersTab';
 import HardCopyProductsTab from '@/components/admin/HardCopyProductsTab';
 import HardCopyOrdersTab from '@/components/admin/HardCopyOrdersTab';
+import CourierExportTab from '@/components/admin/CourierExportTab';
 import OrdersChart from '@/components/admin/OrdersChart';
 import { usePagination } from '@/hooks/usePagination';
 import { toast } from 'sonner';
@@ -239,6 +241,7 @@ const AdminDashboard = () => {
     { id: 'upi-orders', label: 'UPI Orders', icon: QrCode },
     { id: 'hardcopy-products', label: 'Books / Hard Copies', icon: BookOpen },
     { id: 'hardcopy-orders', label: 'Book Orders', icon: Package },
+    { id: 'courier-export', label: 'Courier Export', icon: Truck },
     { id: 'campaigns', label: 'Combo Offers', icon: Gift },
     { id: 'campaign-monitor', label: 'Campaign Monitor', icon: Activity },
     { id: 'manual-download', label: 'Send Download', icon: FileDown },
@@ -1223,6 +1226,16 @@ const AdminDashboard = () => {
                 transition={{ duration: 0.4, ease: "easeOut" }}
               >
                 <HardCopyOrdersTab />
+              </motion.div>
+            )}
+
+            {activeTab === 'courier-export' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+              >
+                <CourierExportTab />
               </motion.div>
             )}
 
