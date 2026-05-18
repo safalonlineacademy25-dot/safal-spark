@@ -176,11 +176,11 @@ export default function CourierExportTab() {
         </div>
         <div class="to">
           <div class="muted">DELIVER TO:</div>
-          <div class="name">${o.customer_name}</div>
-          <div>${o.address_line1}</div>
-          ${o.address_line2 ? `<div>${o.address_line2}</div>` : ''}
-          ${o.landmark ? `<div>Landmark: ${o.landmark}</div>` : ''}
-          <div>${o.city}, ${o.state} - <strong>${o.pincode}</strong></div>
+          <div class="name">${toTitleCase(o.customer_name)}</div>
+          <div>${toTitleCase(o.address_line1)}</div>
+          ${o.address_line2 ? `<div>${toTitleCase(o.address_line2)}</div>` : ''}
+          ${o.landmark ? `<div>Landmark: ${toTitleCase(o.landmark)}</div>` : ''}
+          <div>${toTitleCase(o.city)}, ${toTitleCase(o.state)} - <strong>${o.pincode}</strong></div>
           <div class="phone">📞 ${o.customer_phone}</div>
         </div>
         <div class="ftr">
