@@ -35,7 +35,7 @@ import {
   Activity,
   QrCode,
   Truck,
-
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useAuth, signOut } from '@/hooks/useAuth';
