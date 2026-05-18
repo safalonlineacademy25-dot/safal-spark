@@ -12,6 +12,15 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { FileDown, FileText, Truck, RefreshCw, Loader2 } from 'lucide-react';
 
+function toTitleCase(str: string | null | undefined): string {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .split(/\s+/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
 interface HCOrder {
   id: string;
   order_number: string;
@@ -124,14 +133,14 @@ export default function CourierExportTab() {
       lines.push([
         o.order_number,
         format(new Date(o.created_at), 'yyyy-MM-dd'),
-        o.customer_name,
+        toTitleCase(o.customer_name),
         o.customer_phone,
         o.customer_email,
-        o.address_line1,
-        o.address_line2 || '',
-        o.landmark || '',
-        o.city,
-        o.state,
+        toTitleCase(o.address_line1),
+        toTitleCase(o.address_line2),
+        toTitleCase(o.landmark),
+        toTitleCase(o.city),
+        toTitleCase(o.state),
         o.pincode,
         o.product_name,
         o.quantity,
@@ -167,11 +176,11 @@ export default function CourierExportTab() {
         </div>
         <div class="to">
           <div class="muted">DELIVER TO:</div>
-          <div class="name">${o.customer_name}</div>
-          <div>${o.address_line1}</div>
-          ${o.address_line2 ? `<div>${o.address_line2}</div>` : ''}
-          ${o.landmark ? `<div>Landmark: ${o.landmark}</div>` : ''}
-          <div>${o.city}, ${o.state} - <strong>${o.pincode}</strong></div>
+          <div class="name">${toTitleCase(o.customer_name)}</div>
+          <div>${toTitleCase(o.address_line1)}</div>
+          ${o.address_line2 ? `<div>${toTitleCase(o.address_line2)}</div>` : ''}
+          ${o.landmark ? `<div>Landmark: ${toTitleCase(o.landmark)}</div>` : ''}
+          <div>${toTitleCase(o.city)}, ${toTitleCase(o.state)} - <strong>${o.pincode}</strong></div>
           <div class="phone">📞 ${o.customer_phone}</div>
         </div>
         <div class="ftr">
@@ -298,12 +307,12 @@ export default function CourierExportTab() {
                       <div className="text-muted-foreground">{format(new Date(o.created_at), 'dd MMM')}</div>
                     </TableCell>
                     <TableCell className="text-xs">
-                      <div className="font-medium">{o.customer_name}</div>
+                      <div className="font-medium">{toTitleCase(o.customer_name)}</div>
                       <div className="text-muted-foreground">{o.customer_phone}</div>
                     </TableCell>
                     <TableCell className="text-xs max-w-[280px]">
-                      <div>{o.address_line1}{o.address_line2 ? `, ${o.address_line2}` : ''}</div>
-                      <div className="text-muted-foreground">{o.city}, {o.state} - {o.pincode}</div>
+                      <div>{toTitleCase(o.address_line1)}{o.address_line2 ? `, ${toTitleCase(o.address_line2)}` : ''}</div>
+                      <div className="text-muted-foreground">{toTitleCase(o.city)}, {toTitleCase(o.state)} - {o.pincode}</div>
                     </TableCell>
                     <TableCell className="text-xs">{o.product_name} × {o.quantity}</TableCell>
                     <TableCell>
