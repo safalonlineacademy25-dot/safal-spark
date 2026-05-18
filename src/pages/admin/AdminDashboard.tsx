@@ -67,6 +67,7 @@ import PaymentRemindersTab from '@/components/admin/PaymentRemindersTab';
 import UPIOrdersTab from '@/components/admin/UPIOrdersTab';
 import HardCopyProductsTab from '@/components/admin/HardCopyProductsTab';
 import HardCopyOrdersTab from '@/components/admin/HardCopyOrdersTab';
+import CourierExportTab from '@/components/admin/CourierExportTab';
 import OrdersChart from '@/components/admin/OrdersChart';
 import { usePagination } from '@/hooks/usePagination';
 import { toast } from 'sonner';
