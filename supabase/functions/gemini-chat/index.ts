@@ -35,8 +35,24 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    const apiKey = Deno.env.get('GEMINI_API_KEY');
+    // Prefer key from settings table, fall back to env
+    let apiKey = '';
+    try {
+      const supaUrl = Deno.env.get('SUPABASE_URL');
+      const supaKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      if (supaUrl && supaKey) {
+        const r = await fetch(`${supaUrl}/rest/v1/settings?key=eq.gemini_api_key&select=value`, {
+          headers: { apikey: supaKey, Authorization: `Bearer ${supaKey}` },
+        });
+        if (r.ok) {
+          const rows = await r.json();
+          if (Array.isArray(rows) && rows[0]?.value) apiKey = String(rows[0].value).trim();
+        }
+      }
+    } catch (_) { /* ignore, fall back */ }
+    if (!apiKey) apiKey = Deno.env.get('GEMINI_API_KEY') || '';
     if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
+
 
     const { messages } = await req.json();
     if (!Array.isArray(messages) || messages.length === 0) {
