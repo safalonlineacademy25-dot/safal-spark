@@ -249,6 +249,9 @@ const SettingsTab = () => {
         setUpiQrImageUrl(settingsMap['upi_qr_image_url'] || '');
         setUpiId(settingsMap['upi_id'] || '');
         setUpiApprovalEmail(settingsMap['upi_approval_email'] || '');
+
+        // Load Gemini AI settings
+        setGeminiApiKey(settingsMap['gemini_api_key'] || '');
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
