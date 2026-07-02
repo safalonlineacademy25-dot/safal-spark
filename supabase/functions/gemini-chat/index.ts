@@ -51,7 +51,7 @@ serve(async (req) => {
         parts: [{ text: String(m.content || '').slice(0, 4000) }],
       }));
 
-    const model = 'gemini-1.5-flash-latest';
+    const model = 'gemini-2.5-flash';
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
     const resp = await fetch(url, {
