@@ -146,6 +146,12 @@ const SettingsTab = () => {
   const { uploadImage, isUploading: isUploadingQr } = useImageUpload();
   const qrFileInputRef = useRef<HTMLInputElement>(null);
 
+  // Gemini AI Settings
+  const [geminiApiKey, setGeminiApiKey] = useState('');
+  const [showGeminiKey, setShowGeminiKey] = useState(false);
+  const [savingGemini, setSavingGemini] = useState(false);
+
+
   const handleQrImageSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -243,6 +249,9 @@ const SettingsTab = () => {
         setUpiQrImageUrl(settingsMap['upi_qr_image_url'] || '');
         setUpiId(settingsMap['upi_id'] || '');
         setUpiApprovalEmail(settingsMap['upi_approval_email'] || '');
+
+        // Load Gemini AI settings
+        setGeminiApiKey(settingsMap['gemini_api_key'] || '');
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
@@ -973,7 +982,69 @@ const SettingsTab = () => {
         </CardContent>
       </Card>
 
+      {/* Gemini AI Chatbot Settings */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <MessageCircle className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle>AI Chatbot (Google Gemini)</CardTitle>
+              <CardDescription>API key for the study assistant chatbot on the website</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="gemini-api-key">Gemini API Key</Label>
+            <div className="relative">
+              <Input
+                id="gemini-api-key"
+                type={showGeminiKey ? 'text' : 'password'}
+                placeholder="AI...your Google AI Studio key"
+                value={geminiApiKey}
+                onChange={(e) => setGeminiApiKey(e.target.value)}
+                disabled={!isSuperAdmin}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                onClick={() => setShowGeminiKey(!showGeminiKey)}
+              >
+                {showGeminiKey ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google AI Studio</a>. Used by the chatbot (model: gemini-2.5-flash). Overrides the environment variable when set.
+            </p>
+          </div>
+
+          <Button
+            onClick={async () => {
+              if (!isSuperAdmin) return;
+              setSavingGemini(true);
+              try {
+                await upsertSetting('gemini_api_key', geminiApiKey.trim());
+                toast.success('Gemini API key saved');
+              } catch (e: any) {
+                toast.error('Failed to save', { description: e.message });
+              } finally {
+                setSavingGemini(false);
+              }
+            }}
+            disabled={savingGemini || !isSuperAdmin}
+          >
+            {savingGemini ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+            {isSuperAdmin ? 'Save Gemini Settings' : 'View Only'}
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* WhatsApp & Telegram settings moved to separate tabs */}
+
 
       {/* Confirm Remove Admin Dialog */}
       <AlertDialog open={!!adminToRemove} onOpenChange={() => setAdminToRemove(null)}>
