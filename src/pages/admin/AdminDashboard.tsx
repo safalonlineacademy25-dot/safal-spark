@@ -70,6 +70,7 @@ import HardCopyProductsTab from '@/components/admin/HardCopyProductsTab';
 import HardCopyOrdersTab from '@/components/admin/HardCopyOrdersTab';
 import CourierExportTab from '@/components/admin/CourierExportTab';
 import OrdersChart from '@/components/admin/OrdersChart';
+import AdminAgentTab from '@/components/admin/AdminAgentTab';
 import { usePagination } from '@/hooks/usePagination';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
