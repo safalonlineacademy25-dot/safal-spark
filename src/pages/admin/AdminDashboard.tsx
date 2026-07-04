@@ -35,6 +35,7 @@ import {
   Activity,
   QrCode,
   Truck,
+  Bot,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -70,6 +71,7 @@ import HardCopyProductsTab from '@/components/admin/HardCopyProductsTab';
 import HardCopyOrdersTab from '@/components/admin/HardCopyOrdersTab';
 import CourierExportTab from '@/components/admin/CourierExportTab';
 import OrdersChart from '@/components/admin/OrdersChart';
+import AdminAgentTab from '@/components/admin/AdminAgentTab';
 import { usePagination } from '@/hooks/usePagination';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -225,6 +227,7 @@ const AdminDashboard = () => {
 
   const sidebarItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'ai-agent', label: 'AI Agent', icon: Bot },
     { id: 'products', label: 'Products', icon: Package },
     { id: 'orders', label: 'Orders', icon: ShoppingCart },
     // HIDDEN MENUS - Uncomment below lines to restore:
@@ -1511,6 +1514,7 @@ const AdminDashboard = () => {
             {activeTab === 'settings' && <SettingsTab />}
             {activeTab === 'whatsapp-settings' && <WhatsAppSettingsTab />}
             {activeTab === 'telegram-settings' && <TelegramSettingsTab />}
+            {activeTab === 'ai-agent' && <AdminAgentTab />}
           </div>
         </main>
       </div>
