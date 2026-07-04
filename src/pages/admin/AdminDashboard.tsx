@@ -1514,6 +1514,7 @@ const AdminDashboard = () => {
             {activeTab === 'settings' && <SettingsTab />}
             {activeTab === 'whatsapp-settings' && <WhatsAppSettingsTab />}
             {activeTab === 'telegram-settings' && <TelegramSettingsTab />}
+            {activeTab === 'ai-agent' && <AdminAgentTab />}
           </div>
         </main>
       </div>
