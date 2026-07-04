@@ -226,6 +226,7 @@ const AdminDashboard = () => {
 
   const sidebarItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'ai-agent', label: 'AI Agent', icon: Bot },
     { id: 'products', label: 'Products', icon: Package },
     { id: 'orders', label: 'Orders', icon: ShoppingCart },
     // HIDDEN MENUS - Uncomment below lines to restore:
