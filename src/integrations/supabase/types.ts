@@ -14,6 +14,132 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_checkpoints: {
+        Row: {
+          checkpoint: Json
+          thread_id: string
+          updated_at: string
+        }
+        Insert: {
+          checkpoint: Json
+          thread_id: string
+          updated_at?: string
+        }
+        Update: {
+          checkpoint?: Json
+          thread_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_checkpoints_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: true
+            referencedRelation: "agent_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          role: string
+          thread_id: string
+          tool_calls: Json | null
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          id?: string
+          role: string
+          thread_id: string
+          tool_calls?: Json | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          thread_id?: string
+          tool_calls?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "agent_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_pending_approvals: {
+        Row: {
+          created_at: string
+          id: string
+          resolved_at: string | null
+          status: string
+          summary: string
+          thread_id: string
+          tool_args: Json
+          tool_name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          resolved_at?: string | null
+          status?: string
+          summary: string
+          thread_id: string
+          tool_args: Json
+          tool_name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          resolved_at?: string | null
+          status?: string
+          summary?: string
+          thread_id?: string
+          tool_args?: Json
+          tool_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_pending_approvals_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "agent_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_threads: {
+        Row: {
+          admin_user_id: string
+          created_at: string
+          id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          admin_user_id: string
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_user_id?: string
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       broadcast_logs: {
         Row: {
           category: string
