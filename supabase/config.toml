@@ -83,3 +83,6 @@ verify_jwt = false
 
 [functions.ship-hardcopy-order]
 verify_jwt = false
+
+[functions.mcp]
+verify_jwt = false
