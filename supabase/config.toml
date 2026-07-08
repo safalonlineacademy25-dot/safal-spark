@@ -86,3 +86,12 @@ verify_jwt = false
 
 [functions.mcp]
 verify_jwt = false
+
+[functions.admin-get-order]
+verify_jwt = false
+
+[functions.admin-list-recent-orders]
+verify_jwt = false
+
+[functions.admin-sales-summary]
+verify_jwt = false
